@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Claude.ai</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700&display=swap" rel="stylesheet"> 
+</head>
+<body>
+  <header>
+    <div class="container">
+      <a href="#" class="logo">Claude.ai</a>
+    </div>
+  </header>
+
+  <section id="home">
+    <div class="container">
+      <h1>Your AI Companion</h1>
+      <p>Experience the future of AI-powered assistance.</p>
+      <a href="{{ url_for('generate') }}" class="btn">Get Started</a>
+    </div>
+  </section>
+
+  <section id="contact">
+    <div class="container">
+      <h2>Get in Touch</h2>
+      <a href="https://www.youtube.com/?themeRefresh=1" class="btn contact-btn">Contact</a>
+    </div>
+  </section>
+</body>
+</html>

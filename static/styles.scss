@@ -1,0 +1,84 @@
+body {
+  font-family: 'Poppins', sans-serif;
+  margin: 0;
+  line-height: 1.6;
+  background-color: #f8f8f8;
+  color: #333;
+}
+
+.container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+header {
+  padding: 2rem 0;
+}
+
+.logo {
+  font-size: 2rem;
+  font-weight: bold;
+  text-decoration: none;
+  color: #007bff;
+}
+
+#home {
+  padding: 6rem 0;
+}
+
+#home h1 {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.btn {
+  display: inline-block;
+  background-color: #007bff; /* Blue */
+  color: white;
+  padding: 1rem 2rem;
+  border-radius: 5px;
+  text-decoration: none;
+  font-weight: 500;
+  transition: background-color 0.3s ease;
+}
+
+.btn:hover {
+  background-color: #0056b3; /* Darker blue on hover */
+}
+
+#contact {
+  padding: 4rem 0;
+}
+
+#contact form {
+  display: flex; 
+  flex-direction: column; 
+  align-items: center;
+  gap: 1rem; 
+}
+
+#contact input[type="email"] {
+  padding: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  width: 100%; 
+  max-width: 300px; 
+  box-sizing: border-box; 
+}
+
+.contact-btn {
+  padding: 0.5rem 1rem; 
+  font-size: 0.9rem;
+  background-color: #28a745; /* Green */
+  color: white;
+  border-radius: 5px;         /* Add border radius */
+  text-decoration: none;     
+  font-weight: 500;
+  transition: background-color 0.3s ease; /* Add hover transition */
+}
+
+.contact-btn:hover {
+background-color: #218838; /* Darker green on hover */
+}
