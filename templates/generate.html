@@ -3,63 +3,203 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document Generator</title>
+    <title>StudyDoc Generator</title>
     <style>
-        /* Your existing styles here */
+        /* Color Palette */
+        :root {
+            --primary-color: #2c3e50; /* Dark Blue */
+            --secondary-color: #e74c3c; /* Red */
+            --background-color: #ecf0f1; /* Light Gray */
+            --text-color: #34495e; /* Dark Gray */
+            --white: #FFFFFF;
+        }
+
+        /* Basic Page Layout */
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            background-color: var(--background-color);
+            color: var(--text-color);
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: var(--white);
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        /* Header Styles */
+        .header {
+            background-color: var(--primary-color);
+            color: var(--white);
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        /* Main Content Styles */
+        .main-content {
+            display: flex;
+            flex: 1;
+        }
+
+        /* Left Section Styles */
+        .left-section {
+            width: 30%;
+            padding: 2rem;
+            border-right: 1px solid #bdc3c7;
+        }
+
+        .left-section h2 {
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+            text-transform: uppercase;
+        }
+
+        /* Form Styles */
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            margin-top: 1rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        input[type="text"],
+        select {
+            padding: 0.5rem;
+            margin-top: 0.5rem;
+            border: 1px solid #bdc3c7;
+            border-radius: 4px;
+        }
+
+        input[type="submit"] {
+            margin-top: 1rem;
+            padding: 0.5rem 1rem;
+            background-color: var(--secondary-color);
+            color: var(--white);
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        input[type="submit"]:hover {
+            background-color: #c0392b;
+        }
+
+        /* Right Section Styles */
+        .right-section {
+            width: 70%;
+            padding: 2rem;
+        }
+
+        .right-section h2 {
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 0.5rem;
+        }
+
+        #documentContent {
+            background-color: var(--white);
+            padding: 1rem;
+            border: 1px solid #bdc3c7;
+            border-radius: 4px;
+            min-height: 300px;
+        }
+
+        /* Footer Styles */
+        .footer {
+            background-color: var(--primary-color);
+            color: var(--white);
+            text-align: center;
+            padding: 1rem;
+            font-size: 0.8rem;
+        }
     </style>
 </head>
 <body>
-  <div class="container">
-    <div class="sidebar">
-      <h2>Document Settings</h2>
-      <form id="documentSettingsForm" action="/generate" method="post">
-        <label for="topic">Topic:</label><br>
-        <input type="text" id="topic" name="topic" value="한국 여자"><br><br>
-        <label for="language">Language:</label><br>
-        <input type="text" id="language" name="language" value="Korean"><br><br>
-        <label for="target">Target:</label><br>
-        <input type="text" id="target" name="target" value="는 것"><br><br>
-        <label for="level">Level:</label><br>
-        <select id="level" name="level">
-          <option value="Beginner">Beginner</option>
-          <option value="Intermediate">Intermediate</option>
-          <option value="Advanced" selected>Advanced</option>
-        </select><br><br>
-        <input type="submit" value="Generate Document">
-      </form>
-    </div>
+    <div class="container">
+        <header class="header">
+            <div class="logo">📚 StudyDoc Generator</div>
+        </header>
 
-    <div class="main-content">
-      <div class="document-view" id="documentContent">
-        <div class="welcome-message">
-          <h1>Welcome!</h1>
-          <p>Update the settings and click "Generate Document" to start.</p>
+        <div class="main-content">
+            <div class="left-section">
+                <h2>Document Settings</h2>
+                <form id="documentSettingsForm" action="/generate" method="post">
+                    <label for="topic">Topic:</label>
+                    <input type="text" id="topic" name="topic" value="한국 여자">
+
+                    <label for="language">Language:</label>
+                    <input type="text" id="language" name="language" value="Korean">
+
+                    <label for="target">Target:</label>
+                    <input type="text" id="target" name="target" value="는 것">
+
+                    <label for="level">Level:</label>
+                    <select id="level" name="level">
+                        <option value="Beginner">Beginner</option>
+                        <option value="Intermediate">Intermediate</option>
+                        <option value="Advanced" selected>Advanced</option>
+                    </select>
+
+                    <input type="submit" value="Generate Document">
+                </form>
+            </div>
+
+            <div class="right-section">
+                <h2>Generated Document</h2>
+                <div id="documentContent">
+                    <p>Your generated document will appear here...</p>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  </div>
 
-  <script>
-    document.getElementById('documentSettingsForm').addEventListener('submit', function(e) {
-      e.preventDefault();
-      
-      fetch('/generate', {
-        method: 'POST',
-        body: new FormData(this),
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          document.getElementById('documentContent').innerHTML = '<pre>' + data.content + '</pre>';
-        } else {
-          document.getElementById('documentContent').innerHTML = '<p>Error: ' + data.error + '</p>';
-        }
-      })
-      .catch(error => {
-        console.error('Error:', error);
-        document.getElementById('documentContent').innerHTML = '<p>An error occurred. Please try again.</p>';
-      });
-    });
-  </script>
+        <footer class="footer">
+            © 2024 StudyDoc Generator. All rights reserved.
+        </footer>
+    </div>
+
+    <script>
+        document.getElementById('documentSettingsForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            fetch('/generate', {
+                method: 'POST',
+                body: new FormData(this),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('documentContent').innerHTML = '<pre>' + data.content + '</pre>';
+                } else {
+                    document.getElementById('documentContent').innerHTML = '<p>Error: ' + data.error + '</p>';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('documentContent').innerHTML = '<p>An error occurred. Please try again.</p>';
+            });
+        });
+    </script>
 </body>
 </html>
