@@ -96,6 +96,7 @@ def generate_content(topic, language, target, level):
 
 if __name__ == '__main__':
     app.run(debug=True)
+    
 # from flask import Flask, render_template, request, jsonify
 # import google.generativeai as genai
 # from google.api_core.exceptions import GoogleAPIError

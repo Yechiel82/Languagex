@@ -1,144 +1,219 @@
-# from config import API_KEY
-# import google.generativeai as genai
-# import os
+# <!DOCTYPE html>
+# <html lang="en">
+# <head>
+#     <meta charset="UTF-8">
+#     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+#     <title>StudyDoc Generator</title>
+#     <style>
+#       :root {
+#           --background-color: #f7f7f9;
+#           --sidebar-color: #ffffff;
+#           --text-color: #333333;
+#           --accent-color: #f36;
+#           --border-color: #e0e0e0;
+#       }
 
-# genai.configure(api_key=os.environ["API_KEY])
+#       body {
+#           font-family: 'Arial', sans-serif;
+#           line-height: 1.6;
+#           background-color: var(--background-color);
+#           color: var(--text-color);
+#           margin: 0;
+#           padding: 0;
+#           display: flex;
+#       }
 
-# model = genai.GenerativeModel('gemini-1.5-flash')
-# response = model.generate_content("Write a story about an AI and magic")
-# print(response.text)
-# # <!DOCTYPE html>
-# # <html lang="en">
-# # <head>
-# #     <meta charset="UTF-8">
-# #     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-# #     <title>Document Generator</title>
-# #     <style>
-# #         /* Basic Page Layout */
-# #         body, html {
-# #             margin: 0;
-# #             padding: 0;
-# #             height: 100%;
-# #             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Common web-safe font */
-# #             line-height: 1.6; /* Improves readability */
-# #         }
+#       .sidebar {
+#           width: 250px;
+#           background-color: var(--sidebar-color);
+#           padding: 20px;
+#           height: 100vh;
+#           border-right: 1px solid var(--border-color);
+#       }
 
-# #         .container {
-# #             display: flex;
-# #             min-height: 100vh; 
-# #             background: #f4f4f4; 
-# #         }
+#       .main-content {
+#           flex: 1;
+#           padding: 20px;
+#           max-width: 800px;
+#           margin: 0 auto;
+#       }
 
-# #         /* Sidebar Styles */
-# #         .sidebar {
-# #             width: 300px; 
-# #             padding: 20px;
-# #             background: #fff;
-# #             box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1); 
-# #         }
+#       .logo {
+#           font-size: 24px;
+#           font-weight: bold;
+#           margin-bottom: 20px;
+#           display: flex;
+#           align-items: center;
+#       }
 
-# #         .sidebar h2 {
-# #             font-size: 1.5rem;
-# #             margin-bottom: 20px;
-# #             color: #333;
-# #         }
+#       .logo-icon {
+#           background-color: #000;
+#           color: #fff;
+#           width: 30px;
+#           height: 30px;
+#           display: flex;
+#           align-items: center;
+#           justify-content: center;
+#           border-radius: 8px;
+#           margin-right: 10px;
+#       }
 
-# #         /* Form Styles */
-# #         .sidebar form {
-# #             display: flex;
-# #             flex-direction: column; 
-# #         }
+#       .new-chat {
+#           background-color: #fff;
+#           border: 1px solid var(--border-color);
+#           border-radius: 20px;
+#           padding: 10px 15px;
+#           margin-bottom: 20px;
+#           cursor: pointer;
+#       }
 
-# #         .sidebar label {
-# #             font-weight: 500; 
-# #             margin-bottom: 5px;
-# #         }
+#       h2 {
+#           font-size: 14px;
+#           color: #888;
+#           margin-bottom: 10px;
+#       }
 
-# #         .sidebar input[type="text"],
-# #         .sidebar select {
-# #             padding: 10px;
-# #             border: 1px solid #ddd;
-# #             border-radius: 4px;
-# #             margin-bottom: 15px;
-# #         }
+#       .chat-history {
+#           list-style-type: none;
+#           padding: 0;
+#       }
 
-# #         .sidebar input[type="submit"] {
-# #             background-color: #007bff; /* Bootstrap blue */
-# #             color: white;
-# #             padding: 10px 15px;
-# #             border: none;
-# #             border-radius: 4px;
-# #             cursor: pointer;
-# #         }
+#       .chat-history li {
+#           margin-bottom: 10px;
+#           cursor: pointer;
+#       }
 
-# #         .sidebar input[type="submit"]:hover {
-# #             background-color: #0069d9; /* Darker blue on hover */
-# #         }
+#       .input-area {
+#           position: fixed;
+#           bottom: 20px;
+#           left: 270px;
+#           right: 20px;
+#           display: flex;
+#           align-items: center;
+#       }
 
-# #         /* Main Content Area */
-# #         .main-content {
-# #             flex: 1;
-# #             padding: 30px;
-# #         }
+#       #userInput {
+#           flex: 1;
+#           padding: 10px 15px;
+#           border: 1px solid var(--border-color);
+#           border-radius: 20px;
+#           font-size: 16px;
+#       }
 
-# #         .document-view {
-# #             background: #fff;
-# #             padding: 20px;
-# #             border-radius: 8px;
-# #             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-# #         }
+#       .send-button {
+#           background-color: var(--accent-color);
+#           color: white;
+#           border: none;
+#           border-radius: 50%;
+#           width: 40px;
+#           height: 40px;
+#           margin-left: 10px;
+#           cursor: pointer;
+#           display: flex;
+#           align-items: center;
+#           justify-content: center;
+#       }
 
-# #         .welcome-message {
-# #             text-align: center;
-# #             padding-top: 100px; 
-# #         }
+#       .message {
+#           background-color: #fff;
+#           border-radius: 10px;
+#           padding: 15px;
+#           margin-bottom: 20px;
+#       }
 
-# #         .welcome-message h1 {
-# #             font-size: 2.5rem;
-# #             margin-bottom: 15px;
-# #         }
+#       .user-message {
+#           background-color: #f0f0f0;
+#       }
 
-# #         .welcome-message p {
-# #             font-size: 1.2rem;
-# #             color: #555;
-# #         }
-# #     </style>
-# # </head>
-# # <body>
+#       .ai-message {
+#           background-color: #fff;
+#       }
 
-# #   <div class="container">
-# #     <div class="sidebar">
-# #       <h2>Document Settings</h2>
-# #       <form id="documentSettingsForm">
-# #         <label for="topic">Topic:</label><br>
-# #         <input type="text" id="topic" name="topic" value="한국 여자"><br><br>
-# #         <label for="language">Language:</label><br>
-# #         <input type="text" id="language" name="language" value="Korean"><br><br>
-# #         <label for="target">Target:</label><br>
-# #         <input type="text" id="target" name="target" value="는 것"><br><br>
-# #         <label for="level">Level:</label><br>
-# #         <select id="level" name="level">
-# #           <option value="Beginner">Beginner</option>
-# #           <option value="Intermediate">Intermediate</option>
-# #           <option value="Advanced" selected>Advanced</option>
-# #         </select><br><br>
-# #         <input type="submit" value="Generate Document">
-# #       </form>
-# #     </div>
+#       .ai-icon {
+#           background-color: #000;
+#           color: #fff;
+#           width: 30px;
+#           height: 30px;
+#           display: inline-flex;
+#           align-items: center;
+#           justify-content: center;
+#           border-radius: 8px;
+#           margin-right: 10px;
+#       }
+#   </style>
+# </head>
+# <body>
+#     <div class="sidebar">
+#         <div class="logo">
+#             <span class="logo-icon">"</span>
+#             StudyDoc
+#         </div>
+#         <div class="new-chat">+ New Chat</div>
+#         <h2>This Month (July)</h2>
+#         <ul class="chat-history">
+#             <li>How can I create a visualization...</li>
+#             <li>What software or tools do...</li>
+#             <li>Can you provide tips for...</li>
+#         </ul>
+#     </div>
 
-# #     <div class="main-content">
-# #       <div class="document-view" id="documentContent">
-# #         <div class="welcome-message">
-# #           <h1>Welcome!</h1>
-# #           <p>Update the settings and click "Generate Document" to start.</p>
-# #         </div>
-# #       </div>
-# #     </div>
-# #   </div>
+#     <div class="main-content">
+#         <div id="chatContent"></div>
+#     </div>
 
+#     <div class="input-area">
+#         <input type="text" id="userInput" placeholder="Send a new message">
+#         <button class="send-button" onclick="sendMessage()">➤</button>
+#     </div>
 
+#     <script>
+#         function sendMessage() {
+#             const userInput = document.getElementById('userInput');
+#             const chatContent = document.getElementById('chatContent');
+            
+#             // Add user message
+#             const userMessage = document.createElement('div');
+#             userMessage.className = 'message user-message';
+#             userMessage.textContent = userInput.value;
+#             chatContent.appendChild(userMessage);
+            
+#             // Create FormData object
+#             const formData = new FormData();
+#             formData.append('message', userInput.value);
+            
+#             // Send request to the server
+#             fetch('/generate', {
+#                 method: 'POST',
+#                 body: formData,
+#             })
+#             .then(response => response.json())
+#             .then(data => {
+#                 const aiMessage = document.createElement('div');
+#                 aiMessage.className = 'message ai-message';
+#                 if (data.success) {
+#                     aiMessage.innerHTML = '<span class="ai-icon">"</span><pre>' + data.content + '</pre>';
+#                 } else {
+#                     aiMessage.innerHTML = '<span class="ai-icon">"</span><p>Error: ' + data.error + '</p>';
+#                 }
+#                 chatContent.appendChild(aiMessage);
+#             })
+#             .catch(error => {
+#                 console.error('Error:', error);
+#                 const errorMessage = document.createElement('div');
+#                 errorMessage.className = 'message ai-message';
+#                 errorMessage.innerHTML = '<span class="ai-icon">"</span><p>An error occurred. Please try again.</p>';
+#                 chatContent.appendChild(errorMessage);
+#             });
+            
+#             userInput.value = '';
+#         }
 
-    
-    
-# # </body>
-# # </html>
+#         // Add event listener for Enter key in the input field
+#         document.getElementById('userInput').addEventListener('keypress', function(e) {
+#             if (e.key === 'Enter') {
+#                 sendMessage();
+#             }
+#         });
+#     </script>
+# </body>
+# </html>
