@@ -41,7 +41,6 @@ def index():
     return render_template('index.html')
 
 @app.route('/generate', methods=['POST', 'GET'])
-@app.route('/generate', methods=['POST', 'GET'])
 def generate():
     if request.method == "POST":
         try:
@@ -70,9 +69,49 @@ def generate_content(topic, language, target, level):
         
         # Model Selection
         model = genai.GenerativeModel('gemini-pro')
-        
+        Language = language
+        Level = level
+        Topic = topic
+        Target = target
         # Prompt Generation
-        prompt = f"Write a document in {language} for {level} learners about {topic}, focusing on {target}."
+        prompt = f"""
+        You are an {Language} language teacher creating a worksheet for {Level} {Language} learners.
+        1. Generate 5 fill-in-the-blank sentences about {Topic} with a focus on {Target}. Include hint words in the context to help learners correctly use and conjugate the target word.
+        Leave the blanks empty and provide the correct answers separately.
+        Example format:
+        Sentence: I ______ (to come back) home yesterday. 
+ 
+
+        2. Give me 5 {Level} multiple-choice questions to test my understanding of {Target} vocabulary.
+
+
+        3.  You are a {Level} {Language} language teacher creating a "find the mistake" activity.
+
+        Instructions:
+        1.  Write a natural-sounding sentence in {Language} about {Topic} that is grammatically correct.
+        2. Make one small, subtle change to the sentence to introduce an error related to {Topic}.
+        3. Present both versions of the sentence:
+
+        Example:
+        [First Sentence]
+        [Second sentence]
+
+        4. Invent 5 "Would You Rather" scenario in {Language} suitable for {Level} language learners.
+        - The two options should require the use of different grammatical structures or vocabulary.
+        - Focus on {Topic}.
+
+        Example:
+        매운 음식을 매일 먹겠어요, 아니면 단 음식을 매일 먹겠어요?
+        (Would you rather eat spicy food every day or eat sweet food every day?)
+        don't explain please
+
+        5. Generate 5 {Level} sentences in {Language}, each paired with its translation in {Language}.
+        The sentences should practice translating between English and {Language}.
+        Ensure that the sentences cover various aspects of the {Topic} with the focus on {Target}.
+        Include a mix of simple, compound, and complex sentences.
+
+        Provide the correct answer for each list at the very bottom of the last prompt. Please write "Answers will vary" if it true
+        """
         
         app.logger.info(f"Sending prompt to Gemini API: {prompt}")
         

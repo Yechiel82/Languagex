@@ -179,6 +179,7 @@
             white-space: pre-wrap;
             word-wrap: break-word;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: none; /* Hide initially */
         }
     </style>
 </head>
@@ -190,19 +191,20 @@
         </div>
         <form id="documentSettingsForm">
             <label for="topic">Topic:</label>
-            <input type="text" id="topic" name="topic" value="한국 여자">
+            <input type="text" id="topic" name="topic" value="" placeholder="e.g., Grammar" required>
 
             <label for="language">Language:</label>
-            <input type="text" id="language" name="language" value="Korean">
+            <input type="text" id="language" name="language" value="" placeholder="e.g., Korean" required>
 
             <label for="target">Target:</label>
-            <input type="text" id="target" name="target" value="는 것">
+            <input type="text" id="target" name="target" value="" placeholder="e.g., Past tense" required>
 
             <label for="level">Level:</label>
             <select id="level" name="level">
                 <option value="Beginner">Beginner</option>
                 <option value="Intermediate">Intermediate</option>
                 <option value="Advanced" selected>Advanced</option>
+                required
             </select>
 
             <button type="submit">Generate Document</button>
@@ -210,7 +212,7 @@
     </div>
 
     <div class="main-content">
-        <div class="welcome-message">
+        <div id="welcomeMessage" class="welcome-message">
             <div class="welcome-icon">📚✨</div>
             <h1>Craft Your Perfect Study Guide</h1>
             <p>Input your focus. Click generate. Watch tailored knowledge unfold.</p>
@@ -224,6 +226,11 @@
             
             const formData = new FormData(this);
             const chatContent = document.getElementById('chatContent');
+            const welcomeMessage = document.getElementById('welcomeMessage');
+            
+            // Hide welcome message and show chat content
+            welcomeMessage.style.display = 'none';
+            chatContent.style.display = 'block';
             
             // Clear previous content
             chatContent.innerHTML = '';
