@@ -1,10 +1,22 @@
-from flask import Flask, render_template, request, jsonify
+# from flask import Flask, render_template, request, jsonify
+# import google.generativeai as genai
+# from google.api_core.exceptions import GoogleAPIError
+# from config import API_KEY
+# import logging
+# from logging.handlers import RotatingFileHandler
+# import os
+from flask import Flask, render_template, request, jsonify, send_file
 import google.generativeai as genai
 from google.api_core.exceptions import GoogleAPIError
 from config import API_KEY
 import logging
 from logging.handlers import RotatingFileHandler
 import os
+from io import BytesIO
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
+from docx import Document
+import tempfile
 
 app = Flask(__name__)
 
@@ -32,7 +44,34 @@ app.logger.addHandler(console_handler)
 # Immediate log to check if logging is working
 app.logger.info("Flask app is starting up")
 
-# Gemini API Configuration
+# # Gemini API Configuration
+# genai.configure(api_key=API_KEY)
+
+# @app.route('/', methods=['GET'])
+# def index():
+#     app.logger.info("Index route accessed")
+#     return render_template('index.html')
+
+# @app.route('/generate', methods=['POST', 'GET'])
+# def generate():
+#     if request.method == "POST":
+#         try:
+#             topic = request.form['topic']
+#             language = request.form['language']
+#             target = request.form['target']
+#             level = request.form['level']
+            
+#             generated_content = generate_content(topic, language, target, level)
+#             app.logger.info(f"Generated content: {generated_content}")
+#             return jsonify({"content": generated_content, "success": True})
+        
+#         except Exception as e:
+#             error_message = str(e)
+#             app.logger.error(f"Error in generate route: {error_message}")
+#             return jsonify({"error": error_message, "success": False}), 500
+#     else:
+#         return render_template('generate.html')
+
 genai.configure(api_key=API_KEY)
 
 @app.route('/', methods=['GET'])
@@ -51,6 +90,12 @@ def generate():
             
             generated_content = generate_content(topic, language, target, level)
             app.logger.info(f"Generated content: {generated_content}")
+            
+            # Check if export is requested
+            export_format = request.form.get('export_format')
+            if export_format:
+                return export_content(generated_content, export_format)
+            
             return jsonify({"content": generated_content, "success": True})
         
         except Exception as e:
@@ -133,8 +178,48 @@ def generate_content(topic, language, target, level):
         app.logger.error(f"Gemini API Request Error: {e}")
         raise Exception(f"Gemini API Request Error: {e}")
 
+def export_content(content, format):
+    if format == 'pdf':
+        return export_to_pdf(content)
+    elif format == 'docx':
+        return export_to_docx(content)
+    elif format == 'gdoc':
+        return export_to_gdoc(content)
+    else:
+        raise ValueError("Unsupported export format")
+
+def export_to_pdf(content):
+    buffer = BytesIO()
+    p = canvas.Canvas(buffer, pagesize=letter)
+    textobject = p.beginText()
+    textobject.setTextOrigin(50, 750)
+    for line in content.split('\n'):
+        textobject.textLine(line)
+    p.drawText(textobject)
+    p.showPage()
+    p.save()
+    buffer.seek(0)
+    return send_file(buffer, as_attachment=True, download_name='generated_content.pdf', mimetype='application/pdf')
+
+def export_to_docx(content):
+    doc = Document()
+    doc.add_paragraph(content)
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as tmp:
+        doc.save(tmp.name)
+        tmp.seek(0)
+        return send_file(tmp.name, as_attachment=True, download_name='generated_content.docx', mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+
+def export_to_gdoc(content):
+    # Note: This function doesn't actually create a Google Doc.
+    # It creates a text file that can be easily imported into Google Docs.
+    buffer = BytesIO()
+    buffer.write(content.encode())
+    buffer.seek(0)
+    return send_file(buffer, as_attachment=True, download_name='generated_content.txt', mimetype='text/plain')
+
 if __name__ == '__main__':
     app.run(debug=True)
+
     
 # from flask import Flask, render_template, request, jsonify
 # import google.generativeai as genai

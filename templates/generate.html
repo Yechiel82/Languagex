@@ -181,6 +181,25 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             display: none; /* Hide initially */
         }
+        .export-buttons {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .export-button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .export-button:hover {
+            background-color: #45a049;
+        }
     </style>
 </head>
 <body>
@@ -218,6 +237,11 @@
             <p>Input your focus. Click generate. Watch tailored knowledge unfold.</p>
         </div>
         <div id="chatContent"></div>
+        <div id="exportButtons" class="export-buttons" style="display: none;">
+            <button id="exportPDF" class="export-button">Export as PDF</button>
+            <button id="exportWord" class="export-button">Export as Word</button>
+            <button id="exportGDoc" class="export-button">Export for Google Docs</button>
+        </div>
     </div>
 
     <script>
@@ -227,10 +251,12 @@
             const formData = new FormData(this);
             const chatContent = document.getElementById('chatContent');
             const welcomeMessage = document.getElementById('welcomeMessage');
+            const exportButtons = document.getElementById('exportButtons');
             
             // Hide welcome message and show chat content
             welcomeMessage.style.display = 'none';
             chatContent.style.display = 'block';
+            exportButtons.style.display = 'none';
             
             // Clear previous content
             chatContent.innerHTML = '';
@@ -246,6 +272,7 @@
             .then(data => {
                 if (data.success) {
                     chatContent.innerHTML = '<span class="ai-icon">"</span>' + data.content;
+                    exportButtons.style.display = 'flex';
                 } else {
                     chatContent.innerHTML = '<span class="ai-icon">"</span>Error: ' + data.error;
                 }
@@ -255,6 +282,48 @@
                 chatContent.innerHTML = '<span class="ai-icon">"</span>An error occurred. Please try again.';
             });
         });
+
+        document.getElementById('exportPDF').addEventListener('click', function() {
+            exportDocument('pdf');
+        });
+
+        document.getElementById('exportWord').addEventListener('click', function() {
+            exportDocument('docx');
+        });
+
+        document.getElementById('exportGDoc').addEventListener('click', function() {
+            exportDocument('gdoc');
+        });
+
+        function exportDocument(format) {
+            const formData = new FormData(document.getElementById('documentSettingsForm'));
+            formData.append('export_format', format);
+
+            fetch('/generate', {
+                method: 'POST',
+                body: formData,
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.blob();
+                }
+                throw new Error('Network response was not ok.');
+            })
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = 'generated_content.' + format;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while exporting. Please try again.');
+            });
+        }
     </script>
 </body>
 </html>
