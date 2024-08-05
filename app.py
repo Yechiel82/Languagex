@@ -15,6 +15,12 @@ import os
 from io import BytesIO
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus import SimpleDocTemplate, Paragraph
+from reportlab.pdfbase import pdfmetrics
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.lib.fonts import addMapping
 from docx import Document
 import tempfile
 
@@ -181,41 +187,61 @@ def generate_content(topic, language, target, level):
 def export_content(content, format):
     if format == 'pdf':
         return export_to_pdf(content)
-    elif format == 'docx':
-        return export_to_docx(content)
-    elif format == 'gdoc':
-        return export_to_gdoc(content)
+
     else:
         raise ValueError("Unsupported export format")
 
+# Register fonts
+pdfmetrics.registerFont(TTFont('NanumGothic', 'NanumGothic-Regular.ttf'))
+pdfmetrics.registerFont(TTFont('NanumGothic-Bold', 'NanumGothic-Bold.ttf'))
+
+# Add font mappings
+addMapping('NanumGothic', 0, 0, 'NanumGothic')  # normal
+addMapping('NanumGothic', 1, 0, 'NanumGothic-Bold')  # bold
+
 def export_to_pdf(content):
     buffer = BytesIO()
-    p = canvas.Canvas(buffer, pagesize=letter)
-    textobject = p.beginText()
-    textobject.setTextOrigin(50, 750)
+    doc = SimpleDocTemplate(buffer, pagesize=letter)
+    styles = getSampleStyleSheet()
+    
+    # Create custom styles with the Korean-compatible font
+    styles.add(ParagraphStyle(name='KoreanNormal',
+                              fontName='NanumGothic',
+                              fontSize=12,
+                              leading=14))
+    styles.add(ParagraphStyle(name='KoreanBold',
+                              fontName='NanumGothic-Bold',
+                              fontSize=12,
+                              leading=14))
+    
+    flowables = []
+
     for line in content.split('\n'):
-        textobject.textLine(line)
-    p.drawText(textobject)
-    p.showPage()
-    p.save()
+        if line.startswith('**') and line.endswith('**'):
+            # Use bold style for lines wrapped in **
+            para = Paragraph(line.strip('*'), styles['KoreanBold'])
+        else:
+            para = Paragraph(line, styles['KoreanNormal'])
+        flowables.append(para)
+
+    doc.build(flowables)
     buffer.seek(0)
     return send_file(buffer, as_attachment=True, download_name='generated_content.pdf', mimetype='application/pdf')
 
-def export_to_docx(content):
-    doc = Document()
-    doc.add_paragraph(content)
-    with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as tmp:
-        doc.save(tmp.name)
-        tmp.seek(0)
-        return send_file(tmp.name, as_attachment=True, download_name='generated_content.docx', mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+                     
+# def export_to_pdf(content):
+#     buffer = BytesIO()
+#     doc = SimpleDocTemplate(buffer, pagesize=letter)
+#     styles = getSampleStyleSheet()
+#     flowables = []
 
-def export_to_gdoc(content):
-    # Note: This function doesn't actually create a Google Doc.
-    # It creates a text file that can be easily imported into Google Docs.
-    buffer = BytesIO()
-    buffer.write(content.encode())
-    buffer.seek(0)
-    return send_file(buffer, as_attachment=True, download_name='generated_content.txt', mimetype='text/plain')
+#     for line in content.split('\n'):
+#         para = Paragraph(line, styles['Normal'])
+#         flowables.append(para)
+
+#     doc.build(flowables)
+#     buffer.seek(0)
+#     return send_file(buffer, as_attachment=True, download_name='generated_content.pdf', mimetype='application/pdf')
 
 if __name__ == '__main__':
     app.run(debug=True)
