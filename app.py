@@ -9,9 +9,9 @@ from logging.handlers import RotatingFileHandler
 import os
 from io import BytesIO
 from reportlab.pdfgen import canvas
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.platypus import SimpleDocTemplate, Paragraph
 from reportlab.pdfbase import pdfmetrics
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.pdfbase.ttfonts import TTFont
@@ -22,7 +22,7 @@ import tempfile
 
 app = Flask(__name__)
 # secret_key = secrets.token_hex(16)
-# app.secret_key = "12345"  
+app.secret_key = "12345"  
 
 
 
@@ -70,10 +70,16 @@ def generate():
             generated_content = generate_content(topic, language, target, level)
             app.logger.info(f"Generated content: {generated_content}")
             
+            session['generated_content'] = generated_content
+
+            
             # Check if export is requested
             export_format = request.form.get('export_format')
             if export_format:
+                app.logger.info(f"Exporting content to {export_format}")
                 return export_content(generated_content, export_format)
+            # if export_format:
+            #     return export_content(generated_content, export_format)
             
             return jsonify({"content": generated_content, "success": True})
         
@@ -189,13 +195,25 @@ def export_to_pdf(content):
     
     flowables = []
 
-    for line in content.split('\n'):
-        if line.startswith('**') and line.endswith('**'):
-            # Use bold style for lines wrapped in **
-            para = Paragraph(line.strip('*'), styles['KoreanBold'])
-        else:
-            para = Paragraph(line, styles['KoreanNormal'])
-        flowables.append(para)
+    
+    # for line in content.split('\n'):
+    #     if line.startswith('**') and line.endswith('**'):
+    #         # Use bold style for lines wrapped in **
+    #         para = Paragraph(line.strip('*'), styles['KoreanBold'])
+    #     else:
+    #         para = Paragraph(line, styles['KoreanNormal'])
+    #     flowables.append(para)
+    
+    paragraphs = content.split('\n\n')  # Split content into paragraphs
+    for paragraph in paragraphs:
+        lines = paragraph.split('\n')
+        for line in lines:
+            if line.startswith('**') and line.endswith('**'):
+                para = Paragraph(line.strip('*'), styles['KoreanBold'])
+            else:
+                para = Paragraph(line, styles['KoreanNormal'])
+            flowables.append(para)
+        flowables.append(Spacer(1, 12))  # Add 
 
     doc.build(flowables)
     buffer.seek(0)
