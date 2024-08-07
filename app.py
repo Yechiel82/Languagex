@@ -196,14 +196,7 @@ def export_to_pdf(content):
     flowables = []
 
     
-    # for line in content.split('\n'):
-    #     if line.startswith('**') and line.endswith('**'):
-    #         # Use bold style for lines wrapped in **
-    #         para = Paragraph(line.strip('*'), styles['KoreanBold'])
-    #     else:
-    #         para = Paragraph(line, styles['KoreanNormal'])
-    #     flowables.append(para)
-    
+
     paragraphs = content.split('\n\n')  # Split content into paragraphs
     for paragraph in paragraphs:
         lines = paragraph.split('\n')
