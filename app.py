@@ -9,16 +9,17 @@ from logging.handlers import RotatingFileHandler
 import os
 from io import BytesIO
 from reportlab.pdfgen import canvas
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.pdfbase import pdfmetrics
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.fonts import addMapping
-from docx import Document
 import secrets
 import tempfile
+import re
+
 
 app = Flask(__name__)
 # secret_key = secrets.token_hex(16)
@@ -58,37 +59,56 @@ def index():
     app.logger.info("Index route accessed")
     return render_template('index.html')
 
-@app.route('/generate', methods=['POST', 'GET'])
+
+@app.route('/generate', methods=['GET', 'POST'])
 def generate():
-    if request.method == "POST":
+    if request.method == 'GET':
+        return render_template('generate.html')
+    
+    elif request.method == 'POST':
         try:
+            # Ensure all required fields are present
+            required_fields = ['topic', 'language', 'target', 'level']
+            if not all(field in request.form for field in required_fields):
+                raise ValueError("Missing required fields in the form data")
+
             topic = request.form['topic']
             language = request.form['language']
             target = request.form['target']
             level = request.form['level']
             
-            generated_content = generate_content(topic, language, target, level)
-            app.logger.info(f"Generated content: {generated_content}")
-            
-            session['generated_content'] = generated_content
-
-            
-            # Check if export is requested
+            # Check if we're exporting or generating new content
             export_format = request.form.get('export_format')
-            if export_format:
-                app.logger.info(f"Exporting content to {export_format}")
-                return export_content(generated_content, export_format)
-            # if export_format:
-            #     return export_content(generated_content, export_format)
             
-            return jsonify({"content": generated_content, "success": True})
+            if export_format:
+                # Use stored content for export
+                generated_content = session.get('generated_content')
+                if not generated_content:
+                    return jsonify({"error": "No content to export. Please generate content first.", "success": False}), 400
+                return export_content(generated_content, export_format)
+            else:
+                # Generate new content
+                generated_content = generate_content(topic, language, target, level)
+                
+                # Convert Markdown to HTML
+                html_content = markdown_to_html(generated_content)
+                
+                # Store the original Markdown content for potential export
+                session['generated_content'] = generated_content
+                
+                return jsonify({"content": html_content, "success": True})
         
+        except ValueError as ve:
+            error_message = str(ve)
+            app.logger.error(f"ValueError in generate route: {error_message}")
+            return jsonify({"error": error_message, "success": False}), 400
         except Exception as e:
             error_message = str(e)
             app.logger.error(f"Error in generate route: {error_message}")
             return jsonify({"error": error_message, "success": False}), 500
+
     else:
-        return render_template('generate.html')
+        return jsonify({"error": "Method not allowed", "success": False}), 405
 
 def generate_content(topic, language, target, level):
     if not all([topic, language, target, level]):
@@ -195,7 +215,15 @@ def export_to_pdf(content):
     
     flowables = []
 
-    
+    # Add logo to the first page
+    logo_path = os.path.join(app.static_folder, 'images', 'logo.png')
+    if os.path.exists(logo_path):
+        logo = Image(logo_path, width=100, height=100)  # Adjust size as needed
+        logo.hAlign = 'CENTER'  # Center align the logo
+        flowables.append(logo)
+        flowables.append(Spacer(1, 20))  # Add some space after the logo
+    else:
+        app.logger.warning(f"Logo file not found at {logo_path}")
 
     paragraphs = content.split('\n\n')  # Split content into paragraphs
     for paragraph in paragraphs:
@@ -206,12 +234,55 @@ def export_to_pdf(content):
             else:
                 para = Paragraph(line, styles['KoreanNormal'])
             flowables.append(para)
-        flowables.append(Spacer(1, 12))  # Add 
+        flowables.append(Spacer(1, 12))  # Add space between paragraphs
 
     doc.build(flowables)
     buffer.seek(0)
     return send_file(buffer, as_attachment=True, download_name='generated_content.pdf', mimetype='application/pdf')
 
+
+# def export_to_pdf(content):
+#     buffer = BytesIO()
+#     doc = SimpleDocTemplate(buffer, pagesize=letter)
+#     styles = getSampleStyleSheet()
+    
+#     # Create custom styles with the Korean-compatible font
+#     styles.add(ParagraphStyle(name='KoreanNormal',
+#                               fontName='NanumGothic',
+#                               fontSize=12,
+#                               leading=14))
+#     styles.add(ParagraphStyle(name='KoreanBold',
+#                               fontName='NanumGothic-Bold',
+#                               fontSize=12,
+#                               leading=14))
+    
+#     flowables = []
+
+    
+
+#     paragraphs = content.split('\n\n')  # Split content into paragraphs
+#     for paragraph in paragraphs:
+#         lines = paragraph.split('\n')
+#         for line in lines:
+#             if line.startswith('**') and line.endswith('**'):
+#                 para = Paragraph(line.strip('*'), styles['KoreanBold'])
+#             else:
+#                 para = Paragraph(line, styles['KoreanNormal'])
+#             flowables.append(para)
+#         flowables.append(Spacer(1, 12))  # Add 
+
+#     doc.build(flowables)
+#     buffer.seek(0)
+#     return send_file(buffer, as_attachment=True, download_name='generated_content.pdf', mimetype='application/pdf')
+
+def markdown_to_html(text):
+    # Convert **bold** to <strong>bold</strong>
+    text = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', text)
+    
+    # Convert newlines to <br> tags
+    text = text.replace('\n', '<br>')
+    
+    return text
                      
 if __name__ == '__main__':
     app.run(debug=True)
