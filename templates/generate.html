@@ -6,11 +6,11 @@
     <title>StudyDoc Generator</title>
     <style>
         :root {
-            --background-color: #f7f7f9;
-            --sidebar-color: #ffffff;
-            --text-color: #333333;
-            --accent-color: #6c5ce7;
-            --border-color: #e0e0e0;
+            --background-color: #fdf4e3;
+            --sidebar-color: #fff3e1;
+            --text-color: #7a4c29;
+            --accent-color: #cc7733;
+            --border-color: #dab98f;
         }
 
         body {
@@ -47,10 +47,18 @@
             margin-bottom: 30px;
             display: flex;
             align-items: center;
+            color: var(--accent-color);
         }
 
+        .logo img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+        }
+        
+
         .logo-icon {
-            background-color: #000;
+            background-color: var(--accent-color);
             color: #fff;
             width: 30px;
             height: 30px;
@@ -81,11 +89,12 @@
             box-sizing: border-box;
             height: 40px;
             line-height: 40px;
+            color: var(--text-color);
         }
 
         select {
             appearance: none;
-            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23131313%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
+            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%237a4c29%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
             background-repeat: no-repeat;
             background-position: right 10px center;
             background-size: 12px auto;
@@ -120,7 +129,7 @@
         }
 
         .ai-icon {
-            background-color: #000;
+            background-color: var(--accent-color);
             color: #fff;
             width: 30px;
             height: 30px;
@@ -142,7 +151,7 @@
         }
 
         .welcome-message {
-            background-color: #ffffff;
+            background-color: var(--sidebar-color);
             border-radius: 10px;
             padding: 30px;
             margin-bottom: 20px;
@@ -168,6 +177,7 @@
         .welcome-icon {
             font-size: 48px;
             margin-bottom: 20px;
+            color: var(--accent-color);
         }
 
         #chatContent {
@@ -181,6 +191,7 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             display: none; /* Hide initially */
         }
+
         .export-buttons {
             margin-top: 20px;
             display: flex;
@@ -204,10 +215,12 @@
 </head>
 <body>
     <div class="sidebar">
-        <div class="logo">
-            <span class="logo-icon">"</span>
-            StudyDoc
-        </div>
+        <a href="{{ url_for('index') }}">
+            <div class="logo">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Lingua.ai Logo">
+            </div>
+        </a>
+        
         <form id="documentSettingsForm">
             <label for="topic">Topic:</label>
             <input type="text" id="topic" name="topic" value="" placeholder="e.g., Grammar" required>
@@ -220,9 +233,9 @@
 
             <label for="level">Level:</label>
             <select id="level" name="level">
-                <option value="Beginner">Beginner</option>
+                <option value="Beginner" selected>Beginner</option>
                 <option value="Intermediate">Intermediate</option>
-                <option value="Advanced" selected>Advanced</option>
+                <option value="Advanced" >Advanced</option>
                 required
             </select>
 
@@ -232,15 +245,13 @@
 
     <div class="main-content">
         <div id="welcomeMessage" class="welcome-message">
-            <div class="welcome-icon">📚✨</div>
+            <div class="welcome-icon">______</div>
             <h1>Craft Your Perfect Study Guide</h1>
             <p>Input your focus. Click generate. Watch tailored knowledge unfold.</p>
         </div>
         <div id="chatContent"></div>
         <div id="exportButtons" class="export-buttons" style="display: none;">
             <button id="exportPDF" class="export-button">Export as PDF</button>
-            <button id="exportWord" class="export-button">Export as Word</button>
-            <button id="exportGDoc" class="export-button">Export for Google Docs</button>
         </div>
     </div>
 
@@ -262,7 +273,7 @@
             chatContent.innerHTML = '';
             
             // Add loading message
-            chatContent.innerHTML = '<span class="ai-icon">"</span>Generating document...';
+            chatContent.innerHTML = 'Generating document...';
             
             fetch('/generate', {
                 method: 'POST',
@@ -271,15 +282,15 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    chatContent.innerHTML = '<span class="ai-icon">"</span>' + data.content;
+                    chatContent.innerHTML =  data.content;
                     exportButtons.style.display = 'flex';
                 } else {
-                    chatContent.innerHTML = '<span class="ai-icon">"</span>Error: ' + data.error;
+                    chatContent.innerHTML = 'Error ' + data.error;
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                chatContent.innerHTML = '<span class="ai-icon">"</span>An error occurred. Please try again.';
+                chatContent.innerHTML = 'An error occurred. Please try again.';
             });
         });
 
