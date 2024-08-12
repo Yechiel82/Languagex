@@ -1,3 +1,5 @@
+LanguageX A.K.A. LinguaGo
+
 Revolutionize Your Language Learning with AI-Powered Worksheets with Lingua Go: Personalized Practice, Adaptive Challenges, and Endless Variety
 
 Why Choose Us?
