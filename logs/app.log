@@ -1,0 +1,194 @@
+2024-12-30 23:06:07,526 - app - INFO - Sending prompt to Gemini API: 
+        You are an English language teacher creating a worksheet for Beginner English learners.
+        1. Generate 5 fill-in-the-blank sentences about Grammar with a focus on Past Tense. Include hint words in the context to help learners correctly use and conjugate the target word.
+        Leave the blanks empty and provide the correct answers separately.
+        Example format:
+        Sentence: I ______ (to come back) home yesterday. 
+ 
+
+        2. Give me 5 Beginner multiple-choice questions to test my understanding of Past Tense vocabulary.
+
+
+        3.  You are a Beginner English language teacher creating a "find the mistake" activity.
+
+        Instructions:
+        1.  Write a natural-sounding sentence in English about Grammar that is grammatically correct.
+        2. Make one small, subtle change to the sentence to introduce an error related to Grammar.
+        3. Present both versions of the sentence:
+
+        Example:
+        [First Sentence]
+        [Second sentence]
+
+        4. Invent 5 "Would You Rather" scenario in English suitable for Beginner language learners.
+        - The two options should require the use of different grammatical structures or vocabulary.
+        - Focus on Grammar.
+
+        Example:
+        매운 음식을 매일 먹겠어요, 아니면 단 음식을 매일 먹겠어요?
+        (Would you rather eat spicy food every day or eat sweet food every day?)
+        don't explain please
+
+        5. Generate 5 Beginner sentences in English, each paired with its translation in English.
+        The sentences should practice translating between English and English.
+        Ensure that the sentences cover various aspects of the Grammar with the focus on Past Tense.
+        Include a mix of simple, compound, and complex sentences.
+
+        Provide the correct answer for each list at the very bottom of the last prompt. Please write "Answers will vary" if it true
+        
+2024-12-30 23:06:18,632 - app - INFO - Raw API response: response:
+GenerateContentResponse(
+    done=True,
+    iterator=None,
+    result=protos.GenerateContentResponse({
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "**1. Fill-in-the-Blank Sentences**\n\n1. I ______ (to come back) home yesterday.\n2. They ______ (to finish) their homework two hours ago.\n3. The teacher ______ (to give) us a test.\n4. We ______ (to play) outside in the park.\n5. My sister ______ (to buy) a new dress.\n\n**2. Multiple-Choice Questions**\n\n1. Choose the correct past tense of \"to go\":\n   (a) went\n   (b) go\n   (c) gone\n\n2. Which of the following is the correct past tense of \"to read\"?\n   (a) read\n   (b) readed\n   (c) reading\n\n3. What is the past tense of \"to have\"?\n   (a) had\n   (b) have had\n   (c) having\n\n4. Which of the following is the correct past tense passive voice of \"to be loved\"?\n   (a) were loved\n   (b) was loved\n   (c) loved\n\n5. What is the past perfect tense of \"to travel\"?\n   (a) traveled\n   (b) had traveled\n   (c) have been traveling\n\n**3. Find the Mistake**\n\n1. [First Sentence] I saw a movie yesterday.\n   [Second sentence] I saw a movie yesterday ago.\n\n2. [First Sentence] He studied hard for the test.\n   [Second sentence] He studied hardly for the test.\n\n3. [First Sentence] The children played happily in the park.\n   [Second sentence] The children played in the park happily.\n\n4. [First Sentence] She had been working all day.\n   [Second sentence] She been working all day.\n\n5. [First Sentence] I wish I had known about it sooner.\n   [Second sentence] I wish I knew about it sooner.\n\n**4. \"Would You Rather\" Scenarios**\n\n1. Would you rather go to the movies with your friends or stay home and watch TV?\n2. Would you rather learn English or Spanish?\n3. Would you rather eat pizza or pasta?\n4. Would you rather go to the beach or go to the mountains?\n5. Would you rather have a big car or a small car?\n\n**5. Beginner Sentences with English Translations**\n\n1. I went to the store yesterday. (I went to the store yesterday.)\n2. The students finished their test. (The students finished their test.)\n3. My father had a meeting this morning. (My father had a meeting this morning.)\n4. We have never been to France before. (We have never been to France before.)\n5. If I had known earlier, I would have come sooner. (If I had known earlier, I would have come sooner.)\n\n**Answers**\n\n**1. Fill-in-the-Blank Sentences**\n\n1. came back\n2. finished\n3. gave\n4. played\n5. bought\n\n**2. Multiple-Choice Questions**\n\n1. (a) went\n2. (a) read\n3. (a) had\n4. (a) were loved\n5. (b) had traveled\n\n**3. Find the Mistake**\n\nAnswers will vary.\n\n**4. \"Would You Rather\" Scenarios**\n\nAnswers will vary.\n\n**5. Beginner Sentences with English Translations**\n\nAnswers will vary."
+              }
+            ],
+            "role": "model"
+          },
+          "finish_reason": "STOP",
+          "index": 0,
+          "safety_ratings": [
+            {
+              "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+              "probability": "NEGLIGIBLE"
+            },
+            {
+              "category": "HARM_CATEGORY_HATE_SPEECH",
+              "probability": "NEGLIGIBLE"
+            },
+            {
+              "category": "HARM_CATEGORY_HARASSMENT",
+              "probability": "NEGLIGIBLE"
+            },
+            {
+              "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+              "probability": "NEGLIGIBLE"
+            }
+          ]
+        }
+      ],
+      "usage_metadata": {
+        "prompt_token_count": 405,
+        "candidates_token_count": 735,
+        "total_token_count": 1140
+      }
+    }),
+)
+2024-12-30 23:06:18,634 - app - INFO - Generated content: **1. Fill-in-the-Blank Sentences**
+
+1. I ______ (to come back) home yesterday.
+2. They ______ (to finish) their homework two hours ago.
+3. The teacher ______ (to give) us a test.
+4. We ______ (to play) outside in the park.
+5. My sister ______ (to buy) a new dress.
+
+**2. Multiple-Choice Questions**
+
+1. Choose the correct past tense of "to go":
+   (a) went
+   (b) go
+   (c) gone
+
+2. Which of the following is the correct past tense of "to read"?
+   (a) read
+   (b) readed
+   (c) reading
+
+3. What is the past tense of "to have"?
+   (a) had
+   (b) have had
+   (c) having
+
+4. Which of the following is the correct past tense passive voice of "to be loved"?
+   (a) were loved
+   (b) was loved
+   (c) loved
+
+5. What is the past perfect tense of "to travel"?
+   (a) traveled
+   (b) had traveled
+   (c) have been traveling
+
+**3. Find the Mistake**
+
+1. [First Sentence] I saw a movie yesterday.
+   [Second sentence] I saw a movie yesterday ago.
+
+2. [First Sentence] He studied hard for the test.
+   [Second sentence] He studied hardly for the test.
+
+3. [First Sentence] The children played happily in the park.
+   [Second sentence] The children played in the park happily.
+
+4. [First Sentence] She had been working all day.
+   [Second sentence] She been working all day.
+
+5. [First Sentence] I wish I had known about it sooner.
+   [Second sentence] I wish I knew about it sooner.
+
+**4. "Would You Rather" Scenarios**
+
+1. Would you rather go to the movies with your friends or stay home and watch TV?
+2. Would you rather learn English or Spanish?
+3. Would you rather eat pizza or pasta?
+4. Would you rather go to the beach or go to the mountains?
+5. Would you rather have a big car or a small car?
+
+**5. Beginner Sentences with English Translations**
+
+1. I went to the store yesterday. (I went to the store yesterday.)
+2. The students finished their test. (The students finished their test.)
+3. My father had a meeting this morning. (My father had a meeting this morning.)
+4. We have never been to France before. (We have never been to France before.)
+5. If I had known earlier, I would have come sooner. (If I had known earlier, I would have come sooner.)
+
+**Answers**
+
+**1. Fill-in-the-Blank Sentences**
+
+1. came back
+2. finished
+3. gave
+4. played
+5. bought
+
+**2. Multiple-Choice Questions**
+
+1. (a) went
+2. (a) read
+3. (a) had
+4. (a) were loved
+5. (b) had traveled
+
+**3. Find the Mistake**
+
+Answers will vary.
+
+**4. "Would You Rather" Scenarios**
+
+Answers will vary.
+
+**5. Beginner Sentences with English Translations**
+
+Answers will vary.
+2025-01-03 08:45:38,569 - app - INFO - Flask app is starting up
+2025-01-03 08:45:41,331 - app - INFO - Flask app is starting up
+2025-03-31 19:54:01,808 - app - INFO - Flask app is starting up
+2025-03-31 19:54:02,174 - app - INFO - Flask app is starting up
+2025-03-31 19:59:37,918 - app - INFO - Flask app is starting up
+2025-03-31 20:00:29,288 - app - INFO - Flask app is starting up
+2025-03-31 20:00:32,778 - app - INFO - Flask app is starting up
+2025-04-05 14:13:51,441 - app - INFO - Flask app is starting up
+2025-04-05 14:19:59,452 - app - INFO - Flask app is starting up
+2025-04-05 14:20:00,382 - app - INFO - Flask app is starting up
+2025-04-05 15:25:07,306 - app - INFO - Flask app is starting up
+2025-04-05 15:25:08,286 - app - INFO - Flask app is starting up
+2025-04-05 15:26:57,458 - app - INFO - Flask app is starting up
+2025-04-05 16:21:27,374 - app - INFO - Flask app is starting up
+2025-04-05 16:21:28,507 - app - INFO - Flask app is starting up

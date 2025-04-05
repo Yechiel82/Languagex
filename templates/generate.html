@@ -240,6 +240,7 @@
             </select>
 
             <button type="submit">Generate Document</button>
+            <button type="button" id="checkProfileButton">Check Profile</button>
         </form>
     </div>
 
@@ -256,6 +257,9 @@
     </div>
 
     <script>
+        document.getElementById('checkProfileButton').addEventListener('click', function() {
+            window.location.href = '/profile';  // Redirect to profile route
+        });
         document.getElementById('documentSettingsForm').addEventListener('submit', function(e) {
             e.preventDefault();
             

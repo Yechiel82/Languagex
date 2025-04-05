@@ -1,10 +1,10 @@
-
-from flask import Flask, render_template, request, jsonify, send_file
+import os
+import logging
+from flask import Flask, render_template, request, jsonify, send_file, redirect, url_for, session
 from flask import session
 import google.generativeai as genai
 from google.api_core.exceptions import GoogleAPIError
 from config import API_KEY
-import logging
 from logging.handlers import RotatingFileHandler
 import os
 from io import BytesIO
@@ -19,13 +19,112 @@ from reportlab.lib.fonts import addMapping
 import secrets
 import tempfile
 import re
-
+from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import generate_password_hash, check_password_hash
+import datetime
+from sqlalchemy.sql import func
 
 app = Flask(__name__)
-# secret_key = secrets.token_hex(16)
-app.secret_key = "12345"  
+app.secret_key = "12345"
 
+# Configure PostgreSQL database with explicit username
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://yechiel@localhost/languagex'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
 
+# Define User model
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password_hash = db.Column(db.String(256), nullable=False)
+    name = db.Column(db.String(100))
+    language = db.Column(db.String(50))
+    level = db.Column(db.String(10))
+    study_time = db.Column(db.Integer, default=0)
+    streak = db.Column(db.Integer, default=0)
+    lessons_completed = db.Column(db.Integer, default=0)
+    average_score = db.Column(db.Float, default=0.0)
+    
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+    
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+# Define UserPerformance model for tracking user progress
+class UserPerformance(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    concept = db.Column(db.String(100), nullable=False)
+    success_rate = db.Column(db.Float, default=0.0)
+    error_rate = db.Column(db.Float, default=0.0)
+    
+    user = db.relationship('User', backref=db.backref('performance', lazy=True))
+
+# GroundTruth model
+class GroundTruth(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    word = db.Column(db.String(100), nullable=False)
+    pos = db.Column(db.String(50), nullable=False)  # part of speech
+    sentence = db.Column(db.Text, nullable=False)
+    level = db.Column(db.String(10), nullable=False)
+    generated_at = db.Column(db.DateTime, default=func.now())
+    deleted_at = db.Column(db.DateTime, nullable=True)
+    is_seen = db.Column(db.Boolean, default=False)
+    for_user = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_answer = db.Column(db.Text, nullable=True)
+    is_correct = db.Column(db.Boolean, nullable=True)
+    
+    user = db.relationship('User', backref=db.backref('ground_truths', lazy=True))
+
+# FillInTheBlank model
+class FillInTheBlank(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    question = db.Column(db.Text, nullable=False)
+    answer = db.Column(db.String(100), nullable=False)  # Added answer field
+    level = db.Column(db.String(10), nullable=False)
+    generated_at = db.Column(db.DateTime, default=func.now())
+    deleted_at = db.Column(db.DateTime, nullable=True)
+    is_seen = db.Column(db.Boolean, default=False)
+    for_user = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_answer = db.Column(db.Text, nullable=True)
+    is_correct = db.Column(db.Boolean, nullable=True)
+    user_feedback = db.Column(db.Text, nullable=True)
+    
+    user = db.relationship('User', backref=db.backref('fill_blanks', lazy=True))
+
+# ArrangeTheWord model
+class ArrangeTheWord(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    question = db.Column(db.Text, nullable=False)
+    correct_arrangement = db.Column(db.Text, nullable=False)  # Added correct answer
+    level = db.Column(db.String(10), nullable=False)
+    generated_at = db.Column(db.DateTime, default=func.now())
+    deleted_at = db.Column(db.DateTime, nullable=True)
+    is_seen = db.Column(db.Boolean, default=False)
+    for_user = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_answer = db.Column(db.Text, nullable=True)
+    is_correct = db.Column(db.Boolean, nullable=True)
+    user_feedback = db.Column(db.Text, nullable=True)
+    
+    user = db.relationship('User', backref=db.backref('arrange_words', lazy=True))
+
+# MultipleChoice model
+class MultipleChoice(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    question = db.Column(db.Text, nullable=False)
+    choices = db.Column(db.Text, nullable=False)  # Store as JSON or serialized list
+    correct_answer = db.Column(db.String(100), nullable=False)  # Added correct answer
+    level = db.Column(db.String(10), nullable=False)
+    generated_at = db.Column(db.DateTime, default=func.now())
+    deleted_at = db.Column(db.DateTime, nullable=True)
+    is_seen = db.Column(db.Boolean, default=False)
+    for_user = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_answer = db.Column(db.Text, nullable=True)
+    is_correct = db.Column(db.Boolean, nullable=True)
+    user_feedback = db.Column(db.Text, nullable=True)
+    
+    user = db.relationship('User', backref=db.backref('multiple_choices', lazy=True))
 
 # Ensure the logs directory exists
 if not os.path.exists('logs'):
@@ -54,14 +153,125 @@ app.logger.info("Flask app is starting up")
 # Gemini API Configuration
 genai.configure(api_key=API_KEY)
 
-@app.route('/', methods=['GET'])
+@app.route('/')
 def index():
-    app.logger.info("Index route accessed")
     return render_template('index.html')
 
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+    if request.method == 'GET':
+        return render_template('signup.html')
+    
+    if request.method == 'POST':
+        email = request.form['email']
+        password = request.form['password']
+        name = request.form.get('name', '')
+        language = request.form.get('language', '')
+        level = request.form.get('level', 'A1')
+        
+        # Check if user already exists
+        existing_user = User.query.filter_by(email=email).first()
+        if existing_user:
+            return render_template('signup.html', error="Email already registered")
+        
+        # Create new user
+        new_user = User(email=email, name=name, language=language, level=level)
+        new_user.set_password(password)
+        
+        # Add and commit to database
+        db.session.add(new_user)
+        db.session.commit()
+        
+        session['logged_in'] = True
+        session['user_id'] = new_user.id
+        
+        return redirect(url_for('generate'))
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'GET':
+        return render_template('login.html')
+    
+    if request.method == 'POST':
+        email = request.form['email']
+        password = request.form['password']
+        
+        # For development, keep hardcoded credentials
+        if (email == 'test@test.com' and password == 'password') or (email == 'admin@yahoo.com' and password == 'admin321'):
+            session['logged_in'] = True
+            session['user_id'] = 0  # Special ID for hardcoded users
+            return redirect(url_for('generate'))
+        
+        # Check database for user
+        user = User.query.filter_by(email=email).first()
+        
+        if user and user.check_password(password):
+            session['logged_in'] = True
+            session['user_id'] = user.id
+            return redirect(url_for('generate'))
+            
+        return render_template('login.html', error="Invalid credentials")
+
+@app.route('/profile')
+def profile():
+    # Check if user is logged in
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+    
+    user_id = session.get('user_id')
+    
+    # If using hardcoded credentials (user_id = 0), show mock data
+    if user_id == 0:
+        user_data = {
+            'name': 'John Doe',
+            'level': 'A1',
+            'language': 'Spanish',
+            'study_time': '28',
+            'streak': '15',
+            'lessons_completed': '45',
+            'average_score': '76',
+            'performance': [
+                {'concept': 'basic_greetings', 'success_rate': '0', 'error_rate': '100'},
+                {'concept': 'irregular_verbs', 'success_rate': '75', 'error_rate': '25'},
+                {'concept': 'past_tense', 'success_rate': '25', 'error_rate': '75'},
+                {'concept': 'present_simple', 'success_rate': '44', 'error_rate': '56'}
+            ]
+        }
+        return render_template('profile.html', user=user_data)
+    
+    # Fetch real user data from database
+    user = User.query.get(user_id)
+    if not user:
+        return redirect(url_for('login'))
+    
+    # Format user data for template
+    user_data = {
+        'name': user.name,
+        'level': user.level,
+        'language': user.language,
+        'study_time': str(user.study_time),
+        'streak': str(user.streak),
+        'lessons_completed': str(user.lessons_completed),
+        'average_score': str(int(user.average_score)),
+        'performance': []
+    }
+    
+    # Get performance data
+    performance = UserPerformance.query.filter_by(user_id=user_id).all()
+    for perf in performance:
+        user_data['performance'].append({
+            'concept': perf.concept,
+            'success_rate': str(int(perf.success_rate)),
+            'error_rate': str(int(perf.error_rate))
+        })
+    
+    return render_template('profile.html', user=user_data)
 
 @app.route('/generate', methods=['GET', 'POST'])
 def generate():
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+        
     if request.method == 'GET':
         return render_template('generate.html')
     
@@ -240,41 +450,6 @@ def export_to_pdf(content):
     buffer.seek(0)
     return send_file(buffer, as_attachment=True, download_name='generated_content.pdf', mimetype='application/pdf')
 
-
-# def export_to_pdf(content):
-#     buffer = BytesIO()
-#     doc = SimpleDocTemplate(buffer, pagesize=letter)
-#     styles = getSampleStyleSheet()
-    
-#     # Create custom styles with the Korean-compatible font
-#     styles.add(ParagraphStyle(name='KoreanNormal',
-#                               fontName='NanumGothic',
-#                               fontSize=12,
-#                               leading=14))
-#     styles.add(ParagraphStyle(name='KoreanBold',
-#                               fontName='NanumGothic-Bold',
-#                               fontSize=12,
-#                               leading=14))
-    
-#     flowables = []
-
-    
-
-#     paragraphs = content.split('\n\n')  # Split content into paragraphs
-#     for paragraph in paragraphs:
-#         lines = paragraph.split('\n')
-#         for line in lines:
-#             if line.startswith('**') and line.endswith('**'):
-#                 para = Paragraph(line.strip('*'), styles['KoreanBold'])
-#             else:
-#                 para = Paragraph(line, styles['KoreanNormal'])
-#             flowables.append(para)
-#         flowables.append(Spacer(1, 12))  # Add 
-
-#     doc.build(flowables)
-#     buffer.seek(0)
-#     return send_file(buffer, as_attachment=True, download_name='generated_content.pdf', mimetype='application/pdf')
-
 def markdown_to_html(text):
     # Convert **bold** to <strong>bold</strong>
     text = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', text)
@@ -284,445 +459,29 @@ def markdown_to_html(text):
     
     return text
                      
+# Create database tables if they don't exist
+with app.app_context():
+    db.create_all()
+    
+    # Add sample data for development if needed
+    if not User.query.filter_by(email='admin@yahoo.com').first():
+        admin = User(email='admin@yahoo.com', name='Admin User', language='English', level='C2')
+        admin.set_password('admin321')
+        db.session.add(admin)
+        db.session.commit()
+
 if __name__ == '__main__':
     app.run(debug=True)
 
-    
-# from flask import Flask, render_template, request, jsonify
-# import google.generativeai as genai
-# from google.api_core.exceptions import GoogleAPIError
-# from config import API_KEY
-# import logging
-# from logging.handlers import RotatingFileHandler
-# import os
 
-# app = Flask(__name__)
-
-# # Ensure the logs directory exists
-# if not os.path.exists('logs'):
-#     os.makedirs('logs')
-
-# # Set up logging
-# handler = RotatingFileHandler('logs/app.log', maxBytes=10000, backupCount=1)
-# handler.setLevel(logging.INFO)
-# formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-# handler.setFormatter(formatter)
-
-# # Add the handler to Flask's logger
-# app.logger.addHandler(handler)
-# app.logger.setLevel(logging.INFO)
-
-# # Also log to console
-# console_handler = logging.StreamHandler()
-# console_handler.setLevel(logging.INFO)
-# console_formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
-# console_handler.setFormatter(console_formatter)
-# app.logger.addHandler(console_handler)
-
-# # Immediate log to check if logging is working
-# app.logger.info("Flask app is starting up")
-
-# # Gemini API Configuration
-# genai.configure(api_key=API_KEY)
-
-# @app.route('/', methods=['GET'])
-# def index():
-#     app.logger.info("Index route accessed")
-#     return render_template('index.html')
-
-# @app.route('/generate', methods=['POST', 'GET'])
-# def generate():
-#     if request.method == "POST":
-#         app.logger.info("Generate route accessed with POST method")
-#         try:
-#             topic = request.form['topic']
-#             language = request.form['language']
-#             target = request.form['target']
-#             level = request.form['level']
-            
-#             generated_content = generate_content(topic, language, target, level)
-#             return jsonify({"content": generated_content, "success": True})
-        
-#         except Exception as e:
-#             error_message = str(e)
-#             app.logger.error(f"Error in generate route: {error_message}")
-#             return jsonify({"error": error_message, "success": False}), 500
-#     else:
-#         app.logger.info("Generate route accessed with GET method")
-#         return render_template('generate.html')
-
-# def generate_content(topic, language, target, level):
-#     if not all([topic, language, target, level]):
-#         raise ValueError("All fields are required.")
-    
-#     try:
-#         app.logger.info(f"Parameters: topic={topic}, language={language}, target={target}, level={level}")
-        
-#         # Model Selection
-#         model = genai.GenerativeModel('gemini-pro')
-        
-#         # Prompt Generation
-#         prompt = f"Write a document in {language} for {level} learners about {topic}, focusing on {target}."
-        
-#         app.logger.info(f"Sending prompt to Gemini API: {prompt}")
-#         app.logger.info("Sending request to Gemini API...")
-        
-#         # Generate Text
-#         response = model.generate_content(prompt)
-#         app.logger.info("Received response from Gemini API")
-        
-#         # Log the raw response
-#         app.logger.info(f"Raw API response: {response}")
-        
-#         # Error Handling
-#         if response.parts:
-#             content = response.parts[0].text
-#             app.logger.info(f"Generated content: {content[:100]}...")  # Log the first 100 characters
-#             return content
-#         else:
-#             raise Exception("No content generated")
-    
-#     except GoogleAPIError as e:
-#         app.logger.error(f"Gemini API Request Error: {e}")
-#         raise Exception(f"Gemini API Request Error: {e}")
-
-# if __name__ == '__main__':
-#     app.run(debug=True)
-# # from flask import Flask, render_template, request, jsonify
-# # import google.generativeai as genai
-# # from google.api_core.exceptions import GoogleAPIError
-# # from config import API_KEY
-# # import logging
-# # from logging.handlers import RotatingFileHandler
-
-# # app = Flask(__name__)
-
-# # # Set up logging
-# # logger = logging.getLogger(__name__)
-# # logger.setLevel(logging.INFO)
-
-# # # File handler
-# # file_handler = RotatingFileHandler('app.log', maxBytes=10000, backupCount=1)
-# # file_handler.setLevel(logging.INFO)
-# # file_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-# # file_handler.setFormatter(file_formatter)
-
-# # # Console handler
-# # console_handler = logging.StreamHandler()
-# # console_handler.setLevel(logging.INFO)
-# # console_formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
-# # console_handler.setFormatter(console_formatter)
-
-# # # Add both handlers to the logger
-# # logger.addHandler(file_handler)
-# # logger.addHandler(console_handler)
-
-# # # Gemini API Configuration
-# # genai.configure(api_key=API_KEY)
-
-# # @app.route('/', methods=['GET'])
-# # def index():
-# #     return render_template('index.html')
-
-# # @app.route('/generate', methods=['POST', 'GET'])
-# # def generate():
-# #     if request.method == "POST":
-# #         try:
-# #             topic = request.form['topic']
-# #             language = request.form['language']
-# #             target = request.form['target']
-# #             level = request.form['level']
-            
-# #             generated_content = generate_content(topic, language, target, level)
-# #             return jsonify({"content": generated_content, "success": True})
-        
-# #         except Exception as e:
-# #             error_message = str(e)
-# #             logger.error(f"Error in generate route: {error_message}")
-# #             return jsonify({"error": error_message, "success": False}), 500
-# #     else:
-# #         return render_template('generate.html')
-
-# # def generate_content(topic, language, target, level):
-# #     if not all([topic, language, target, level]):
-# #         raise ValueError("All fields are required.")
-    
-# #     try:
-# #         logger.info(f"Parameters: topic={topic}, language={language}, target={target}, level={level}")
-        
-# #         # Model Selection
-# #         model = genai.GenerativeModel('gemini-pro')
-        
-# #         # Prompt Generation
-# #         prompt = f"Write a document in {language} for {level} learners about {topic}, focusing on {target}."
-        
-# #         logger.info(f"Sending prompt to Gemini API: {prompt}")
-# #         logger.info("Sending request to Gemini API...")
-        
-# #         # Generate Text
-# #         response = model.generate_content(prompt)
-# #         logger.info("Received response from Gemini API")
-        
-# #         # Log the raw response
-# #         logger.info(f"Raw API response: {response}")
-        
-# #         # Error Handling
-# #         if response.parts:
-# #             content = response.parts[0].text
-# #             logger.info(f"Generated content: {content[:100]}...")  # Log the first 100 characters
-# #             return content
-# #         else:
-# #             raise Exception("No content generated")
-    
-# #     except GoogleAPIError as e:
-# #         logger.error(f"Gemini API Request Error: {e}")
-# #         raise Exception(f"Gemini API Request Error: {e}")
-
-# # if __name__ == '__main__':
-# #     app.run(debug=True)
-# # # from flask import Flask, render_template, request, jsonify
-# # # from flask_sqlalchemy import SQLAlchemy
-# # # from flask_scss import Scss
-# # # import google.generativeai as genai
-# # # from google.api_core.exceptions import GoogleAPIError
-# # # from config import API_KEY
-# # # import logging
-# # # from logging.handlers import RotatingFileHandler
-
-# # # app = Flask(__name__)
-
-# # # # Set up logging
-# # # handler = RotatingFileHandler('app.log', maxBytes=10000, backupCount=1)
-# # # handler.setLevel(logging.INFO)
-# # # formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-# # # handler.setFormatter(formatter)
-# # # app.logger.addHandler(handler)
-
-# # # # Gemini API Configuration
-# # # genai.configure(api_key=API_KEY)
-
-# # # @app.route('/', methods=['GET'])
-# # # def index():
-# # #     return render_template('index.html')
-
-# # # @app.route('/generate', methods=['POST', 'GET'])
-# # # def generate():
-# # #     if request.method == "POST":
-# # #         try:
-# # #             topic = request.form['topic']
-# # #             language = request.form['language']
-# # #             target = request.form['target']
-# # #             level = request.form['level']
-            
-# # #             generated_content = generate_content(topic, language, target, level)
-# # #             return jsonify({"content": generated_content, "success": True})
-        
-# # #         except Exception as e:
-# # #             error_message = str(e)
-# # #             app.logger.error(f"Error in generate route: {error_message}")
-# # #             return jsonify({"error": error_message, "success": False}), 500
-# # #     else:
-# # #         return render_template('generate.html')
-
-# # # def generate_content(topic, language, target, level):
-# # #     if not all([topic, language, target, level]):
-# # #         raise ValueError("All fields are required.")
-    
-# # #     try:
-# # #         app.logger.info(f"Parameters: topic={topic}, language={language}, target={target}, level={level}")
-        
-# # #         # Model Selection
-# # #         model = genai.GenerativeModel('gemini-pro')
-        
-# # #         # Prompt Generation
-# # #         prompt = f"Write a document in {language} for {level} learners about {topic}, focusing on {target}."
-        
-# # #         # Generate Text
-# # #         response = model.generate_content(prompt)
-        
-# # #         # Error Handling
-# # #         if response.parts:
-# # #             content = response.parts[0].text
-# # #             return content
-# # #         else:
-# # #             raise Exception("No content generated")
-    
-# # #     except GoogleAPIError as e:
-# # #         app.logger.error(f"Gemini API Request Error: {e}")
-# # #         raise Exception(f"Gemini API Request Error: {e}")
-
-# # # if __name__ == '__main__':
-# # #     app.run(debug=True)
-# # # # # Import
-# # # # from flask import Flask, render_template, request, redirect, url_for, jsonify
-# # # # from flask_sqlalchemy import SQLAlchemy
-# # # # from flask_scss import Scss
-# # # # import google.generativeai as genai
-# # # # from google.api_core.exceptions import GoogleAPIError
-# # # # from config import API_KEY
-
-
-
-# # # # app = Flask(__name__)
-
-# # # # import logging
-# # # # from logging.handlers import RotatingFileHandler
-
-# # # # # ... your Flask app setup ...
-
-# # # # # Set up logging
-# # # # handler = RotatingFileHandler('app.log', maxBytes=10000, backupCount=1)
-# # # # handler.setLevel(logging.INFO)
-# # # # formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-# # # # handler.setFormatter(formatter)
-# # # # app.logger.addHandler(handler)
-
-# # # # # ... your routes ...
-
-
-# # # # # Home Route
-# # # # @app.route('/', methods=['GET'])
-# # # # def index():
-# # # #     return render_template('index.html')
-
-# # # # @app.route('/generate', methods=['POST', 'GET'])
-# # # # def generate():
-# # # #     if request.method == "POST":
-# # # #         try:
-# # # #             topic = request.form['topic']
-# # # #             language = request.form['language']
-# # # #             target = request.form['target']
-# # # #             level = request.form['level']
-
-# # # #             generated_content = generate_content(topic, language, target, level)
-# # # #             return jsonify({"content": generated_content, "success": True})
-
-# # # #         except Exception as e:
-# # # #             error_message = str(e)
-# # # #             return jsonify({"error": error_message, "success": False}), 500
-
-# # # #     else:
-# # # #         return render_template('generate.html')  # Handle GET requests
-
-# # # # def generate_content(topic, language, target, level):
-# # # #     # Input validation (this looks good)
-# # # #     if not topic or not language or not target or not level:
-# # # #         raise ValueError("All fields are required.")
-
-# # # #     try:
-# # # #         # Gemini API Configuration (assuming API_KEY is defined elsewhere)
-# # # #         genai.configure(api_key=API_KEY)
-# # # #         app.logger.info(f"API Key Used: {API_KEY}")  
-# # # #         app.logger.info(f"Parameter: {topic, language, target, level}")  
-
-# # # #         # Model Selection
-# # # #         model = genai.GenerativeModel('gemini-pro')
-
-# # # #         # Prompt Generation (you can customize this further)
-# # # #         prompt = f"Write a document in {language} for {level} learners about {topic}, focusing on {target}."
-
-# # # #         # Generate Text (check if this call works correctly with Gemini)
-# # # #         response = model.generate_text(
-# # # #             prompt=prompt,
-# # # #             temperature=0.7,
-# # # #             max_output_tokens=500,
-# # # #         )
-
-# # # #         # Error Handling (good practice)
-# # # #         if response.has_error:
-# # # #             raise Exception(f"Gemini API Error: {response.error}")
-
-# # # #         # Extract and Format Content
-# # # #         content = response.result  # Ensure the Gemini API response structure matches this
-# # # #         return content
-
-# # # #     except GoogleAPIError as e:
-# # # #         raise Exception(f"Gemini API Request Error: {e}")
-
-# # # # # # Generate Route
-# # # # # @app.route('/generate', methods=['POST',"GET"])
-# # # # # def generate():
-# # # # #     if request.method == "POST":
-# # # # #         try:
-# # # # #             topic = request.form['topic']
-# # # # #             language = request.form['language']
-# # # # #             target = request.form['target']
-# # # # #             level = request.form['level']
-
-# # # # #             generated_content = generate_content(topic, language, target, level)
-# # # # #             return jsonify({"content": generated_content, "success": True})
-        
-# # # # #         except Exception as e:
-# # # # #             error_message = str(e)
-# # # # #             return jsonify({"error": error_message, "success": False}), 500
-# # # # #     else:
-# # # # #         return render_template('generate.html')
-
-# # # # # def generate_content(topic, language, target, level):
-# # # # #     # Input validation
-# # # # #     if not topic or not language or not target or not level:
-# # # # #         raise ValueError("All fields are required.")
-
-# # # # #     try:
-# # # # #         # Gemini API Configuration
-# # # # #         genai.configure(api_key=API_KEY) # Replace with your actual API key
-
-# # # # #         # Model Selection
-# # # # #         model = genai.GenerativeModel(model='gemini-pro')  # Or another suitable Gemini model
-
-# # # # #         # Prompt Generation (You'll likely want to refine this further)
-# # # # #         prompt = f"Write a document in {language} for {level} learners about {topic}, focusing on {target}."
-
-# # # # #         # Generate Text
-# # # # #         response = model.generate_text(
-# # # # #             prompt=prompt,
-# # # # #             temperature=0.7,  # Adjust temperature for creativity (0.0 to 1.0)
-# # # # #             max_output_tokens=500,  # Adjust max output length as needed
-# # # # #         )
-
-# # # # #         # Error Handling for Gemini API Calls
-# # # # #         if response.has_error:
-# # # # #             raise Exception(f"Gemini API Error: {response.error}")
-
-# # # # #         # Extract and Format Content
-# # # # #         content = response.result
-
-# # # # #         return content
-# # # # #     except GoogleAPIError as e:
-# # # # #         raise Exception(f"Gemini API Request Error: {e}")
-
-# # # # # # Content Generation Function
-# # # # # def generate_content(topic, language, target, level):
-# # # # #     # Robust content generation logic (replace this placeholder)
-# # # # #     # Example using dummy data:
-
-# # # # #     # Input validation (optional)
-# # # # #     if not topic or not language or not target or not level:
-# # # # #         raise ValueError("All fields are required.")
-
-# # # # #     content = f"""
-# # # # #     <h1>{topic}</h1>
-# # # # #     <p>This document is written in {language}, tailored for {level} learners, 
-# # # # #        and focuses on the topic of {target}.</p>
-    
-# # # # #     <p>Add your generated content here based on the provided parameters.</p>
-# # # # #     """
-
-# # # # #     return content
-# # # # # # Generate Route
-# # # # # @app.route('/generate')
-# # # # # def generate():
-# # # # #     return render_template('generate.html')
-
-
-# # # # # # Run the App
-# # # # # if __name__ == "__main__":
-# # # # #     app.run(debug=True)
-
-
-# # # # # <a href="#generate" class="btn">Get Started</a>
-
-# # # # # run this command
-# # # # # 28:30 / 1:25:40
-# # # # # flask --app app.py --debug run
-# # # # # <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+# python -m venv venv
+# source venv/bin/activate
+
+# brew services stop postgresql
+# brew services start postgresql
+# brew services list | grep postgresql
+# brew services restart postgresql
+# psql -d languagex
+# psql -l
+# pg_dump languagex > languagex_backup.sql  BACKUP
+# psql -d languagex -f languagex_backup.sql  RESTORE FROM BACKUP
