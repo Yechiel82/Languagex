@@ -9,15 +9,16 @@
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <style>
         :root {
-            --background-color: #fdf4e3;
-            --sidebar-color: #fff3e1;
-            --text-color: #7a4c29;
-            --accent-color: #cc7733;
-            --border-color: #dab98f;
+            --background-color: #f7fafc;         /* very light gray-blue */
+            --sidebar-color: #e3f6fd;            /* light blue */
+            --text-color: #22223b;               /* deep navy */
+            --accent-color: #3ecf8e;             /* bright green */
+            --accent-color-alt: #ffd600;         /* bright yellow */
+            --border-color: #b2e0f7;             /* soft blue border */
         }
 
         body {
-            font-family: 'Arial', sans-serif;
+            font-family: 'Segoe UI', 'Arial', sans-serif;
             line-height: 1.6;
             background-color: var(--background-color);
             color: var(--text-color);
@@ -28,22 +29,60 @@
 
         .sidebar {
             width: 300px;
+            min-width: 60px;
             background-color: var(--sidebar-color);
-            padding: 30px;
+            padding: 30px 20px 30px 30px;
             height: 100vh;
             border-right: 1px solid var(--border-color);
             overflow-y: auto;
             box-sizing: border-box;
-        }
-
-        .main-content {
-            flex: 1;
-            padding: 20px;
-            height: 100vh;
-            overflow-y: auto;
-            box-sizing: border-box;
+            position: relative;
+            transition: width 0.3s;
             display: flex;
             flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .sidebar.collapsed {
+            width: 60px;
+            padding-left: 10px;
+            padding-right: 10px;
+            align-items: center;
+        }
+
+        .sidebar-toggle {
+            position: absolute;
+            top: 18px;
+            right: 10px;
+            font-size: 22px;
+            cursor: pointer;
+            color: var(--accent-color);
+            z-index: 2;
+            background: var(--accent-color-alt);
+            border: 1px solid var(--accent-color);
+            outline: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .sidebar.collapsed .sidebar-toggle {
+            position: static;
+            margin: 0 auto;
+            display: block;
+            left: unset;
+            right: unset;
+            top: unset;
+            background: var(--accent-color-alt);
+            border: 1px solid var(--accent-color);
+            margin-bottom: 10px;
+        }
+
+        .sidebar.collapsed label,
+        .sidebar.collapsed input,
+        .sidebar.collapsed select,
+        .sidebar.collapsed button {
+            display: none !important;
         }
 
         .logo {
@@ -53,12 +92,9 @@
             display: flex;
             align-items: center;
             color: var(--accent-color);
-        }
-
-        .logo img {
-            max-width: 100%;
-            height: auto;
-            display: block;
+            transition: justify-content 0.3s;
+            width: 100%;
+            justify-content: flex-start;
         }
 
         .logo-icon {
@@ -71,6 +107,29 @@
             justify-content: center;
             border-radius: 8px;
             margin-right: 10px;
+            transition: margin 0.3s;
+            font-size: 22px;
+        }
+
+        .sidebar.collapsed .logo-text {
+            display: none !important;
+        }
+
+        .sidebar.collapsed .logo {
+            justify-content: center;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 0;
+            height: 100vh;
+            overflow-y: auto;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            background: var(--background-color);
+            position: relative; /* Ensure absolute children are positioned correctly */
         }
 
         form {
@@ -94,11 +153,12 @@
             height: 40px;
             line-height: 40px;
             color: var(--text-color);
+            background: #fff;
         }
 
         select {
             appearance: none;
-            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%237a4c29%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
+            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2322223b%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
             background-repeat: no-repeat;
             background-position: right 10px center;
             background-size: 12px auto;
@@ -112,22 +172,32 @@
             margin-top: 30px;
             padding: 12px 15px;
             background-color: var(--accent-color);
-            color: white;
+            color: #fff;
             border: none;
             border-radius: 8px;
             font-size: 16px;
             cursor: pointer;
             height: 40px;
             line-height: 1;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background-color: var(--accent-color-alt);
+            color: var(--text-color);
         }
 
         .welcome-message {
-            background-color: var(--sidebar-color);
-            border-radius: 10px;
-            padding: 30px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            text-align: center;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+            background: var(--background-color);
+            box-shadow: none;
         }
 
         .welcome-message h1 {
@@ -160,6 +230,7 @@
             overflow-y: auto;
             word-wrap: break-word;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            color: var(--text-color);
         }
 
         #loading {
@@ -186,7 +257,7 @@
 
         .jumbled-words, .answer-box {
             min-height: 40px;
-            background: #f9f6f2;
+            background: #e9f7ef;
             border-radius: 6px;
             padding: 8px;
             margin-bottom: 10px;
@@ -195,20 +266,46 @@
         .word-chip {
             user-select: none;
             transition: background 0.2s;
+            background: #fffbe6;
+            border: 1px solid var(--accent-color);
+            color: var(--text-color);
         }
 
         .word-chip:hover {
-            background: #ffe0b2;
+            background: var(--accent-color-alt);
+            color: var(--text-color);
+        }
+
+        .profile-circle {
+            position: absolute;
+            top: 24px;
+            right: 40px;
+            width: 48px;
+            height: 48px;
+            background: var(--accent-color);
+            color: #fff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            z-index: 10;
+            transition: background 0.2s;
+            padding: 0;           /* Ensure no extra padding */
+            box-sizing: border-box; /* Ensure sizing is correct */
         }
     </style>
 </head>
 <body>
-    <div class="sidebar">
+    <div class="sidebar" id="sidebar">
         <div class="logo">
             <div class="logo-icon">L</div>
-            Language Learning
+            <span class="logo-text">Language Learning</span>
         </div>
-        
+        <div class="sidebar-toggle" id="sidebar-toggle" title="Collapse/Expand">&#9776;</div>
         <form id="sentence-form">
             <label for="level">Level:</label>
             <select id="level" name="level" required>
@@ -219,24 +316,23 @@
                 <option value="C1">C1</option>
                 <option value="C2">C2</option>
             </select>
-            
             <label for="topic">Topic:</label>
             <input type="text" id="topic" name="topic" placeholder="e.g., games, travel, food" required>
-            
             <label for="num_sentences">Number of Sentences:</label>
             <input type="number" id="num_sentences" name="num_sentences" value="2" min="1" max="10">
-            
             <button type="submit">Generate Sentences</button>
         </form>
     </div>
 
     <div class="main-content">
+        <div class="profile-circle" id="profileCircle" title="Profile">
+            {{ session['user_name'][0]|upper if session.get('user_name') else 'U' }}
+        </div>
         <div id="welcomeMessage" class="welcome-message">
             <div class="welcome-icon">✏️</div>
             <h1>Generate Language Learning Sentences</h1>
             <p>Select a level and topic, then click generate to create custom language learning exercises.</p>
         </div>
-        
         <div id="loading">Generating sentences, please wait...</div>
         <div id="output"></div>
     </div>
@@ -367,6 +463,26 @@
                 // Accept any answer as correct for now
                 currentIndex += 1;
                 displayQuestion(currentIndex);
+            });
+
+            // Sidebar collapse/expand logic
+            $('#sidebar-toggle').on('click', function() {
+                $('#sidebar').toggleClass('collapsed');
+                if ($('#sidebar').hasClass('collapsed')) {
+                    $('#sidebar-toggle').html('&rarr;'); // Show right arrow when collapsed
+                } else {
+                    $('#sidebar-toggle').html('&#9776;'); // Show hamburger when expanded
+                }
+            });
+            // Set initial icon on page load
+            if ($('#sidebar').hasClass('collapsed')) {
+                $('#sidebar-toggle').html('&rarr;');
+            } else {
+                $('#sidebar-toggle').html('&#9776;');
+            }
+
+            $('#profileCircle').on('click', function() {
+                window.location.href = '/profile';
             });
         });
     </script>

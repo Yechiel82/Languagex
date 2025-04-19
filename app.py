@@ -189,6 +189,7 @@ def login():
         if user and user.check_password(password):
             session['logged_in'] = True
             session['user_id'] = user.id
+            session['user_name'] = user.name
             return redirect(url_for('generate'))
             
         return render_template('login.html', error="Invalid credentials")
