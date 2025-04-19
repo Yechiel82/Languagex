@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyDoc Generator</title>
+    <style>
+        :root {
+            --background-color: #fdf4e3;
+            --sidebar-color: #fff3e1;
+            --text-color: #7a4c29;
+            --accent-color: #cc7733;
+            --border-color: #dab98f;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+        }
+
+        .sidebar {
+            width: 300px;
+            background-color: var(--sidebar-color);
+            padding: 30px;
+            height: 100vh;
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+            box-sizing: border-box;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 20px;
+            height: 100vh;
+            overflow-y: auto;
+            box-sizing: border-box;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            color: var(--accent-color);
+        }
+
+        .logo img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+        }
+        
+
+        .logo-icon {
+            background-color: var(--accent-color);
+            color: #fff;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            margin-right: 10px;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: bold;
+            margin-top: 20px;
+            margin-bottom: 5px;
+        }
+
+        input[type="text"], select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 16px;
+            box-sizing: border-box;
+            height: 40px;
+            line-height: 40px;
+            color: var(--text-color);
+        }
+
+        select {
+            appearance: none;
+            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%237a4c29%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 12px auto;
+            padding-right: 30px;
+            padding-top: 0;
+            padding-bottom: 0;
+            line-height: 40px;
+        }
+
+        button {
+            margin-top: 30px;
+            padding: 12px 15px;
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            height: 40px;
+            line-height: 1;
+        }
+
+        #chatContent {
+            background-color: #fff;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            max-height: calc(100vh - 80px);
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .ai-icon {
+            background-color: var(--accent-color);
+            color: #fff;
+            width: 30px;
+            height: 30px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            margin-right: 10px;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 20px;
+            height: 100vh;
+            overflow-y: auto;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .welcome-message {
+            background-color: var(--sidebar-color);
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            text-align: center;
+        }
+
+        .welcome-message h1 {
+            font-size: 28px;
+            margin-bottom: 15px;
+            color: var(--accent-color);
+            font-weight: 600;
+        }
+
+        .welcome-message p {
+            font-size: 16px;
+            line-height: 1.6;
+            color: var(--text-color);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .welcome-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+            color: var(--accent-color);
+        }
+
+        #chatContent {
+            flex: 1;
+            background-color: #fff;
+            border-radius: 10px;
+            padding: 20px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: none; /* Hide initially */
+        }
+
+        .export-buttons {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .export-button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .export-button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <a href="{{ url_for('index') }}">
+            <div class="logo">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Lingua.ai Logo">
+            </div>
+        </a>
+        
+        <form id="documentSettingsForm">
+            <label for="topic">Topic:</label>
+            <input type="text" id="topic" name="topic" value="" placeholder="e.g., Grammar" required>
+
+            <label for="language">Language:</label>
+            <input type="text" id="language" name="language" value="" placeholder="e.g., Korean" required>
+
+            <label for="target">Target:</label>
+            <input type="text" id="target" name="target" value="" placeholder="e.g., Past tense" required>
+
+            <label for="level">Level:</label>
+            <select id="level" name="level">
+                <option value="Beginner" selected>Beginner</option>
+                <option value="Intermediate">Intermediate</option>
+                <option value="Advanced" >Advanced</option>
+                <option value="Beginner" selected>Beginner</option>
+                <option value="Intermediate">Intermediate</option>
+                <option value="Advanced" >Advanced</option>
+                required
+            </select>
+
+            <button type="submit">Generate Document</button>
+            <button type="button" id="checkProfileButton">Check Profile</button>
+        </form>
+    </div>
+
+    <div class="main-content">
+        <div id="welcomeMessage" class="welcome-message">
+            <div class="welcome-icon">______</div>
+            <h1>Craft Your Perfect Study Guide</h1>
+            <p>Input your focus. Click generate. Watch tailored knowledge unfold.</p>
+        </div>
+        <div id="chatContent"></div>
+        <div id="exportButtons" class="export-buttons" style="display: none;">
+            <button id="exportPDF" class="export-button">Export as PDF</button>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('checkProfileButton').addEventListener('click', function() {
+            window.location.href = '/profile';  // Redirect to profile route
+        });
+        document.getElementById('documentSettingsForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const chatContent = document.getElementById('chatContent');
+            const welcomeMessage = document.getElementById('welcomeMessage');
+            const exportButtons = document.getElementById('exportButtons');
+            
+            // Hide welcome message and show chat content
+            welcomeMessage.style.display = 'none';
+            chatContent.style.display = 'block';
+            exportButtons.style.display = 'none';
+            
+            // Clear previous content
+            chatContent.innerHTML = '';
+            
+            // Add loading message
+            chatContent.innerHTML = 'Generating document...';
+            
+            fetch('/generate', {
+                method: 'POST',
+                body: formData,
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    chatContent.innerHTML =  data.content;
+                    exportButtons.style.display = 'flex';
+                } else {
+                    chatContent.innerHTML = 'Error ' + data.error;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                chatContent.innerHTML = 'An error occurred. Please try again.';
+            });
+        });
+
+        document.getElementById('exportPDF').addEventListener('click', function() {
+            exportDocument('pdf');
+        });
+
+        document.getElementById('exportWord').addEventListener('click', function() {
+            exportDocument('docx');
+        });
+
+        document.getElementById('exportGDoc').addEventListener('click', function() {
+            exportDocument('gdoc');
+        });
+
+        function exportDocument(format) {
+            const formData = new FormData(document.getElementById('documentSettingsForm'));
+            formData.append('export_format', format);
+
+            fetch('/generate', {
+                method: 'POST',
+                body: formData,
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.blob();
+                }
+                throw new Error('Network response was not ok.');
+            })
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = 'generated_content.' + format;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while exporting. Please try again.');
+            });
+        }
+    </script>
+</body>
+</html>

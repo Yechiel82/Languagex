@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign In - Linguago</title>
+    <title>Sign Up - Linguago</title>
     <style>
         :root {
             --background-color: #fdf4e3;
@@ -58,7 +58,7 @@
             font-weight: bold;
         }
 
-        input {
+        input, select {
             width: 100%;
             padding: 0.75rem;
             border: 1px solid var(--border-color);
@@ -93,11 +93,28 @@
         <div class="logo">
             <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Linguago Logo">
         </div>
-        <h1>Sign In</h1>
+        <h1>Sign Up</h1>
         {% if error %}
         <div class="error">{{ error }}</div>
         {% endif %}
-        <form action="/login" method="POST">
+        <form action="/signup" method="POST">
+            <div class="form-group">
+                <label for="name">Name</label>
+                <input type="text" id="name" name="name" required>
+            </div>
+            <!-- Hide the language field and set value to English -->
+            <input type="hidden" id="language" name="language" value="English">
+            <div class="form-group">
+                <label for="level">CEFR Level</label>
+                <select id="level" name="level" required>
+                    <option value="A1">A1</option>
+                    <option value="A2">A2</option>
+                    <option value="B1">B1</option>
+                    <option value="B2">B2</option>
+                    <option value="C1">C1</option>
+                    <option value="C2">C2</option>
+                </select>
+            </div>
             <div class="form-group">
                 <label for="email">Email</label>
                 <input type="email" id="email" name="email" required>

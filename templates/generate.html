@@ -1,9 +1,12 @@
+<!-- templates/generate.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StudyDoc Generator</title>
+    <title>Generate Sentences</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <style>
         :root {
             --background-color: #fdf4e3;
@@ -39,6 +42,8 @@
             height: 100vh;
             overflow-y: auto;
             box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
         }
 
         .logo {
@@ -55,7 +60,6 @@
             height: auto;
             display: block;
         }
-        
 
         .logo-icon {
             background-color: var(--accent-color);
@@ -80,7 +84,7 @@
             margin-bottom: 5px;
         }
 
-        input[type="text"], select {
+        input[type="text"], input[type="number"], select {
             width: 100%;
             padding: 10px;
             border: 1px solid var(--border-color);
@@ -117,39 +121,6 @@
             line-height: 1;
         }
 
-        #chatContent {
-            background-color: #fff;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 20px;
-            max-height: calc(100vh - 80px);
-            overflow-y: auto;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-        }
-
-        .ai-icon {
-            background-color: var(--accent-color);
-            color: #fff;
-            width: 30px;
-            height: 30px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 8px;
-            margin-right: 10px;
-        }
-
-        .main-content {
-            flex: 1;
-            padding: 20px;
-            height: 100vh;
-            overflow-y: auto;
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
-        }
-
         .welcome-message {
             background-color: var(--sidebar-color);
             border-radius: 10px;
@@ -180,165 +151,224 @@
             color: var(--accent-color);
         }
 
-        #chatContent {
+        #output {
             flex: 1;
             background-color: #fff;
             border-radius: 10px;
             padding: 20px;
+            margin-top: 20px;
             overflow-y: auto;
-            white-space: pre-wrap;
             word-wrap: break-word;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            display: none; /* Hide initially */
         }
 
-        .export-buttons {
-            margin-top: 20px;
-            display: flex;
-            gap: 10px;
+        #loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            font-weight: bold;
+            color: var(--accent-color);
         }
 
-        .export-button {
-            padding: 10px 15px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
+        .sentence-block {
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
         }
 
-        .export-button:hover {
-            background-color: #45a049;
+        .sentence-block:last-child {
+            border-bottom: none;
+        }
+
+        h3, h4 {
+            color: var(--accent-color);
+        }
+
+        .jumbled-words, .answer-box {
+            min-height: 40px;
+            background: #f9f6f2;
+            border-radius: 6px;
+            padding: 8px;
+            margin-bottom: 10px;
+        }
+
+        .word-chip {
+            user-select: none;
+            transition: background 0.2s;
+        }
+
+        .word-chip:hover {
+            background: #ffe0b2;
         }
     </style>
 </head>
 <body>
     <div class="sidebar">
-        <a href="{{ url_for('index') }}">
-            <div class="logo">
-                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Lingua.ai Logo">
-            </div>
-        </a>
+        <div class="logo">
+            <div class="logo-icon">L</div>
+            Language Learning
+        </div>
         
-        <form id="documentSettingsForm">
-            <label for="topic">Topic:</label>
-            <input type="text" id="topic" name="topic" value="" placeholder="e.g., Grammar" required>
-
-            <label for="language">Language:</label>
-            <input type="text" id="language" name="language" value="" placeholder="e.g., Korean" required>
-
-            <label for="target">Target:</label>
-            <input type="text" id="target" name="target" value="" placeholder="e.g., Past tense" required>
-
+        <form id="sentence-form">
             <label for="level">Level:</label>
-            <select id="level" name="level">
-                <option value="Beginner" selected>Beginner</option>
-                <option value="Intermediate">Intermediate</option>
-                <option value="Advanced" >Advanced</option>
-                required
+            <select id="level" name="level" required>
+                <option value="A1">A1</option>
+                <option value="A2">A2</option>
+                <option value="B1">B1</option>
+                <option value="B2">B2</option>
+                <option value="C1">C1</option>
+                <option value="C2">C2</option>
             </select>
-
-            <button type="submit">Generate Document</button>
-            <button type="button" id="checkProfileButton">Check Profile</button>
+            
+            <label for="topic">Topic:</label>
+            <input type="text" id="topic" name="topic" placeholder="e.g., games, travel, food" required>
+            
+            <label for="num_sentences">Number of Sentences:</label>
+            <input type="number" id="num_sentences" name="num_sentences" value="2" min="1" max="10">
+            
+            <button type="submit">Generate Sentences</button>
         </form>
     </div>
 
     <div class="main-content">
         <div id="welcomeMessage" class="welcome-message">
-            <div class="welcome-icon">______</div>
-            <h1>Craft Your Perfect Study Guide</h1>
-            <p>Input your focus. Click generate. Watch tailored knowledge unfold.</p>
+            <div class="welcome-icon">✏️</div>
+            <h1>Generate Language Learning Sentences</h1>
+            <p>Select a level and topic, then click generate to create custom language learning exercises.</p>
         </div>
-        <div id="chatContent"></div>
-        <div id="exportButtons" class="export-buttons" style="display: none;">
-            <button id="exportPDF" class="export-button">Export as PDF</button>
-        </div>
+        
+        <div id="loading">Generating sentences, please wait...</div>
+        <div id="output"></div>
     </div>
-
+    
     <script>
-        document.getElementById('checkProfileButton').addEventListener('click', function() {
-            window.location.href = '/profile';  // Redirect to profile route
-        });
-        document.getElementById('documentSettingsForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const formData = new FormData(this);
-            const chatContent = document.getElementById('chatContent');
-            const welcomeMessage = document.getElementById('welcomeMessage');
-            const exportButtons = document.getElementById('exportButtons');
-            
-            // Hide welcome message and show chat content
-            welcomeMessage.style.display = 'none';
-            chatContent.style.display = 'block';
-            exportButtons.style.display = 'none';
-            
-            // Clear previous content
-            chatContent.innerHTML = '';
-            
-            // Add loading message
-            chatContent.innerHTML = 'Generating document...';
-            
-            fetch('/generate', {
-                method: 'POST',
-                body: formData,
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    chatContent.innerHTML =  data.content;
-                    exportButtons.style.display = 'flex';
-                } else {
-                    chatContent.innerHTML = 'Error ' + data.error;
+        $(document).ready(function() {
+            let questions = [];
+            let currentIndex = 0;
+
+            function displayQuestion(index) {
+                if (index >= questions.length) {
+                    $('#output').html('<h3>All questions completed!</h3>');
+                    return;
                 }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                chatContent.innerHTML = 'An error occurred. Please try again.';
+                const sentence = questions[index];
+                let output = `<div class="sentence-block"><h4>Question ${index + 1}</h4>`;
+                const types = [];
+                if (sentence.fill_in_blank) types.push('fill_in_blank');
+                if (sentence.arrange_question) types.push('arrange_question');
+                if (sentence.multiple_choice) types.push('multiple_choice');
+                const chosenType = sentence._chosenType || types[Math.floor(Math.random() * types.length)];
+                sentence._chosenType = chosenType; // Save for consistency
+
+                output += `<form id="question-form">`;
+                if (chosenType === 'fill_in_blank') {
+                    output += `<p><strong>Fill-in-the-blank:</strong> ${sentence.fill_in_blank}</p>`;
+                    output += `<input type="text" name="answer" required placeholder="Your answer">`;
+                } else if (chosenType === 'arrange_question') {
+                    // Extract the part after the colon
+                    let raw = sentence.arrange_question;
+                    let afterColon = raw.includes(':') ? raw.split(':')[1] : raw;
+                    // Remove any trailing "(Arrange the words)" or similar
+                    afterColon = afterColon.replace(/\(.*\)$/g, '');
+                    // Split by slash, trim, and filter out empty strings
+                    const words = afterColon.split('/')
+                        .map(w => w.trim())
+                        .filter(w => w.length > 0);
+                    // Shuffle words for jumbled effect
+                    const shuffled = words.slice().sort(() => Math.random() - 0.5);
+                    output += `<p><strong>Arrange the words:</strong></p>`;
+                    output += `<div id="jumbled-words" class="jumbled-words" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:15px;">`;
+                    shuffled.forEach((word, i) => {
+                        output += `<span class="word-chip" data-word="${word}" style="padding:8px 12px;background:#eee;border-radius:6px;cursor:pointer;border:1px solid #ccc;margin-bottom:5px;">${word}</span>`;
+                    });
+                    output += `</div>`;
+                    output += `<div style="margin-bottom:10px;">Click or drag words below to form your answer:</div>`;
+                    output += `<div id="answer-box" class="answer-box" style="min-height:40px;display:flex;flex-wrap:wrap;gap:8px;padding:8px 0;border-bottom:1px solid #dab98f;margin-bottom:15px;"></div>`;
+                    output += `<input type="hidden" name="answer" id="arrange-answer" required>`;
+                } else if (chosenType === 'multiple_choice' && sentence.multiple_choice) {
+                    output += `<p><strong>Multiple Choice:</strong> ${sentence.multiple_choice.question_text}</p>`;
+                    sentence.multiple_choice.options.forEach((opt, i) => {
+                        output += `<div><label><input type="radio" name="answer" value="${opt}" required> ${opt}</label></div>`;
+                    });
+                }
+                output += `<button type="submit">Submit</button></form></div>`;
+                $('#output').html(output);
+
+                // --- Arrange Question Logic ---
+                if (chosenType === 'arrange_question') {
+                    // Click-to-select
+                    $('#jumbled-words').on('click', '.word-chip', function() {
+                        $('#answer-box').append($(this));
+                        updateArrangeAnswer();
+                    });
+                    // Allow removing from answer box
+                    $('#answer-box').on('click', '.word-chip', function() {
+                        $('#jumbled-words').append($(this));
+                        updateArrangeAnswer();
+                    });
+                    // Drag-and-drop using SortableJS
+                    Sortable.create(document.getElementById('jumbled-words'), {
+                        group: 'words',
+                        animation: 150
+                    });
+                    Sortable.create(document.getElementById('answer-box'), {
+                        group: 'words',
+                        animation: 150,
+                        onSort: updateArrangeAnswer,
+                        onAdd: updateArrangeAnswer,
+                        onRemove: updateArrangeAnswer
+                    });
+                    function updateArrangeAnswer() {
+                        const arranged = [];
+                        $('#answer-box .word-chip').each(function() {
+                            arranged.push($(this).data('word'));
+                        });
+                        $('#arrange-answer').val(arranged.join(' '));
+                    }
+                }
+            }
+
+            $('#sentence-form').submit(function(e) {
+                e.preventDefault();
+                $('#welcomeMessage').hide();
+                $('#loading').show();
+                $('#output').html('');
+                const formData = {
+                    level: $('#level').val(),
+                    topic: $('#topic').val(),
+                    num_sentences: $('#num_sentences').val()
+                };
+                $.ajax({
+                    url: '/generate',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(formData),
+                    success: function(response) {
+                        $('#loading').hide();
+                        if (response.success) {
+                            questions = response.sentences;
+                            currentIndex = 0;
+                            displayQuestion(currentIndex);
+                        } else {
+                            $('#output').html('<p style="color:red;">Error: ' + (response.message || response.error || 'Unknown error') + '</p>');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        $('#loading').hide();
+                        $('#output').html('<p style="color:red;">Error connecting to the server: ' + error + '</p>');
+                        console.error('AJAX Error:', xhr.responseText);
+                    }
+                });
+            });
+
+            // Delegate form submission for dynamic question forms
+            $('#output').on('submit', '#question-form', function(e) {
+                e.preventDefault();
+                // Accept any answer as correct for now
+                currentIndex += 1;
+                displayQuestion(currentIndex);
             });
         });
-
-        document.getElementById('exportPDF').addEventListener('click', function() {
-            exportDocument('pdf');
-        });
-
-        document.getElementById('exportWord').addEventListener('click', function() {
-            exportDocument('docx');
-        });
-
-        document.getElementById('exportGDoc').addEventListener('click', function() {
-            exportDocument('gdoc');
-        });
-
-        function exportDocument(format) {
-            const formData = new FormData(document.getElementById('documentSettingsForm'));
-            formData.append('export_format', format);
-
-            fetch('/generate', {
-                method: 'POST',
-                body: formData,
-            })
-            .then(response => {
-                if (response.ok) {
-                    return response.blob();
-                }
-                throw new Error('Network response was not ok.');
-            })
-            .then(blob => {
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.style.display = 'none';
-                a.href = url;
-                a.download = 'generated_content.' + format;
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('An error occurred while exporting. Please try again.');
-            });
-        }
     </script>
 </body>
 </html>

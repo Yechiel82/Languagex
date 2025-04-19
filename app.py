@@ -1,36 +1,24 @@
+# app.py
 import os
 import logging
-from flask import Flask, render_template, request, jsonify, send_file, redirect, url_for, session
-from flask import session
-import google.generativeai as genai
-from google.api_core.exceptions import GoogleAPIError
-from config import API_KEY
-from logging.handlers import RotatingFileHandler
-import os
-from io import BytesIO
-from reportlab.pdfgen import canvas
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image
-from reportlab.lib.pagesizes import letter
-from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.pdfbase import pdfmetrics
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.lib.fonts import addMapping
-import secrets
-import tempfile
-import re
+import requests
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for, send_file
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 import datetime
 from sqlalchemy.sql import func
+from logging.handlers import RotatingFileHandler
 
 app = Flask(__name__)
 app.secret_key = "12345"
 
-# Configure PostgreSQL database with explicit username
+# Configure PostgreSQL database
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://yechiel@localhost/languagex'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
+
+# Cloud API configuration
+CLOUD_API_URL = os.getenv('CLOUD_API_URL', 'https://c6c0-34-87-111-204.ngrok-free.app')
 
 # Define User model
 class User(db.Model):
@@ -51,7 +39,7 @@ class User(db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
-# Define UserPerformance model for tracking user progress
+# Define UserPerformance model
 class UserPerformance(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -65,7 +53,7 @@ class UserPerformance(db.Model):
 class GroundTruth(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     word = db.Column(db.String(100), nullable=False)
-    pos = db.Column(db.String(50), nullable=False)  # part of speech
+    pos = db.Column(db.String(50), nullable=False)
     sentence = db.Column(db.Text, nullable=False)
     level = db.Column(db.String(10), nullable=False)
     generated_at = db.Column(db.DateTime, default=func.now())
@@ -81,7 +69,7 @@ class GroundTruth(db.Model):
 class FillInTheBlank(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     question = db.Column(db.Text, nullable=False)
-    answer = db.Column(db.String(100), nullable=False)  # Added answer field
+    answer = db.Column(db.String(100), nullable=False)
     level = db.Column(db.String(10), nullable=False)
     generated_at = db.Column(db.DateTime, default=func.now())
     deleted_at = db.Column(db.DateTime, nullable=True)
@@ -97,7 +85,7 @@ class FillInTheBlank(db.Model):
 class ArrangeTheWord(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     question = db.Column(db.Text, nullable=False)
-    correct_arrangement = db.Column(db.Text, nullable=False)  # Added correct answer
+    correct_arrangement = db.Column(db.Text, nullable=False)
     level = db.Column(db.String(10), nullable=False)
     generated_at = db.Column(db.DateTime, default=func.now())
     deleted_at = db.Column(db.DateTime, nullable=True)
@@ -113,8 +101,8 @@ class ArrangeTheWord(db.Model):
 class MultipleChoice(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     question = db.Column(db.Text, nullable=False)
-    choices = db.Column(db.Text, nullable=False)  # Store as JSON or serialized list
-    correct_answer = db.Column(db.String(100), nullable=False)  # Added correct answer
+    choices = db.Column(db.Text, nullable=False)
+    correct_answer = db.Column(db.String(100), nullable=False)
     level = db.Column(db.String(10), nullable=False)
     generated_at = db.Column(db.DateTime, default=func.now())
     deleted_at = db.Column(db.DateTime, nullable=True)
@@ -126,32 +114,32 @@ class MultipleChoice(db.Model):
     
     user = db.relationship('User', backref=db.backref('multiple_choices', lazy=True))
 
-# Ensure the logs directory exists
+# Logging setup
 if not os.path.exists('logs'):
     os.makedirs('logs')
-
-# Set up logging
 handler = RotatingFileHandler('logs/app.log', maxBytes=10000, backupCount=1)
 handler.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
-
-# Add the handler to Flask's logger
 app.logger.addHandler(handler)
 app.logger.setLevel(logging.INFO)
-
-# Also log to console
 console_handler = logging.StreamHandler()
 console_handler.setLevel(logging.INFO)
 console_formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
 console_handler.setFormatter(console_formatter)
 app.logger.addHandler(console_handler)
-
-# Immediate log to check if logging is working
 app.logger.info("Flask app is starting up")
 
-# Gemini API Configuration
-genai.configure(api_key=API_KEY)
+# Simple CEFR level validation
+def is_sentence_appropriate_for_level(sentence, level):
+    """Basic check for sentence validity without strict word count limitations."""
+    if not sentence or not isinstance(sentence, str):
+        app.logger.debug("Sentence rejected: empty or invalid")
+        return False
+        
+    # The sentence exists and is a string - accept it
+    # We're removing the word count restrictions since the API already validates content
+    return True
 
 @app.route('/')
 def index():
@@ -166,26 +154,21 @@ def signup():
         email = request.form['email']
         password = request.form['password']
         name = request.form.get('name', '')
-        language = request.form.get('language', '')
+        language = request.form.get('language', 'English')
         level = request.form.get('level', 'A1')
         
-        # Check if user already exists
         existing_user = User.query.filter_by(email=email).first()
         if existing_user:
             return render_template('signup.html', error="Email already registered")
         
-        # Create new user
         new_user = User(email=email, name=name, language=language, level=level)
         new_user.set_password(password)
         
-        # Add and commit to database
         db.session.add(new_user)
         db.session.commit()
         
-        session['logged_in'] = True
-        session['user_id'] = new_user.id
-        
-        return redirect(url_for('generate'))
+        # Redirect to login with a success message
+        return redirect(url_for('login', signup='success'))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -196,13 +179,11 @@ def login():
         email = request.form['email']
         password = request.form['password']
         
-        # For development, keep hardcoded credentials
         if (email == 'test@test.com' and password == 'password') or (email == 'admin@yahoo.com' and password == 'admin321'):
             session['logged_in'] = True
-            session['user_id'] = 0  # Special ID for hardcoded users
+            session['user_id'] = 0
             return redirect(url_for('generate'))
         
-        # Check database for user
         user = User.query.filter_by(email=email).first()
         
         if user and user.check_password(password):
@@ -214,13 +195,11 @@ def login():
 
 @app.route('/profile')
 def profile():
-    # Check if user is logged in
     if not session.get('logged_in'):
         return redirect(url_for('login'))
     
     user_id = session.get('user_id')
     
-    # If using hardcoded credentials (user_id = 0), show mock data
     if user_id == 0:
         user_data = {
             'name': 'John Doe',
@@ -239,12 +218,10 @@ def profile():
         }
         return render_template('profile.html', user=user_data)
     
-    # Fetch real user data from database
     user = User.query.get(user_id)
     if not user:
         return redirect(url_for('login'))
     
-    # Format user data for template
     user_data = {
         'name': user.name,
         'level': user.level,
@@ -256,7 +233,6 @@ def profile():
         'performance': []
     }
     
-    # Get performance data
     performance = UserPerformance.query.filter_by(user_id=user_id).all()
     for perf in performance:
         user_data['performance'].append({
@@ -277,193 +253,184 @@ def generate():
     
     elif request.method == 'POST':
         try:
-            # Ensure all required fields are present
-            required_fields = ['topic', 'language', 'target', 'level']
-            if not all(field in request.form for field in required_fields):
-                raise ValueError("Missing required fields in the form data")
-
-            topic = request.form['topic']
-            language = request.form['language']
-            target = request.form['target']
-            level = request.form['level']
-            
-            # Check if we're exporting or generating new content
-            export_format = request.form.get('export_format')
-            
-            if export_format:
-                # Use stored content for export
-                generated_content = session.get('generated_content')
-                if not generated_content:
-                    return jsonify({"error": "No content to export. Please generate content first.", "success": False}), 400
-                return export_content(generated_content, export_format)
+            # Handle both JSON and form data
+            if request.is_json:
+                data = request.get_json()
+                level = data.get('level')
+                num_sentences_str = str(data.get('num_sentences', 2))
+                topic = data.get('topic', '')
+                user_id = data.get('user_id') or session.get('user_id')
             else:
-                # Generate new content
-                generated_content = generate_content(topic, language, target, level)
-                
-                # Convert Markdown to HTML
-                html_content = markdown_to_html(generated_content)
-                
-                # Store the original Markdown content for potential export
-                session['generated_content'] = generated_content
-                
-                return jsonify({"content": html_content, "success": True})
-        
-        except ValueError as ve:
-            error_message = str(ve)
-            app.logger.error(f"ValueError in generate route: {error_message}")
-            return jsonify({"error": error_message, "success": False}), 400
+                level = request.form.get('level')
+                num_sentences_str = request.form.get('num_sentences', '2')
+                topic = request.form.get('topic', '')
+                user_id = session.get('user_id')
+
+            app.logger.info(f"Received generate request: level={level}, topic={topic}, num_sentences={num_sentences_str}, user_id={user_id}")
+
+            # Validate inputs
+            if not level or level not in ["A1", "A2", "B1", "B2", "C1", "C2"]:
+                app.logger.error(f"Invalid level: {level}")
+                return jsonify({"error": "Invalid or missing level", "success": False}), 400
+            
+            try:
+                num_sentences = int(num_sentences_str)
+                if num_sentences < 1 or num_sentences > 10:
+                    raise ValueError
+            except ValueError:
+                app.logger.error(f"Invalid num_sentences: {num_sentences_str}")
+                return jsonify({"error": "Number of sentences must be an integer between 1 and 10", "success": False}), 400
+
+            if user_id is None:
+                app.logger.error("No user_id in session")
+                return jsonify({"error": "User not authenticated", "success": False}), 401
+
+            # Call cloud API
+            headers = {
+                "Content-Type": "application/json"
+            }
+            payload = {
+                "level": level,
+                "num_sentences": num_sentences,
+                "user_id": user_id,
+                "topic": topic
+            }
+            
+            app.logger.info(f"Sending request to {CLOUD_API_URL}/generate_sentences with payload: {payload}")
+            response = requests.post(f"{CLOUD_API_URL}/generate_sentences", json=payload, headers=headers, timeout=60)
+            app.logger.info(f"API response status: {response.status_code}")
+            response.raise_for_status()
+            try:
+                data = response.json()
+            except ValueError as ve:
+                app.logger.error(f"Failed to parse API response: {ve}")
+                return jsonify({"error": "Invalid API response format", "success": False}), 500
+            
+            app.logger.info(f"Received API response: {data}")
+
+            if not data.get("success"):
+                app.logger.error(f"API error: {data.get('message', 'Unknown error')}")
+                return jsonify({"error": data.get("message", "Cloud API error"), "success": False}), 500
+
+            sentences = data.get("sentences", [])
+            if not sentences:
+                app.logger.warning("No sentences returned from API")
+                return jsonify({"error": "No sentences generated", "success": False}), 400
+
+            # Validate and store sentences
+            valid_sentences = []
+            for sentence_data in sentences:
+                try:
+                    sentence = sentence_data.get('sentence', '')
+                    app.logger.debug(f"Validating sentence: {sentence}")
+                    
+                    # Check required fields
+                    required_fields = ['sentence', 'verb', 'fill_in_blank', 'arrange_question', 'level', 'for_user']
+                    missing_fields = [f for f in required_fields if f not in sentence_data or not sentence_data[f]]
+                    if missing_fields:
+                        app.logger.warning(f"Skipping sentence with missing fields {missing_fields}: {sentence}")
+                        continue
+
+                    # Validate sentence complexity
+                    if not is_sentence_appropriate_for_level(sentence, level):
+                        app.logger.warning(f"Skipping inappropriate sentence for {level}: {sentence}")
+                        continue
+
+                    valid_sentences.append(sentence_data)
+                    
+                    # Store in database
+                    try:
+                        # GroundTruth
+                        gt = GroundTruth(
+                            word=sentence_data['verb'],
+                            pos='VERB',
+                            sentence=sentence,
+                            level=sentence_data['level'],
+                            for_user=sentence_data['for_user']
+                        )
+                        db.session.add(gt)
+
+                        # FillInTheBlank
+                        fill_blank = FillInTheBlank(
+                            question=sentence_data['fill_in_blank'],
+                            answer=sentence_data['verb'],
+                            level=sentence_data['level'],
+                            for_user=sentence_data['for_user']
+                        )
+                        db.session.add(fill_blank)
+
+                        # ArrangeTheWord
+                        arrange = ArrangeTheWord(
+                            question=sentence_data['arrange_question'],
+                            correct_arrangement=sentence_data['sentence'],
+                            level=sentence_data['level'],
+                            for_user=sentence_data['for_user']
+                        )
+                        db.session.add(arrange)
+
+                        # MultipleChoice
+                        mc_data = sentence_data.get('multiple_choice')
+                        if mc_data:
+                            if not all(key in mc_data for key in ['question_text', 'options', 'correct_answer']):
+                                app.logger.warning(f"Skipping invalid multiple_choice for sentence: {sentence}")
+                                continue
+                            mc = MultipleChoice(
+                                question=mc_data['question_text'],
+                                choices=",".join(map(str, mc_data['options'])),
+                                correct_answer=str(mc_data['correct_answer']),
+                                level=sentence_data['level'],
+                                for_user=sentence_data['for_user']
+                            )
+                            db.session.add(mc)
+                    except Exception as e:
+                        app.logger.error(f"Database error for sentence '{sentence}': {str(e)}")
+                        db.session.rollback()
+                        continue
+
+                except Exception as e:
+                    app.logger.error(f"Error processing sentence data: {str(e)}")
+                    continue
+
+            # Commit valid sentences
+            if valid_sentences:
+                try:
+                    db.session.commit()
+                    app.logger.info(f"Stored {len(valid_sentences)} valid sentences for user {user_id}")
+                except Exception as e:
+                    app.logger.error(f"Database commit failed: {str(e)}")
+                    db.session.rollback()
+                    return jsonify({"error": f"Database error: {str(e)}", "success": False}), 500
+
+            if not valid_sentences:
+                app.logger.warning("No valid sentences after validation")
+                return jsonify({
+                    "error": "No sentences meet the complexity requirements for the requested level",
+                    "success": False
+                }), 400
+            
+            app.logger.info(f"Returning {len(valid_sentences)} sentences to client")
+            return jsonify({
+                "success": True,
+                "sentences": valid_sentences,
+                "message": f"Generated and stored {len(valid_sentences)} sentences for level {level}"
+            })
+
+        except requests.exceptions.Timeout:
+            app.logger.error("Cloud API request timed out")
+            return jsonify({"error": "Cloud API timed out", "success": False}), 504
+        except requests.exceptions.RequestException as e:
+            app.logger.error(f"Cloud API request failed: {str(e)}")
+            return jsonify({"error": f"Failed to connect to cloud API: {str(e)}", "success": False}), 500
         except Exception as e:
-            error_message = str(e)
-            app.logger.error(f"Error in generate route: {error_message}")
-            return jsonify({"error": error_message, "success": False}), 500
+            app.logger.error(f"Unexpected error in generate route: {str(e)}")
+            return jsonify({"error": f"Server error: {str(e)}", "success": False}), 500
 
     else:
         return jsonify({"error": "Method not allowed", "success": False}), 405
 
-def generate_content(topic, language, target, level):
-    if not all([topic, language, target, level]):
-        raise ValueError("All fields are required.")
-    
-    try:
-        app.logger.info(f"Parameters: topic={topic}, language={language}, target={target}, level={level}")
-        
-        # Model Selection
-        model = genai.GenerativeModel('gemini-pro')
-        Language = language
-        Level = level
-        Topic = topic
-        Target = target
-        # Prompt Generation
-        prompt = f"""
-        You are an {Language} language teacher creating a worksheet for {Level} {Language} learners.
-        1. Generate 5 fill-in-the-blank sentences about {Topic} with a focus on {Target}. Include hint words in the context to help learners correctly use and conjugate the target word.
-        Leave the blanks empty and provide the correct answers separately.
-        Example format:
-        Sentence: I ______ (to come back) home yesterday. 
- 
-
-        2. Give me 5 {Level} multiple-choice questions to test my understanding of {Target} vocabulary.
-
-
-        3.  You are a {Level} {Language} language teacher creating a "find the mistake" activity.
-
-        Instructions:
-        1.  Write a natural-sounding sentence in {Language} about {Topic} that is grammatically correct.
-        2. Make one small, subtle change to the sentence to introduce an error related to {Topic}.
-        3. Present both versions of the sentence:
-
-        Example:
-        [First Sentence]
-        [Second sentence]
-
-        4. Invent 5 "Would You Rather" scenario in {Language} suitable for {Level} language learners.
-        - The two options should require the use of different grammatical structures or vocabulary.
-        - Focus on {Topic}.
-
-        Example:
-        매운 음식을 매일 먹겠어요, 아니면 단 음식을 매일 먹겠어요?
-        (Would you rather eat spicy food every day or eat sweet food every day?)
-        don't explain please
-
-        5. Generate 5 {Level} sentences in {Language}, each paired with its translation in {Language}.
-        The sentences should practice translating between English and {Language}.
-        Ensure that the sentences cover various aspects of the {Topic} with the focus on {Target}.
-        Include a mix of simple, compound, and complex sentences.
-
-        Provide the correct answer for each list at the very bottom of the last prompt. Please write "Answers will vary" if it true
-        """
-        
-        app.logger.info(f"Sending prompt to Gemini API: {prompt}")
-        
-        # Generate Text
-        response = model.generate_content(prompt)
-        
-        # Log the raw response
-        app.logger.info(f"Raw API response: {response}")
-        
-        # Error Handling
-        if response.parts:
-            content = response.parts[0].text
-            app.logger.info(f"Generated content: {content}")
-            return content
-        else:
-            raise Exception("No content generated")
-    
-    except GoogleAPIError as e:
-        app.logger.error(f"Gemini API Request Error: {e}")
-        raise Exception(f"Gemini API Request Error: {e}")
-
-def export_content(content, format):
-    if format == 'pdf':
-        return export_to_pdf(content)
-
-    else:
-        raise ValueError("Unsupported export format")
-
-# Register fonts
-pdfmetrics.registerFont(TTFont('NanumGothic', 'NanumGothic-Regular.ttf'))
-pdfmetrics.registerFont(TTFont('NanumGothic-Bold', 'NanumGothic-Bold.ttf'))
-
-# Add font mappings
-addMapping('NanumGothic', 0, 0, 'NanumGothic')  # normal
-addMapping('NanumGothic', 1, 0, 'NanumGothic-Bold')  # bold
-
-def export_to_pdf(content):
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=letter)
-    styles = getSampleStyleSheet()
-    
-    # Create custom styles with the Korean-compatible font
-    styles.add(ParagraphStyle(name='KoreanNormal',
-                              fontName='NanumGothic',
-                              fontSize=12,
-                              leading=14))
-    styles.add(ParagraphStyle(name='KoreanBold',
-                              fontName='NanumGothic-Bold',
-                              fontSize=12,
-                              leading=14))
-    
-    flowables = []
-
-    # Add logo to the first page
-    logo_path = os.path.join(app.static_folder, 'images', 'logo.png')
-    if os.path.exists(logo_path):
-        logo = Image(logo_path, width=100, height=100)  # Adjust size as needed
-        logo.hAlign = 'CENTER'  # Center align the logo
-        flowables.append(logo)
-        flowables.append(Spacer(1, 20))  # Add some space after the logo
-    else:
-        app.logger.warning(f"Logo file not found at {logo_path}")
-
-    paragraphs = content.split('\n\n')  # Split content into paragraphs
-    for paragraph in paragraphs:
-        lines = paragraph.split('\n')
-        for line in lines:
-            if line.startswith('**') and line.endswith('**'):
-                para = Paragraph(line.strip('*'), styles['KoreanBold'])
-            else:
-                para = Paragraph(line, styles['KoreanNormal'])
-            flowables.append(para)
-        flowables.append(Spacer(1, 12))  # Add space between paragraphs
-
-    doc.build(flowables)
-    buffer.seek(0)
-    return send_file(buffer, as_attachment=True, download_name='generated_content.pdf', mimetype='application/pdf')
-
-def markdown_to_html(text):
-    # Convert **bold** to <strong>bold</strong>
-    text = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', text)
-    
-    # Convert newlines to <br> tags
-    text = text.replace('\n', '<br>')
-    
-    return text
-                     
-# Create database tables if they don't exist
+# Create database tables
 with app.app_context():
     db.create_all()
-    
-    # Add sample data for development if needed
     if not User.query.filter_by(email='admin@yahoo.com').first():
         admin = User(email='admin@yahoo.com', name='Admin User', language='English', level='C2')
         admin.set_password('admin321')
@@ -472,16 +439,3 @@ with app.app_context():
 
 if __name__ == '__main__':
     app.run(debug=True)
-
-
-# python -m venv venv
-# source venv/bin/activate
-
-# brew services stop postgresql
-# brew services start postgresql
-# brew services list | grep postgresql
-# brew services restart postgresql
-# psql -d languagex
-# psql -l
-# pg_dump languagex > languagex_backup.sql  BACKUP
-# psql -d languagex -f languagex_backup.sql  RESTORE FROM BACKUP
