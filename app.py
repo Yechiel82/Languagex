@@ -8,6 +8,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import datetime
 from sqlalchemy.sql import func
 from logging.handlers import RotatingFileHandler
+from datetime import date, timedelta
 
 app = Flask(__name__)
 app.secret_key = "12345"
@@ -18,7 +19,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 # Cloud API configuration
-CLOUD_API_URL = os.getenv('CLOUD_API_URL', 'https://c6c0-34-87-111-204.ngrok-free.app')
+CLOUD_API_URL = os.getenv('CLOUD_API_URL', 'https://4ce9-35-185-189-123.ngrok-free.app')
 
 # Define User model
 class User(db.Model):
@@ -32,6 +33,9 @@ class User(db.Model):
     streak = db.Column(db.Integer, default=0)
     lessons_completed = db.Column(db.Integer, default=0)
     average_score = db.Column(db.Float, default=0.0)
+    last_active_date = db.Column(db.Date, nullable=True)
+    total_attempts = db.Column(db.Integer, default=0)
+    correct_attempts = db.Column(db.Integer, default=0)
     
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -46,7 +50,10 @@ class UserPerformance(db.Model):
     concept = db.Column(db.String(100), nullable=False)
     success_rate = db.Column(db.Float, default=0.0)
     error_rate = db.Column(db.Float, default=0.0)
-    
+    timestamp = db.Column(db.DateTime, default=func.now())
+    total_attempts = db.Column(db.Integer, default=0)
+    correct_attempts = db.Column(db.Integer, default=0)
+
     user = db.relationship('User', backref=db.backref('performance', lazy=True))
 
 # GroundTruth model
@@ -141,6 +148,11 @@ def is_sentence_appropriate_for_level(sentence, level):
     # We're removing the word count restrictions since the API already validates content
     return True
 
+def format_study_time(minutes):
+    hours = int(minutes) // 60
+    mins = int(minutes) % 60
+    return f"{hours}h {mins}m" if hours else f"{mins}m"
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -200,46 +212,32 @@ def profile():
         return redirect(url_for('login'))
     
     user_id = session.get('user_id')
-    
-    if user_id == 0:
-        user_data = {
-            'name': 'John Doe',
-            'level': 'A1',
-            'language': 'Spanish',
-            'study_time': '28',
-            'streak': '15',
-            'lessons_completed': '45',
-            'average_score': '76',
-            'performance': [
-                {'concept': 'basic_greetings', 'success_rate': '0', 'error_rate': '100'},
-                {'concept': 'irregular_verbs', 'success_rate': '75', 'error_rate': '25'},
-                {'concept': 'past_tense', 'success_rate': '25', 'error_rate': '75'},
-                {'concept': 'present_simple', 'success_rate': '44', 'error_rate': '56'}
-            ]
-        }
-        return render_template('profile.html', user=user_data)
-    
     user = User.query.get(user_id)
     if not user:
         return redirect(url_for('login'))
+    
+    # Format study time as hours and minutes
+    study_time_str = format_study_time(user.study_time or 0)
     
     user_data = {
         'name': user.name,
         'level': user.level,
         'language': user.language,
-        'study_time': str(user.study_time),
+        'study_time': study_time_str,
         'streak': str(user.streak),
         'lessons_completed': str(user.lessons_completed),
         'average_score': str(int(user.average_score)),
         'performance': []
     }
     
-    performance = UserPerformance.query.filter_by(user_id=user_id).all()
+    # Gather performance stats
+    performance = UserPerformance.query.filter_by(user_id=user_id).order_by(UserPerformance.timestamp.desc()).all()
     for perf in performance:
         user_data['performance'].append({
             'concept': perf.concept,
             'success_rate': str(int(perf.success_rate)),
-            'error_rate': str(int(perf.error_rate))
+            'error_rate': str(int(perf.error_rate)),
+            'total_attempts': perf.total_attempts
         })
     
     return render_template('profile.html', user=user_data)
@@ -321,12 +319,18 @@ def generate():
             # Validate and store sentences
             valid_sentences = []
             for sentence_data in sentences:
+                # Map correct fields if missing
+                if 'fill_in_blank_answer' not in sentence_data and 'verb' in sentence_data:
+                    sentence_data['fill_in_blank_answer'] = sentence_data['verb']
+                if 'correct_arrangement' not in sentence_data and 'sentence' in sentence_data:
+                    sentence_data['correct_arrangement'] = sentence_data['sentence']
+
                 try:
                     sentence = sentence_data.get('sentence', '')
                     app.logger.debug(f"Validating sentence: {sentence}")
                     
                     # Check required fields
-                    required_fields = ['sentence', 'verb', 'fill_in_blank', 'arrange_question', 'level', 'for_user']
+                    required_fields = ['sentence', 'verb', 'fill_in_blank', 'fill_in_blank_answer', 'arrange_question', 'correct_arrangement', 'level', 'for_user']
                     missing_fields = [f for f in required_fields if f not in sentence_data or not sentence_data[f]]
                     if missing_fields:
                         app.logger.warning(f"Skipping sentence with missing fields {missing_fields}: {sentence}")
@@ -354,20 +358,24 @@ def generate():
                         # FillInTheBlank
                         fill_blank = FillInTheBlank(
                             question=sentence_data['fill_in_blank'],
-                            answer=sentence_data['verb'],
+                            answer=sentence_data['fill_in_blank_answer'],
                             level=sentence_data['level'],
                             for_user=sentence_data['for_user']
                         )
                         db.session.add(fill_blank)
+                        db.session.flush()  # Get the ID before commit
+                        sentence_data['fill_in_blank_id'] = fill_blank.id
 
                         # ArrangeTheWord
                         arrange = ArrangeTheWord(
                             question=sentence_data['arrange_question'],
-                            correct_arrangement=sentence_data['sentence'],
+                            correct_arrangement=sentence_data['correct_arrangement'],
                             level=sentence_data['level'],
                             for_user=sentence_data['for_user']
                         )
                         db.session.add(arrange)
+                        db.session.flush()  # Get the ID before commit
+                        sentence_data['arrange_id'] = arrange.id
 
                         # MultipleChoice
                         mc_data = sentence_data.get('multiple_choice')
@@ -383,6 +391,8 @@ def generate():
                                 for_user=sentence_data['for_user']
                             )
                             db.session.add(mc)
+                            db.session.flush()  # Get the ID before commit
+                            sentence_data['multiple_choice_id'] = mc.id
                     except Exception as e:
                         app.logger.error(f"Database error for sentence '{sentence}': {str(e)}")
                         db.session.rollback()
@@ -396,6 +406,11 @@ def generate():
             if valid_sentences:
                 try:
                     db.session.commit()
+                    # Increment lessons_completed ONCE per request
+                    user = User.query.get(user_id)
+                    if user:
+                        user.lessons_completed = (user.lessons_completed or 0) + 1
+                        db.session.commit()
                     app.logger.info(f"Stored {len(valid_sentences)} valid sentences for user {user_id}")
                 except Exception as e:
                     app.logger.error(f"Database commit failed: {str(e)}")
@@ -429,7 +444,67 @@ def generate():
     else:
         return jsonify({"error": "Method not allowed", "success": False}), 405
 
-# Create database tables
+@app.route('/submit_answer', methods=['POST'])
+def submit_answer():
+    data = request.get_json()
+    question_id = data.get('question_id')
+    user_answer = data.get('user_answer')
+    is_correct = data.get('is_correct')
+    question_type = data.get('question_type')
+    time_spent = data.get('time_spent', 0)  # sent from frontend
+
+    user = User.query.get(session['user_id'])
+    today = date.today()
+    if user.last_active_date == today - timedelta(days=1):
+        user.streak += 1
+    elif user.last_active_date != today:
+        user.streak = 1
+    user.last_active_date = today
+    if time_spent and int(time_spent) > 0:
+        user.study_time = (user.study_time or 0) + int(time_spent)
+    user.total_attempts = (user.total_attempts or 0) + 1
+    n = user.total_attempts - 1
+    user.average_score = ((user.average_score * n) + (100 if is_correct else 0)) / (n + 1)
+    db.session.commit()
+
+    concept = data.get('concept')
+    if concept:
+        concept = concept.strip().lower()
+    else:
+        concept = 'unknown'
+
+    perf = UserPerformance.query.filter_by(user_id=user.id, concept=concept).first()
+    if not perf:
+        perf = UserPerformance(user_id=user.id, concept=concept)
+        db.session.add(perf)
+    # Update stats (you may want to store total/correct/incorrect counts for accuracy)
+    perf.total_attempts = (perf.total_attempts or 0) + 1
+    if is_correct:
+        perf.correct_attempts = (perf.correct_attempts or 0) + 1
+    # Calculate rates
+    perf.success_rate = 100.0 * (perf.correct_attempts or 0) / (perf.total_attempts or 1)
+    perf.error_rate = 100.0 - perf.success_rate
+    perf.timestamp = datetime.datetime.now()
+    db.session.commit()
+
+    if question_type == 'fill_in_blank':
+        question = FillInTheBlank.query.get(question_id)
+    elif question_type == 'arrange_question':
+        question = ArrangeTheWord.query.get(question_id)
+    elif question_type == 'multiple_choice':
+        question = MultipleChoice.query.get(question_id)
+    else:
+        question = None
+
+    if question:
+        question.user_answer = user_answer
+        question.is_correct = is_correct
+        db.session.commit()
+        return jsonify({'success': True})
+
+    return jsonify({'success': False, 'error': 'Question not found'}), 404
+
+# # Create database tables
 with app.app_context():
     db.create_all()
     if not User.query.filter_by(email='admin@yahoo.com').first():
