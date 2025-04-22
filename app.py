@@ -9,6 +9,7 @@ import datetime
 from sqlalchemy.sql import func
 from logging.handlers import RotatingFileHandler
 from datetime import date, timedelta
+import random
 
 app = Flask(__name__)
 app.secret_key = "12345"
@@ -566,9 +567,11 @@ def placement_test_questions():
 
     questions = []
 
-    # Get up to 2 fill-in-the-blank
-    fib = FillInTheBlank.query.filter_by(is_seen=False, for_user=user_id).limit(2).all()
+    # Fill-in-the-blank: skip if apostrophe in question or answer
+    fib = FillInTheBlank.query.filter_by(is_seen=False, for_user=user_id).all()
     for q in fib:
+        if "'" in q.question or "'" in q.answer:
+            continue  # skip if apostrophe
         questions.append({
             'id': q.id,
             'type': 'fill_in_blank',
@@ -576,8 +579,8 @@ def placement_test_questions():
             'answer': q.answer,
         })
 
-    # Get up to 2 arrange-the-word
-    atw = ArrangeTheWord.query.filter_by(is_seen=False, for_user=user_id).limit(2).all()
+    # Arrange: always include, even if apostrophe
+    atw = ArrangeTheWord.query.filter_by(is_seen=False, for_user=user_id).all()
     for q in atw:
         questions.append({
             'id': q.id,
@@ -586,14 +589,17 @@ def placement_test_questions():
             'correct_arrangement': q.correct_arrangement,
         })
 
-    # Get up to 1 multiple choice
-    mc = MultipleChoice.query.filter_by(is_seen=False, for_user=user_id).limit(1).all()
+    # Multiple choice: skip if apostrophe in question, any choice, or correct answer
+    mc = MultipleChoice.query.filter_by(is_seen=False, for_user=user_id).all()
     for q in mc:
-        # Convert choices to list (from comma-separated string)
+        # Convert choices to list
         if isinstance(q.choices, str):
             choices = [c.strip() for c in q.choices.split(',')]
         else:
-            choices = q.choices  # fallback, should be a list
+            choices = q.choices
+        # Skip if apostrophe in question, any choice, or correct answer
+        if ("'" in q.question or "'" in q.correct_answer or any("'" in c for c in choices)):
+            continue
         questions.append({
             'id': q.id,
             'type': 'multiple_choice',
@@ -602,7 +608,8 @@ def placement_test_questions():
             'correct_answer': q.correct_answer,
         })
 
-    # Limit to 5 questions total
+    # Shuffle and limit to 5 questions
+    random.shuffle(questions)
     questions = questions[:5]
 
     return jsonify({'success': True, 'questions': questions})
