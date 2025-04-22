@@ -19,7 +19,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 # Cloud API configuration
-CLOUD_API_URL = os.getenv('CLOUD_API_URL', 'https://4ce9-35-185-189-123.ngrok-free.app')
+CLOUD_API_URL = os.getenv('CLOUD_API_URL', 'https://ee3d-35-201-233-146.ngrok-free.app')
 
 # Define User model
 class User(db.Model):
@@ -36,6 +36,7 @@ class User(db.Model):
     last_active_date = db.Column(db.Date, nullable=True)
     total_attempts = db.Column(db.Integer, default=0)
     correct_attempts = db.Column(db.Integer, default=0)
+    placement_test_for_user = db.Column(db.Integer, nullable=True)  # User ID if used for placement test
     
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -120,6 +121,16 @@ class MultipleChoice(db.Model):
     user_feedback = db.Column(db.Text, nullable=True)
     
     user = db.relationship('User', backref=db.backref('multiple_choices', lazy=True))
+
+# PlacementTestAttempt model
+class PlacementTestAttempt(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    started_at = db.Column(db.DateTime, default=func.now())
+    completed_at = db.Column(db.DateTime, nullable=True)
+    score = db.Column(db.Float, nullable=True)
+    estimated_level = db.Column(db.String(10), nullable=True)
+    user = db.relationship('User', backref=db.backref('placement_attempts', lazy=True))
 
 # Logging setup
 if not os.path.exists('logs'):
@@ -328,7 +339,7 @@ def generate():
                 try:
                     sentence = sentence_data.get('sentence', '')
                     app.logger.debug(f"Validating sentence: {sentence}")
-                    
+
                     # Check required fields
                     required_fields = ['sentence', 'verb', 'fill_in_blank', 'fill_in_blank_answer', 'arrange_question', 'correct_arrangement', 'level', 'for_user']
                     missing_fields = [f for f in required_fields if f not in sentence_data or not sentence_data[f]]
@@ -340,6 +351,39 @@ def generate():
                     if not is_sentence_appropriate_for_level(sentence, level):
                         app.logger.warning(f"Skipping inappropriate sentence for {level}: {sentence}")
                         continue
+
+                    # Detect contractions in the answer
+                    contraction_in_answer = False
+                    # For fill-in-the-blank
+                    if "'" in str(sentence_data.get('fill_in_blank_answer', '')):
+                        contraction_in_answer = True
+                    # For multiple choice
+                    mc_data = sentence_data.get('multiple_choice')
+                    if mc_data and "'" in str(mc_data.get('correct_answer', '')):
+                        contraction_in_answer = True
+
+                    # If contraction is found, only create ArrangeTheWord and skip fill-in-the-blank/multiple-choice
+                    if contraction_in_answer:
+                        try:
+                            arrange = ArrangeTheWord(
+                                question=sentence_data['arrange_question'],
+                                correct_arrangement=sentence_data['correct_arrangement'],
+                                level=sentence_data['level'],
+                                for_user=sentence_data['for_user']
+                            )
+                            db.session.add(arrange)
+                            db.session.flush()
+                            sentence_data['arrange_id'] = arrange.id
+                            # Mark only arrange_question as available
+                            sentence_data['fill_in_blank'] = None
+                            sentence_data['fill_in_blank_id'] = None
+                            sentence_data['multiple_choice'] = None
+                            sentence_data['multiple_choice_id'] = None
+                            valid_sentences.append(sentence_data)
+                        except Exception as e:
+                            app.logger.error(f"Database error for arrange sentence '{sentence}': {str(e)}")
+                            db.session.rollback()
+                        continue  # Skip the rest of the loop for this sentence
 
                     valid_sentences.append(sentence_data)
                     
@@ -503,6 +547,56 @@ def submit_answer():
         return jsonify({'success': True})
 
     return jsonify({'success': False, 'error': 'Question not found'}), 404
+
+@app.route('/api/placement_test_questions')
+def placement_test_questions():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+
+    questions = []
+
+    # Get up to 2 fill-in-the-blank
+    fib = FillInTheBlank.query.filter_by(is_seen=False, for_user=user_id).limit(2).all()
+    for q in fib:
+        questions.append({
+            'id': q.id,
+            'type': 'fill_in_blank',
+            'question': q.question,
+            'answer': q.answer,
+        })
+
+    # Get up to 2 arrange-the-word
+    atw = ArrangeTheWord.query.filter_by(is_seen=False, for_user=user_id).limit(2).all()
+    for q in atw:
+        questions.append({
+            'id': q.id,
+            'type': 'arrange',
+            'question': q.question,
+            'correct_arrangement': q.correct_arrangement,
+        })
+
+    # Get up to 1 multiple choice
+    mc = MultipleChoice.query.filter_by(is_seen=False, for_user=user_id).limit(1).all()
+    for q in mc:
+        questions.append({
+            'id': q.id,
+            'type': 'multiple_choice',
+            'question': q.question,
+            'choices': q.choices,  # Should be a JSON string or list
+            'correct_answer': q.correct_answer,
+        })
+
+    # Limit to 5 questions total
+    questions = questions[:5]
+
+    return jsonify({'success': True, 'questions': questions})
+
+@app.route('/placement_test')
+def placement_test():
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+    return render_template('placement_test.html')
 
 # # Create database tables
 with app.app_context():

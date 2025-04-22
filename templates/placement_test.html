@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Placement Test</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        :root {
+            --background-color: #f7fafc;
+            --sidebar-color: #e3f6fd;
+            --text-color: #22223b;
+            --accent-color: #3ecf8e;
+            --accent-color-alt: #ffd600;
+            --border-color: #b2e0f7;
+        }
+        body {
+            font-family: 'Segoe UI', 'Arial', sans-serif;
+            line-height: 1.6;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+        }
+        .main-content {
+            width: 100vw;
+            height: 100vh;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: var(--background-color);
+            position: relative;
+        }
+        .profile-circle {
+            position: absolute;
+            top: 24px;
+            right: 32px;
+            width: 48px;
+            height: 48px;
+            background: var(--accent-color);
+            color: #fff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(62, 207, 142, 0.15);
+            cursor: pointer;
+        }
+        #loading {
+            display: none;
+            text-align: center;
+            margin-top: 40px;
+            font-size: 18px;
+            color: var(--accent-color);
+        }
+        #output {
+            background-color: #fff;
+            border-radius: 10px;
+            padding: 20px;
+            max-width: 700px;
+            min-width: 320px;
+            min-height: 300px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center; /* Center horizontally */
+            margin: 0 auto;
+        }
+        h2 {
+            color: var(--accent-color);
+            text-align: center;
+            margin-top: 40px;
+        }
+        /* Add more styles as needed for questions/answers */
+    </style>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+</head>
+<body>
+    <div class="main-content">
+        <div class="profile-circle" id="profileCircle" title="Profile">
+            {{ session['user_name'][0]|upper if session.get('user_name') else 'U' }}
+        </div>
+        <h2>Placement Test</h2>
+        <div id="loading">Loading placement test...</div>
+        <div id="output"></div>
+    </div>
+    <script>
+        $(document).ready(function() {
+            $('#loading').show();
+            $('#output').empty();
+
+            $.get('/api/placement_test_questions', function(data) {
+                $('#loading').hide();
+                if (!data.success || !data.questions.length) {
+                    $('#output').html('<div style="text-align:center;color:var(--accent-color);">No placement test questions available.</div>');
+                    return;
+                }
+
+                let questions = data.questions;
+                let current = 0;
+                let answers = [];
+
+                function renderQuestion(idx) {
+                    let q = questions[idx];
+                    let html = `<div class="sentence-block" style="margin-bottom:32px;padding:18px 16px;background:var(--sidebar-color);border-radius:10px;box-shadow:0 1px 4px rgba(50,150,200,0.07);">`;
+                    html += `<div style="font-weight:bold;color:var(--accent-color);margin-bottom:8px;">Question ${idx+1} of ${questions.length}</div>`;
+                    html += `<div style="margin-bottom:12px;">${q.question}</div>`;
+
+                    if (q.type === 'fill_in_blank') {
+                        html += `<input type="text" id="placementAnswer" placeholder="Your answer..." style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--border-color);">`;
+                    } else if (q.type === 'arrange') {
+                        let words = q.correct_arrangement.split(' ');
+                        let shuffled = words.slice().sort(() => Math.random() - 0.5);
+                        html += `<div id="jumbled-words" class="jumbled-words" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:15px;">`;
+                        shuffled.forEach(word => {
+                            html += `<span class="word-chip" data-word="${word}" style="padding:8px 12px;background:#fffbe6;border-radius:6px;cursor:pointer;border:1px solid var(--accent-color);margin-bottom:5px;">${word}</span>`;
+                        });
+                        html += `</div>`;
+                        html += `<div style="margin-bottom:10px;">Click or drag words below to form your answer:</div>`;
+                        html += `<div id="answer-box" class="answer-box" style="min-height:40px;display:flex;flex-wrap:wrap;gap:8px;padding:8px 0;border-bottom:1px solid #dab98f;margin-bottom:15px;"></div>`;
+                        html += `<input type="hidden" id="placementAnswer">`;
+                        html += `<div style="font-size:13px;color:#888;">Tap or drag words to arrange. Tap again to undo.</div>`;
+                    } else if (q.type === 'multiple_choice') {
+                        let choices = [];
+                        try {
+                            choices = typeof q.choices === 'string' ? JSON.parse(q.choices) : q.choices;
+                        } catch {
+                            choices = [];
+                        }
+                        html += `<div>`;
+                        choices.forEach((choice, cidx) => {
+                            html += `
+                                <label style="display:block;margin-bottom:6px;">
+                                    <input type="radio" name="mc" value="${choice}" style="margin-right:8px;">
+                                    ${choice}
+                                </label>
+                            `;
+                        });
+                        html += `</div>`;
+                    }
+                    html += `</div>`;
+                    html += `<button id="nextQuestion" style="background:var(--accent-color);color:#fff;padding:12px 24px;border:none;border-radius:8px;font-size:16px;cursor:pointer;margin-top:24px;">${idx === questions.length-1 ? 'Submit Answers' : 'Next'}</button>`;
+                    $('#output').html(html);
+
+                    // --- Arrange Question Logic (replicating generate.html) ---
+                    if (q.type === 'arrange') {
+                        // Click-to-select and click-to-undo
+                        $('#jumbled-words').on('click', '.word-chip', function() {
+                            $('#answer-box').append($(this));
+                            updateArrangeAnswer();
+                        });
+                        $('#answer-box').on('click', '.word-chip', function() {
+                            $('#jumbled-words').append($(this));
+                            updateArrangeAnswer();
+                        });
+                        // Drag-and-drop using SortableJS
+                        Sortable.create(document.getElementById('jumbled-words'), {
+                            group: 'words',
+                            animation: 150
+                        });
+                        Sortable.create(document.getElementById('answer-box'), {
+                            group: 'words',
+                            animation: 150,
+                            onSort: updateArrangeAnswer,
+                            onAdd: updateArrangeAnswer,
+                            onRemove: updateArrangeAnswer
+                        });
+                        function updateArrangeAnswer() {
+                            const arranged = [];
+                            $('#answer-box .word-chip').each(function() {
+                                arranged.push($(this).data('word'));
+                            });
+                            $('#placementAnswer').val(arranged.join(' '));
+                        }
+                    }
+                }
+
+                renderQuestion(current);
+
+                $('#output').on('click', '#nextQuestion', function() {
+                    let q = questions[current];
+                    let answer = '';
+                    if (q.type === 'fill_in_blank' || q.type === 'arrange') {
+                        answer = $('#placementAnswer').val();
+                    } else if (q.type === 'multiple_choice') {
+                        answer = $('input[name="mc"]:checked').val() || '';
+                    }
+                    answers.push({id: q.id, type: q.type, answer: answer});
+
+                    current++;
+                    if (current < questions.length) {
+                        renderQuestion(current);
+                    } else {
+                        // Before showing the thank you message, check if the last answer was filled
+                        if ((q.type === 'fill_in_blank' || q.type === 'arrange') && !answer) {
+                            // If empty, re-render the last question and show a warning
+                            current--;
+                            renderQuestion(current);
+                            $('#output').append('<div style="color:red;margin-top:10px;">Please provide your answer before submitting.</div>');
+                            return;
+                        }
+                        $('#output').html('<div style="text-align:center;color:var(--accent-color);font-size:20px;margin-top:40px;">Thank you! Your answers have been submitted.</div>');
+                        // Optionally, send answers to backend here
+                        // $.post('/api/submit_placement_test', {answers: answers}, function(resp) { ... });
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
