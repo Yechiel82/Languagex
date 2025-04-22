@@ -19,7 +19,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 # Cloud API configuration
-CLOUD_API_URL = os.getenv('CLOUD_API_URL', 'https://ee3d-35-201-233-146.ngrok-free.app')
+CLOUD_API_URL = os.getenv('CLOUD_API_URL', 'https://0038-34-168-155-130.ngrok-free.app')
 
 # Define User model
 class User(db.Model):
@@ -86,8 +86,10 @@ class FillInTheBlank(db.Model):
     user_answer = db.Column(db.Text, nullable=True)
     is_correct = db.Column(db.Boolean, nullable=True)
     user_feedback = db.Column(db.Text, nullable=True)
-    
+    ground_truth_id = db.Column(db.Integer, db.ForeignKey('ground_truth.id'), nullable=True)
+
     user = db.relationship('User', backref=db.backref('fill_blanks', lazy=True))
+    ground_truth = db.relationship('GroundTruth', backref=db.backref('fill_blanks', lazy=True))
 
 # ArrangeTheWord model
 class ArrangeTheWord(db.Model):
@@ -102,8 +104,10 @@ class ArrangeTheWord(db.Model):
     user_answer = db.Column(db.Text, nullable=True)
     is_correct = db.Column(db.Boolean, nullable=True)
     user_feedback = db.Column(db.Text, nullable=True)
-    
+    ground_truth_id = db.Column(db.Integer, db.ForeignKey('ground_truth.id'), nullable=True)
+
     user = db.relationship('User', backref=db.backref('arrange_words', lazy=True))
+    ground_truth = db.relationship('GroundTruth', backref=db.backref('arrange_words', lazy=True))
 
 # MultipleChoice model
 class MultipleChoice(db.Model):
@@ -119,8 +123,10 @@ class MultipleChoice(db.Model):
     user_answer = db.Column(db.Text, nullable=True)
     is_correct = db.Column(db.Boolean, nullable=True)
     user_feedback = db.Column(db.Text, nullable=True)
-    
+    ground_truth_id = db.Column(db.Integer, db.ForeignKey('ground_truth.id'), nullable=True)
+
     user = db.relationship('User', backref=db.backref('multiple_choices', lazy=True))
+    ground_truth = db.relationship('GroundTruth', backref=db.backref('multiple_choices', lazy=True))
 
 # PlacementTestAttempt model
 class PlacementTestAttempt(db.Model):
@@ -389,7 +395,7 @@ def generate():
                     
                     # Store in database
                     try:
-                        # GroundTruth
+                        # Create GroundTruth first
                         gt = GroundTruth(
                             word=sentence_data['verb'],
                             pos='VERB',
@@ -398,13 +404,15 @@ def generate():
                             for_user=sentence_data['for_user']
                         )
                         db.session.add(gt)
+                        db.session.flush()  # Get gt.id
 
                         # FillInTheBlank
                         fill_blank = FillInTheBlank(
                             question=sentence_data['fill_in_blank'],
                             answer=sentence_data['fill_in_blank_answer'],
                             level=sentence_data['level'],
-                            for_user=sentence_data['for_user']
+                            for_user=sentence_data['for_user'],
+                            ground_truth_id=gt.id
                         )
                         db.session.add(fill_blank)
                         db.session.flush()  # Get the ID before commit
@@ -415,7 +423,8 @@ def generate():
                             question=sentence_data['arrange_question'],
                             correct_arrangement=sentence_data['correct_arrangement'],
                             level=sentence_data['level'],
-                            for_user=sentence_data['for_user']
+                            for_user=sentence_data['for_user'],
+                            ground_truth_id=gt.id
                         )
                         db.session.add(arrange)
                         db.session.flush()  # Get the ID before commit
@@ -432,7 +441,8 @@ def generate():
                                 choices=",".join(map(str, mc_data['options'])),
                                 correct_answer=str(mc_data['correct_answer']),
                                 level=sentence_data['level'],
-                                for_user=sentence_data['for_user']
+                                for_user=sentence_data['for_user'],
+                                ground_truth_id=gt.id
                             )
                             db.session.add(mc)
                             db.session.flush()  # Get the ID before commit
@@ -579,11 +589,16 @@ def placement_test_questions():
     # Get up to 1 multiple choice
     mc = MultipleChoice.query.filter_by(is_seen=False, for_user=user_id).limit(1).all()
     for q in mc:
+        # Convert choices to list (from comma-separated string)
+        if isinstance(q.choices, str):
+            choices = [c.strip() for c in q.choices.split(',')]
+        else:
+            choices = q.choices  # fallback, should be a list
         questions.append({
             'id': q.id,
             'type': 'multiple_choice',
             'question': q.question,
-            'choices': q.choices,  # Should be a JSON string or list
+            'choices': choices,
             'correct_answer': q.correct_answer,
         })
 
