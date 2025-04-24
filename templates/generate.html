@@ -366,6 +366,10 @@
                     .toLowerCase();
             }
 
+            function cleanQuestionText(text) {
+                return (text || '').replace(/\s*### Output:.*$/g, '').trim();
+            }
+
             function displayQuestion(index) {
                 if (index >= questions.length) {
                     $('#output').html('<h3>All questions completed!</h3>');
@@ -406,10 +410,42 @@
                     output += `<div id="answer-box" class="answer-box" style="min-height:40px;display:flex;flex-wrap:wrap;gap:8px;padding:8px 0;border-bottom:1px solid #dab98f;margin-bottom:15px;"></div>`;
                     output += `<input type="hidden" name="answer" id="arrange-answer" required>`;
                 } else if (chosenType === 'multiple_choice' && sentence.multiple_choice) {
-                    output += `<p><strong>Multiple Choice:</strong> ${sentence.multiple_choice.question_text}</p>`;
-                    sentence.multiple_choice.options.forEach((opt, i) => {
+                    let questionText = sentence.multiple_choice.question_text || '';
+                    output += `<p><strong>Multiple Choice:</strong></p>`;
+                    html += `<div style="margin-bottom:12px;">${cleanQuestionText(questionText)}</div>`;
+                    let choices = [];
+                    if (sentence.multiple_choice.options) {
+                        choices = sentence.multiple_choice.options;
+                    } else if (sentence.multiple_choice && Array.isArray(sentence.multiple_choice.options)) {
+                        choices = sentence.multiple_choice.options;
+                    }
+                    choices.forEach((opt, i) => {
                         output += `<div><label><input type="radio" name="answer" value="${opt}" required> ${opt}</label></div>`;
                     });
+                } else if (chosenType === 'multiple_choice') {
+                    let choices = [];
+                    let questionText = '';
+                    let correctAnswer = '';
+                    if (sentence.choices) {
+                        choices = sentence.choices;
+                        questionText = sentence.question;
+                        correctAnswer = sentence.correct_answer;
+                    } else if (sentence.multiple_choice) {
+                        choices = sentence.multiple_choice.options;
+                        questionText = sentence.multiple_choice.question_text;
+                        correctAnswer = sentence.multiple_choice.correct_answer;
+                    }
+                    output += `<div style="margin-bottom:12px;">${cleanQuestionText(questionText)}</div>`;
+                    output += `<div>`;
+                    choices.forEach((choice, cidx) => {
+                        output += `
+                            <label style="display:block;margin-bottom:6px;">
+                                <input type="radio" name="mc" value="${choice}" style="margin-right:8px;">
+                                ${choice}
+                            </label>
+                        `;
+                    });
+                    output += `</div>`;
                 }
                 output += `<button type="submit">Submit</button></form></div>`;
                 $('#output').html(output);
@@ -503,7 +539,8 @@
                     isCorrect = normalizeAnswer(userAnswer) === normalizeAnswer(sentence.sentence);
                 } else if (sentence._chosenType === 'multiple_choice') {
                     userAnswer = $(this).find('input[name="answer"]:checked').val();
-                    isCorrect = normalizeAnswer(userAnswer) === normalizeAnswer(sentence.multiple_choice.correct_answer);
+                    let correctAnswer = sentence.correct_answer || (sentence.multiple_choice && sentence.multiple_choice.correct_answer) || '';
+                    isCorrect = normalizeAnswer(userAnswer) === normalizeAnswer(correctAnswer);
                 }
 
                 let questionId = null;

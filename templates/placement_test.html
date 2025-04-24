@@ -102,17 +102,26 @@
                     $('#output').html('<div style="text-align:center;color:var(--accent-color);">No placement test questions available.</div>');
                     return;
                 }
+            $('#profileCircle').on('click', function() {
+                window.location.href = '/profile';
+            });
 
                 let questions = data.questions;
                 let current = 0;
                 let answers = [];
 
+                function cleanQuestionText(text) {
+                    return (text || '').replace(/\s*### Output:.*$/g, '').trim();
+                }
+
                 function renderQuestion(idx) {
                     console.log('Rendering question', current, questions[current]);
                     let q = questions[idx];
+                    let questionText = q.question || (q.multiple_choice && q.multiple_choice.question_text) || '';
+                    let correctAnswer = q.correct_answer || (q.multiple_choice && q.multiple_choice.correct_answer) || '';
                     let html = `<div class="sentence-block" style="margin-bottom:32px;padding:18px 16px;background:var(--sidebar-color);border-radius:10px;box-shadow:0 1px 4px rgba(50,150,200,0.07);display:flex;flex-direction:column;align-items:center;">`;
                     html += `<div style="font-weight:bold;color:var(--accent-color);margin-bottom:8px;">Question ${idx+1} of ${questions.length}</div>`;
-                    html += `<div style="margin-bottom:12px;">${q.question}</div>`;
+                    html += `<div style="margin-bottom:12px;">${cleanQuestionText(questionText)}</div>`;
 
                     if (q.type === 'fill_in_blank') {
                         html += `<input type="text" id="placementAnswer" placeholder="Your answer..." 
@@ -131,12 +140,18 @@
                         html += `<div style="font-size:13px;color:#888;">Tap or drag words to arrange. Tap again to undo.</div>`;
                     } else if (q.type === 'multiple_choice') {
                         let choices = [];
-                        try {
-                            choices = typeof q.choices === 'string' ? JSON.parse(q.choices) : q.choices;
-                        } catch {
-                            choices = [];
+                        let questionText = '';
+                        let correctAnswer = '';
+                        if (q.choices) {
+                            choices = q.choices;
+                            questionText = q.question;
+                            correctAnswer = q.correct_answer;
+                        } else if (q.multiple_choice) {
+                            choices = q.multiple_choice.options;
+                            questionText = q.multiple_choice.question_text;
+                            correctAnswer = q.multiple_choice.correct_answer;
                         }
-                        console.log('Multiple choice options:', choices);
+                        html += `<div style="margin-bottom:12px;">${cleanQuestionText(questionText)}</div>`;
                         html += `<div>`;
                         choices.forEach((choice, cidx) => {
                             html += `
@@ -215,6 +230,47 @@
                 });
             });
         });
+
+        function calculate_cefr_level(user_answers) {
+            // user_answers: [{'id': ..., 'type': ..., 'answer': ...}, ...]
+            // You need to fetch the correct answers and their levels from the DB
+            let level_results = {'A1': [], 'A2': [], 'B1': [], 'B2': [], 'C1': [], 'C2': []};
+            for (let ans of user_answers) {
+                let q = null;
+                let level = null;
+                let correct = false;
+                if (ans.type === 'fill_in_blank') {
+                    q = FillInTheBlank.query.get(ans.id);
+                    if (q) {
+                        level = q.level;
+                        correct = (q.answer.trim().toLowerCase() === ans.answer.trim().toLowerCase());
+                    }
+                } else if (ans.type === 'arrange') {
+                    q = ArrangeTheWord.query.get(ans.id);
+                    if (q) {
+                        level = q.level;
+                        correct = (q.correct_arrangement.trim().toLowerCase() === ans.answer.trim().toLowerCase());
+                    }
+                } else if (ans.type === 'multiple_choice') {
+                    q = MultipleChoice.query.get(ans.id);
+                    if (q) {
+                        level = q.level;
+                        correct = (q.correct_answer.trim().toLowerCase() === ans.answer.trim().toLowerCase());
+                    }
+                }
+                if (level in level_results) {
+                    level_results[level].push(correct);
+                }
+            }
+
+            // Assign the highest level with at least 2 correct answers
+            for (let level of ['C2', 'C1', 'B2', 'B1', 'A2', 'A1'].reverse()) {
+                if (level_results[level].filter(Boolean).length >= 2) {
+                    return level;
+                }
+            }
+            return 'A1';  // fallback
+        }
     </script>
 </body>
 </html>

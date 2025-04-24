@@ -5,6 +5,49 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Linguago - Learn Languages</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        :root {
+            --background-color: #f7fafc;
+            --sidebar-color: #f7fafc;
+            --text-color: #22223b;
+            --accent-color: #3ecf8e;
+            --accent-color-alt: #ffd600;
+            --border-color: #b2e0f7;
+        }
+        body {
+            background-color: var(--background-color);
+            color: var(--text-color);
+        }
+        header {
+            background: var(--sidebar-color);
+        }
+        .primary-btn {
+            background: var(--accent-color);
+            color: #fff;
+        }
+        .primary-btn:hover {
+            background: var(--accent-color-alt);
+            color: var(--text-color);
+        }
+        .secondary-btn {
+            background: var(--sidebar-color);
+            color: var(--text-color);
+            border: 1px solid var(--accent-color);
+        }
+        .secondary-btn:hover {
+            background: var(--accent-color-alt);
+            color: var(--text-color);
+        }
+        .moving-shapes .shape1 {
+            background: var(--accent-color-alt) !important;
+        }
+        .moving-shapes .shape2 {
+            background: var(--accent-color) !important;
+        }
+        .moving-shapes .shape3 {
+            border-bottom-color: var(--accent-color-alt) !important;
+        }
+    </style>
 </head>
 <body>
     <div class="container">

@@ -20,7 +20,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 # Cloud API configuration
-CLOUD_API_URL = os.getenv('CLOUD_API_URL', 'https://891f-35-247-136-215.ngrok-free.app')
+CLOUD_API_URL = os.getenv('CLOUD_API_URL', 'https://d3b4-34-19-111-61.ngrok-free.app')
 
 # Define User model
 class User(db.Model):
@@ -565,52 +565,59 @@ def placement_test_questions():
     if not user_id:
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
 
+    levels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
     questions = []
 
-    # Fill-in-the-blank: skip if apostrophe in question or answer
-    fib = FillInTheBlank.query.filter_by(is_seen=False, for_user=user_id).all()
-    for q in fib:
-        if "'" in q.question or "'" in q.answer:
-            continue  # skip if apostrophe
-        questions.append({
-            'id': q.id,
-            'type': 'fill_in_blank',
-            'question': q.question,
-            'answer': q.answer,
-        })
+    for level in levels:
+        level_questions = []
 
-    # Arrange: always include, even if apostrophe
-    atw = ArrangeTheWord.query.filter_by(is_seen=False, for_user=user_id).all()
-    for q in atw:
-        questions.append({
-            'id': q.id,
-            'type': 'arrange',
-            'question': q.question,
-            'correct_arrangement': q.correct_arrangement,
-        })
+        # Fill-in-the-blank: skip if apostrophe in question or answer
+        fib = FillInTheBlank.query.filter_by(is_seen=False, for_user=user_id, level=level).all()
+        for q in fib:
+            if "'" in q.question or "'" in q.answer:
+                continue
+            level_questions.append({
+                'id': q.id,
+                'type': 'fill_in_blank',
+                'question': q.question,
+                'answer': q.answer,
+                'level': level
+            })
 
-    # Multiple choice: skip if apostrophe in question, any choice, or correct answer
-    mc = MultipleChoice.query.filter_by(is_seen=False, for_user=user_id).all()
-    for q in mc:
-        # Convert choices to list
-        if isinstance(q.choices, str):
-            choices = [c.strip() for c in q.choices.split(',')]
-        else:
-            choices = q.choices
-        # Skip if apostrophe in question, any choice, or correct answer
-        if ("'" in q.question or "'" in q.correct_answer or any("'" in c for c in choices)):
-            continue
-        questions.append({
-            'id': q.id,
-            'type': 'multiple_choice',
-            'question': q.question,
-            'choices': choices,
-            'correct_answer': q.correct_answer,
-        })
+        # Arrange: always include, even if apostrophe
+        atw = ArrangeTheWord.query.filter_by(is_seen=False, for_user=user_id, level=level).all()
+        for q in atw:
+            level_questions.append({
+                'id': q.id,
+                'type': 'arrange',
+                'question': q.question,
+                'correct_arrangement': q.correct_arrangement,
+                'level': level
+            })
 
-    # Shuffle and limit to 5 questions
+        # Multiple choice: skip if apostrophe in question, any choice, or correct answer
+        mc = MultipleChoice.query.filter_by(is_seen=False, for_user=user_id, level=level).all()
+        for q in mc:
+            if isinstance(q.choices, str):
+                choices = [c.strip() for c in q.choices.split(',')]
+            else:
+                choices = q.choices
+            if ("'" in q.question or "'" in q.correct_answer or any("'" in c for c in choices)):
+                continue
+            level_questions.append({
+                'id': q.id,
+                'type': 'multiple_choice',
+                'question': q.question,
+                'choices': choices,
+                'correct_answer': q.correct_answer,
+                'level': level
+            })
+
+        random.shuffle(level_questions)
+        questions.extend(level_questions[:3])  # Take up to 3 per level
+
     random.shuffle(questions)
-    questions = questions[:5]
+    # Optionally, limit to a max number if needed, e.g. questions = questions[:18]
 
     return jsonify({'success': True, 'questions': questions})
 
