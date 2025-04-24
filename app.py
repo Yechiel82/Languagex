@@ -20,7 +20,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 # Cloud API configuration
-CLOUD_API_URL = os.getenv('CLOUD_API_URL', 'https://0038-34-168-155-130.ngrok-free.app')
+CLOUD_API_URL = os.getenv('CLOUD_API_URL', 'https://891f-35-247-136-215.ngrok-free.app')
 
 # Define User model
 class User(db.Model):
