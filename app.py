@@ -54,6 +54,7 @@ class User(db.Model):
     correct_attempts = db.Column(db.Integer, default=0)
     placement_test_for_user = db.Column(db.Integer, nullable=True)  # User ID if used for placement test
     profile_picture = db.Column(db.String(255), nullable=True)  # Path or URL to profile picture
+    is_deleted = db.Column(db.Boolean, default=False)  # New column to mark deleted accounts
     
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -270,14 +271,15 @@ def login():
         
         user = User.query.filter_by(email=email).first()
         
-        if user and user.check_password(password):
+        # Check if the user exists, hasn't been deleted, and password is correct
+        if user and not user.is_deleted and user.check_password(password):
             session['logged_in'] = True
             session['user_id'] = user.id
             session['user_name'] = user.name
             return redirect(url_for('generate'))
             
         return render_template('login.html', error="Invalid credentials")
-
+    
 @app.route('/logout')
 def logout():
     # Clear the session
@@ -1022,6 +1024,30 @@ def placement_test():
         return redirect(url_for('login'))
     return render_template('placement_test.html')
 
+@app.route('/delete_account', methods=['POST'])
+def delete_account():
+    if not session.get('logged_in'):
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    user_id = session.get('user_id')
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'success': False, 'error': 'User not found'}), 404
+    
+    try:
+        # Mark the user as deleted instead of actually removing from the database
+        user.is_deleted = True
+        db.session.commit()
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Account deleted successfully'
+        })
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error deleting account: {str(e)}")
+        return jsonify({'success': False, 'error': 'Database error'}), 500
+
 # # Create database tables
 with app.app_context():
     db.create_all()
@@ -1033,3 +1059,12 @@ with app.app_context():
 
 if __name__ == '__main__':
     app.run()
+    
+    
+    
+# flask shell
+
+# # In the Flask shell, run:
+# from app import db
+# db.drop_all()
+# db.create_all() 

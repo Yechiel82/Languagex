@@ -315,6 +315,39 @@
         .logout-button svg {
             margin-right: 6px;
         }
+
+        .delete-account-button {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            margin-top: 20px;
+        }
+        
+        .delete-account-button:hover {
+            background-color: #c0392b;
+        }
+        
+        .danger-zone {
+            margin-top: 30px;
+            border-top: 1px solid #ddd;
+            padding-top: 20px;
+        }
+        
+        .danger-zone h3 {
+            color: #e74c3c;
+            margin-bottom: 10px;
+        }
+        
+        .danger-zone p {
+            margin-bottom: 15px;
+            color: #555;
+            font-size: 14px;
+        }
     </style>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
@@ -401,6 +434,13 @@
                     <button type="submit" class="submit-button">Save Changes</button>
                     <div id="successMessage" class="success-message">Profile updated successfully!</div>
                 </form>
+                
+                <!-- Danger Zone Section -->
+                <div class="danger-zone">
+                    <h3>Danger Zone</h3>
+                    <p>Deleting your account will hide your profile and data from the platform. This action cannot be undone.</p>
+                    <button type="button" id="deleteAccountBtn" class="delete-account-button">Delete Account</button>
+                </div>
             </div>
         </div>
 
@@ -536,6 +576,28 @@
             $("#logoutBtn").click(function() {
                 if (confirm("Are you sure you want to log out?")) {
                     window.location.href = "/logout";
+                }
+            });
+
+            // Delete account functionality
+            $("#deleteAccountBtn").click(function() {
+                if (confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
+                    $.ajax({
+                        url: '/delete_account',
+                        type: 'POST',
+                        success: function(response) {
+                            if (response.success) {
+                                alert("Your account has been deleted. You will be logged out now.");
+                                window.location.href = "/logout";
+                            } else {
+                                alert("Error deleting account: " + response.error);
+                            }
+                        },
+                        error: function(xhr) {
+                            alert("Error deleting account. Please try again.");
+                            console.error(xhr.responseText);
+                        }
+                    });
                 }
             });
         });
