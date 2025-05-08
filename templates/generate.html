@@ -381,24 +381,23 @@
                 if (sentence.fill_in_blank) types.push('fill_in_blank');
                 if (sentence.arrange_question) types.push('arrange_question');
                 if (sentence.multiple_choice) types.push('multiple_choice');
+                if (sentence.selection_question) types.push('selection_question');
+                if (sentence.labeling_question) types.push('labeling_question');
                 const chosenType = sentence._chosenType || types[Math.floor(Math.random() * types.length)];
                 sentence._chosenType = chosenType; // Save for consistency
 
                 output += `<form id="question-form">`;
                 if (chosenType === 'fill_in_blank') {
+                    // Existing fill_in_blank code
                     output += `<p><strong>Fill-in-the-blank:</strong> ${sentence.fill_in_blank}</p>`;
                     output += `<input type="text" name="answer" required placeholder="Your answer">`;
                 } else if (chosenType === 'arrange_question') {
-                    // Extract the part after the colon
-                    let raw = sentence.arrange_question;
-                    let afterColon = raw.includes(':') ? raw.split(':')[1] : raw;
-                    // Remove any trailing "(Arrange the words)" or similar
-                    afterColon = afterColon.replace(/\(.*\)$/g, '');
-                    // Split by slash, trim, and filter out empty strings
-                    const words = afterColon.split('/')
-                        .map(w => w.trim())
-                        .filter(w => w.length > 0);
-                    // Shuffle words for jumbled effect
+                    // Existing arrange_question code
+                    const words = Array.isArray(sentence.arrange_words)
+                        ? sentence.arrange_words
+                        : (sentence.arrange_question && Array.isArray(sentence.arrange_question.words)
+                            ? sentence.arrange_question.words
+                            : []);
                     const shuffled = words.slice().sort(() => Math.random() - 0.5);
                     output += `<p><strong>Arrange the words:</strong></p>`;
                     output += `<div id="jumbled-words" class="jumbled-words" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:15px;">`;
@@ -409,10 +408,10 @@
                     output += `<div style="margin-bottom:10px;">Click or drag words below to form your answer:</div>`;
                     output += `<div id="answer-box" class="answer-box" style="min-height:40px;display:flex;flex-wrap:wrap;gap:8px;padding:8px 0;border-bottom:1px solid #dab98f;margin-bottom:15px;"></div>`;
                     output += `<input type="hidden" name="answer" id="arrange-answer" required>`;
-                } else if (chosenType === 'multiple_choice' && sentence.multiple_choice) {
+                } else if (chosenType === 'multiple_choice') {
                     let questionText = sentence.multiple_choice.question_text || '';
                     output += `<p><strong>Multiple Choice:</strong></p>`;
-                    html += `<div style="margin-bottom:12px;">${cleanQuestionText(questionText)}</div>`;
+                    output += `<div style="margin-bottom:12px;">${cleanQuestionText(questionText)}</div>`;
                     let choices = [];
                     if (sentence.multiple_choice.options) {
                         choices = sentence.multiple_choice.options;
@@ -422,47 +421,143 @@
                     choices.forEach((opt, i) => {
                         output += `<div><label><input type="radio" name="answer" value="${opt}" required> ${opt}</label></div>`;
                     });
-                } else if (chosenType === 'multiple_choice') {
-                    let choices = [];
-                    let questionText = '';
-                    let correctAnswer = '';
-                    if (sentence.choices) {
-                        choices = sentence.choices;
-                        questionText = sentence.question;
-                        correctAnswer = sentence.correct_answer;
-                    } else if (sentence.multiple_choice) {
-                        choices = sentence.multiple_choice.options;
-                        questionText = sentence.multiple_choice.question_text;
-                        correctAnswer = sentence.multiple_choice.correct_answer;
-                    }
+                } else if (chosenType === 'selection_question') {
+                    let questionText = sentence.selection_question.question_text || '';
+                    output += `<p><strong>Selection Question:</strong></p>`;
                     output += `<div style="margin-bottom:12px;">${cleanQuestionText(questionText)}</div>`;
-                    output += `<div>`;
-                    choices.forEach((choice, cidx) => {
+                    
+                    let sentences = sentence.selection_question.sentences || [];
+                    if (!Array.isArray(sentences) && typeof sentences === 'string') {
+                        sentences = sentences.split(',').map(s => s.trim());
+                    }
+                    
+                    output += `<div>Select the correct sentence:</div>`;
+                    sentences.forEach((s, idx) => {
                         output += `
-                            <label style="display:block;margin-bottom:6px;">
-                                <input type="radio" name="mc" value="${choice}" style="margin-right:8px;">
-                                ${choice}
+                            <label style="display:block;margin-bottom:10px;padding:8px;border:1px solid #ddd;border-radius:4px;">
+                                <input type="radio" name="selection_answer" value="${s}" style="margin-right:8px;" required>
+                                ${s}
                             </label>
                         `;
                     });
+                } else if (chosenType === 'labeling_question') {
+                    let questionText = sentence.labeling_question.question_text || '';
+                    let instruction = sentence.labeling_question.instruction || '';
+                    
+                    // Extract the actual sentence from the question text
+                    const questionMatch = questionText.match(/Label the constituents in the sentence:\s*(.*?)(?:$|\s*###)/i);
+                    const sentenceToLabel = questionMatch ? questionMatch[1].trim() : questionText.trim();
+                    
+                    output += `<p><strong>Labeling Question:</strong></p>`;
+                    output += `<div style="margin-bottom:12px;">${questionText}</div>`;
+                    output += `<div style="margin-bottom:16px;font-style:italic;">${instruction}</div>`;
+                    
+                    let correctLabels = sentence.labeling_question.correct_labels || {};
+                    if (typeof correctLabels === 'string') {
+                        try {
+                            correctLabels = JSON.parse(correctLabels);
+                        } catch(e) {
+                            correctLabels = {};
+                        }
+                    }
+                    
+                    // Create mapping for reverse lookup: from words to labels
+                    const textToLabelMap = {};
+                    Object.entries(correctLabels).forEach(([label, text]) => {
+                        textToLabelMap[text.toLowerCase()] = label;
+                    });
+                    
+                    // Split the sentence into words
+                    const sentenceWords = sentenceToLabel.split(/\s+/).filter(word => word.trim() !== '');
+                    
+                    // Process the words to identify phrases that match exactly with the label values
+                    const displayItems = [];
+                    let i = 0;
+                    
+                    // Pre-process each label value to clean it for comparison
+                    const cleanedPhrases = {};
+                    Object.values(correctLabels).forEach(phrase => {
+                        cleanedPhrases[phrase.toLowerCase().replace(/[.,!?;:"'()]/g, '')] = phrase;
+                    });
+                    
+                    while (i < sentenceWords.length) {
+                        let foundMatch = false;
+                        
+                        // Try phrases of different lengths, starting from longest possible
+                        for (let phraseLength = Math.min(8, sentenceWords.length - i); phraseLength > 0; phraseLength--) {
+                            const potentialPhrase = sentenceWords.slice(i, i + phraseLength).join(' ');
+                            const cleanPotentialPhrase = potentialPhrase.toLowerCase().replace(/[.,!?;:"'()]/g, '');
+                            
+                            // Check if this matches any of the label values
+                            for (const [cleanPhrase, originalPhrase] of Object.entries(cleanedPhrases)) {
+                                if (cleanPotentialPhrase === cleanPhrase.toLowerCase().replace(/[.,!?;:"'()]/g, '')) {
+                                    // Found an exact match with a label value
+                                    displayItems.push({
+                                        text: potentialPhrase,
+                                        original: originalPhrase,
+                                        isPhrase: true
+                                    });
+                                    i += phraseLength;
+                                    foundMatch = true;
+                                    break;
+                                }
+                            }
+                            
+                            if (foundMatch) break;
+                        }
+                        
+                        if (!foundMatch) {
+                            // No phrase match found, add single word
+                            displayItems.push({
+                                text: sentenceWords[i],
+                                original: sentenceWords[i],
+                                isPhrase: false
+                            });
+                            i++;
+                        }
+                    }
+                    
+                    // Display the sentence with words and phrases
+                    output += `<div class="sentence-display" style="margin-bottom:20px;display:flex;flex-wrap:wrap;gap:16px;">`;
+                    displayItems.forEach((item, idx) => {
+                        const dataValue = item.original.toLowerCase().replace(/[.,!?;:"'()]/g, '');
+                        
+                        output += `
+                            <div style="display:inline-block;text-align:center;margin-right:16px;vertical-align:top;margin-bottom:15px;">
+                                <div style="font-weight:bold;margin-bottom:8px;font-size:16px;">${item.text}</div>
+                                <div class="label-target" id="label-target-${idx}" data-word="${dataValue}" 
+                                    style="min-width:80px;min-height:36px;border:1px dashed #ccc;border-radius:4px;padding:4px;"></div>
+                            </div>
+                        `;
+                    });
                     output += `</div>`;
+                    
+                    // Get the available label types from correct labels
+                    const labelTypes = Object.keys(correctLabels);
+                    
+                    output += `<div style="margin-bottom:10px;">Drag these labels under the appropriate words:</div>`;
+                    output += `<div id="available-labels" class="jumbled-words" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:15px;">`;
+                    labelTypes.forEach((label) => {
+                        output += `<span class="label-chip word-chip" data-label="${label}" 
+                            style="padding:8px 12px;background:#fffbe6;border-radius:6px;cursor:pointer;border:1px solid #dab98f;margin-bottom:5px;">${label}</span>`;
+                    });
+                    output += `</div>`;
+                    
+                    // Hidden input to store the answers
+                    output += `<input type="hidden" name="labeling-answer" id="labeling-answer" required>`;
                 }
                 output += `<button type="submit">Submit</button></form></div>`;
                 $('#output').html(output);
 
-                // --- Arrange Question Logic ---
                 if (chosenType === 'arrange_question') {
-                    // Click-to-select
                     $('#jumbled-words').on('click', '.word-chip', function() {
                         $('#answer-box').append($(this));
                         updateArrangeAnswer();
                     });
-                    // Allow removing from answer box
                     $('#answer-box').on('click', '.word-chip', function() {
                         $('#jumbled-words').append($(this));
                         updateArrangeAnswer();
                     });
-                    // Drag-and-drop using SortableJS
                     Sortable.create(document.getElementById('jumbled-words'), {
                         group: 'words',
                         animation: 150
@@ -480,6 +575,39 @@
                             arranged.push($(this).data('word'));
                         });
                         $('#arrange-answer').val(arranged.join(' '));
+                    }
+                }
+
+                if (chosenType === 'labeling_question') {
+                    // Make the label chips draggable
+                    Sortable.create(document.getElementById('available-labels'), {
+                        group: 'labels',
+                        animation: 150,
+                        onEnd: updateLabelingAnswer
+                    });
+                    
+                    // Make each label target a dropzone
+                    document.querySelectorAll('.label-target').forEach(target => {
+                        Sortable.create(target, {
+                            group: 'labels',
+                            animation: 150,
+                            onAdd: updateLabelingAnswer,
+                            onRemove: updateLabelingAnswer
+                        });
+                    });
+                    
+                    function updateLabelingAnswer() {
+                        const answers = {};
+                        document.querySelectorAll('.label-target').forEach(target => {
+                            const word = target.dataset.word;
+                            const labelChip = target.querySelector('.label-chip');
+                            if (labelChip && word) {
+                                answers[labelChip.dataset.label] = word;
+                                console.log(`Assigned word "${word}" to label "${labelChip.dataset.label}"`);
+                            }
+                        });
+                        document.getElementById('labeling-answer').value = JSON.stringify(answers);
+                        console.log('Current answers:', answers);
                     }
                 }
 
@@ -523,7 +651,6 @@
                 });
             });
 
-            // Delegate form submission for dynamic question forms
             $('#output').on('submit', '#question-form', function(e) {
                 e.preventDefault();
 
@@ -541,6 +668,60 @@
                     userAnswer = $(this).find('input[name="answer"]:checked').val();
                     let correctAnswer = sentence.correct_answer || (sentence.multiple_choice && sentence.multiple_choice.correct_answer) || '';
                     isCorrect = normalizeAnswer(userAnswer) === normalizeAnswer(correctAnswer);
+                } else if (sentence._chosenType === 'selection_question') {
+                    userAnswer = $(this).find('input[name="selection_answer"]:checked').val();
+                    let correctAnswer = sentence.selection_question && sentence.selection_question.correct_sentence;
+                    isCorrect = normalizeAnswer(userAnswer) === normalizeAnswer(correctAnswer);
+                } else if (sentence._chosenType === 'labeling_question') {
+                    // Get the answers from the hidden input
+                    userAnswer = $(this).find('#labeling-answer').val();
+                    let answers = {};
+                    
+                    try {
+                        answers = JSON.parse(userAnswer);
+                    } catch(e) {
+                        answers = {};
+                    }
+                    
+                    // Get correct labels
+                    let correctLabels = sentence.labeling_question.correct_labels;
+                    if (typeof correctLabels === 'string') {
+                        try {
+                            correctLabels = JSON.parse(correctLabels);
+                        } catch(e) {
+                            correctLabels = {};
+                        }
+                    }
+                    
+                    console.log('User answers:', answers);
+                    console.log('Correct labels:', correctLabels);
+                    
+                    // Create a mapping from cleaned phrases to original phrases
+                    const cleanedToOriginal = {};
+                    Object.values(correctLabels).forEach(phrase => {
+                        cleanedToOriginal[phrase.toLowerCase().replace(/[.,!?;:"'()]/g, '')] = phrase;
+                    });
+                    
+                    // For each label in the user's answer, check if it points to the correct phrase
+                    const allCorrect = Object.entries(answers).every(([label, userPhrase]) => {
+                        const correctPhrase = correctLabels[label];
+                        if (!correctPhrase) return false;
+                        
+                        const cleanUserPhrase = userPhrase.toLowerCase().replace(/[.,!?;:"'()]/g, '');
+                        const cleanCorrectPhrase = correctPhrase.toLowerCase().replace(/[.,!?;:"'()]/g, '');
+                        
+                        const isMatch = cleanUserPhrase === cleanCorrectPhrase;
+                        console.log(`Label: "${label}" - User: "${userPhrase}" - Correct: "${correctPhrase}" - Match: ${isMatch}`);
+                        return isMatch;
+                    });
+                    
+                    // Make sure all labels have been assigned
+                    const allLabeled = Object.keys(correctLabels).every(label => 
+                        answers[label] !== undefined
+                    );
+                    
+                    isCorrect = allCorrect && allLabeled;
+                    userAnswer = JSON.stringify(answers);
                 }
 
                 let questionId = null;
@@ -550,12 +731,14 @@
                     questionId = sentence.arrange_id;
                 } else if (sentence._chosenType === 'multiple_choice') {
                     questionId = sentence.multiple_choice_id;
+                } else if (sentence._chosenType === 'selection_question') {
+                    questionId = sentence.selection_question_id;
+                } else if (sentence._chosenType === 'labeling_question') {
+                    questionId = sentence.labeling_question_id;
                 }
 
                 if (currentIndex === questions.length - 1) {
-                    // This is the last question
                     const timeSpent = endLessonTimer();
-                    // Send timeSpent in your AJAX request:
                     $.ajax({
                         url: '/submit_answer',
                         type: 'POST',
@@ -566,10 +749,9 @@
                             is_correct: isCorrect,
                             question_type: sentence._chosenType,
                             concept: currentTopic,
-                            time_spent: timeSpent // <-- send total lesson time
+                            time_spent: timeSpent
                         }),
                         success: function(response) {
-                            // Optionally show feedback here
                             currentIndex += 1;
                             displayQuestion(currentIndex);
                         },
@@ -580,7 +762,6 @@
                         }
                     });
                 } else {
-                    // For other questions, send time_spent: 0 or skip it
                     $.ajax({
                         url: '/submit_answer',
                         type: 'POST',
@@ -593,7 +774,6 @@
                             concept: currentTopic
                         }),
                         success: function(response) {
-                            // Optionally show feedback here
                             currentIndex += 1;
                             displayQuestion(currentIndex);
                         },
@@ -606,16 +786,14 @@
                 }
             });
 
-            // Sidebar collapse/expand logic
             $('#sidebar-toggle').on('click', function() {
                 $('#sidebar').toggleClass('collapsed');
                 if ($('#sidebar').hasClass('collapsed')) {
-                    $('#sidebar-toggle').html('&rarr;'); // Show right arrow when collapsed
+                    $('#sidebar-toggle').html('&rarr;');
                 } else {
-                    $('#sidebar-toggle').html('&#9776;'); // Show hamburger when expanded
+                    $('#sidebar-toggle').html('&#9776;');
                 }
             });
-            // Set initial icon on page load
             if ($('#sidebar').hasClass('collapsed')) {
                 $('#sidebar-toggle').html('&rarr;');
             } else {

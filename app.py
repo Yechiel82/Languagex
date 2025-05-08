@@ -5,11 +5,13 @@ import requests
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for, send_file
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 import datetime
 from sqlalchemy.sql import func
 from logging.handlers import RotatingFileHandler
 from datetime import date, timedelta
 import random
+import json
 
 app = Flask(__name__)
 app.secret_key = "12345"
@@ -20,7 +22,20 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 # Cloud API configuration
-CLOUD_API_URL = os.getenv('CLOUD_API_URL', 'https://d3b4-34-19-111-61.ngrok-free.app')
+CLOUD_API_URL = os.getenv('CLOUD_API_URL', 'https://a1f5-34-82-146-235.ngrok-free.app')
+
+# Add these configurations for file uploads
+UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static/uploads')
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5MB max upload size
+
+# Make sure upload directory exists
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # Define User model
 class User(db.Model):
@@ -38,12 +53,51 @@ class User(db.Model):
     total_attempts = db.Column(db.Integer, default=0)
     correct_attempts = db.Column(db.Integer, default=0)
     placement_test_for_user = db.Column(db.Integer, nullable=True)  # User ID if used for placement test
+    profile_picture = db.Column(db.String(255), nullable=True)  # Path or URL to profile picture
     
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
     
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+
+class SelectionQuestion(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    question_text = db.Column(db.Text, nullable=False)
+    sentences = db.Column(db.Text, nullable=False)  # Store as JSON string or comma-separated
+    correct_sentence = db.Column(db.Text, nullable=False)
+    level = db.Column(db.String(10), nullable=False)
+    generated_at = db.Column(db.DateTime, default=func.now())
+    deleted_at = db.Column(db.DateTime, nullable=True)
+    is_seen = db.Column(db.Boolean, default=False)
+    for_user = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_answer = db.Column(db.Text, nullable=True)
+    is_correct = db.Column(db.Boolean, nullable=True)
+    user_feedback = db.Column(db.Text, nullable=True)
+    ground_truth_id = db.Column(db.Integer, db.ForeignKey('ground_truth.id'), nullable=True)
+
+    user = db.relationship('User', backref=db.backref('selection_questions', lazy=True))
+    ground_truth = db.relationship('GroundTruth', backref=db.backref('selection_questions', lazy=True))
+
+
+class LabelingQuestion(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    question_text = db.Column(db.Text, nullable=False)
+    instruction = db.Column(db.Text, nullable=False)
+    correct_labels = db.Column(db.Text, nullable=False)  # Store as JSON string
+    level = db.Column(db.String(10), nullable=False)
+    generated_at = db.Column(db.DateTime, default=func.now())
+    deleted_at = db.Column(db.DateTime, nullable=True)
+    is_seen = db.Column(db.Boolean, default=False)
+    for_user = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_answer = db.Column(db.Text, nullable=True)
+    is_correct = db.Column(db.Boolean, nullable=True)
+    user_feedback = db.Column(db.Text, nullable=True)
+    ground_truth_id = db.Column(db.Integer, db.ForeignKey('ground_truth.id'), nullable=True)
+
+    user = db.relationship('User', backref=db.backref('labeling_questions', lazy=True))
+    ground_truth = db.relationship('GroundTruth', backref=db.backref('labeling_questions', lazy=True))
+
 
 # Define UserPerformance model
 class UserPerformance(db.Model):
@@ -224,6 +278,12 @@ def login():
             
         return render_template('login.html', error="Invalid credentials")
 
+@app.route('/logout')
+def logout():
+    # Clear the session
+    session.clear()
+    return redirect(url_for('login'))
+
 @app.route('/profile')
 def profile():
     if not session.get('logged_in'):
@@ -245,7 +305,8 @@ def profile():
         'streak': str(user.streak),
         'lessons_completed': str(user.lessons_completed),
         'average_score': str(int(user.average_score)),
-        'performance': []
+        'performance': [],
+        'profile_picture': user.profile_picture
     }
     
     # Gather performance stats
@@ -260,6 +321,60 @@ def profile():
     
     return render_template('profile.html', user=user_data)
 
+@app.route('/update_profile', methods=['POST'])
+def update_profile():
+    if not session.get('logged_in'):
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    user_id = session.get('user_id')
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'success': False, 'error': 'User not found'}), 404
+    
+    # Update name if provided
+    new_name = request.form.get('name')
+    if new_name and new_name.strip():
+        user.name = new_name.strip()
+        session['user_name'] = user.name
+    
+    # Update level if provided
+    new_level = request.form.get('level')
+    if new_level and new_level in ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']:
+        user.level = new_level
+    
+    # Handle profile picture upload
+    if 'profile_picture' in request.files:
+        file = request.files['profile_picture']
+        if file and file.filename and allowed_file(file.filename):
+            # Create unique filename to avoid overwrites
+            filename = secure_filename(file.filename)
+            unique_filename = f"{user_id}_{int(datetime.datetime.now().timestamp())}_{filename}"
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+            
+            try:
+                file.save(file_path)
+                # Save the relative path to the database
+                user.profile_picture = f"/static/uploads/{unique_filename}"
+            except Exception as e:
+                app.logger.error(f"Error saving profile picture: {str(e)}")
+                return jsonify({'success': False, 'error': 'Failed to save image'}), 500
+    
+    # Save changes
+    try:
+        db.session.commit()
+        return jsonify({
+            'success': True, 
+            'message': 'Profile updated successfully',
+            'name': user.name,
+            'level': user.level,
+            'profile_picture': user.profile_picture
+        })
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error updating profile: {str(e)}")
+        return jsonify({'success': False, 'error': 'Database error'}), 500
+    
+    
 @app.route('/generate', methods=['GET', 'POST'])
 def generate():
     if not session.get('logged_in'):
@@ -343,12 +458,41 @@ def generate():
                 if 'correct_arrangement' not in sentence_data and 'sentence' in sentence_data:
                     sentence_data['correct_arrangement'] = sentence_data['sentence']
 
+                # Map selection_question fields
+                sel = sentence_data.get('selection_question')
+                if sel:
+                    sentence_data['selection_question_text'] = sel.get('question_text')
+                    sentence_data['selection_sentences'] = sel.get('sentences')
+                    sentence_data['selection_correct_sentence'] = sel.get('correct_sentence')
+
+                # Map labeling_question fields
+                lab = sentence_data.get('labeling_question')
+                if lab:
+                    sentence_data['labeling_question_text'] = lab.get('question_text')
+                    sentence_data['labeling_instruction'] = lab.get('instruction')
+                    sentence_data['labeling_correct_labels'] = lab.get('correct_labels')
+
+                # Map fill_in_blank_question fields
+                fib = sentence_data.get('fill_in_blank_question')
+                if fib:
+                    sentence_data['fill_in_blank'] = fib.get('question_text')
+                    sentence_data['fill_in_blank_options'] = fib.get('options')
+                    sentence_data['fill_in_blank_answer'] = fib.get('correct_answer')
+
+                # Map arrange_question fields
+                arr = sentence_data.get('arrange_question')
+                if arr:
+                    sentence_data['arrange_question'] = arr.get('question_text')
+                    sentence_data['arrange_words'] = arr.get('words')  # <-- This line ensures frontend gets the array
+                    sentence_data['correct_arrangement'] = arr.get('correct_sentence')
+
                 try:
                     sentence = sentence_data.get('sentence', '')
                     app.logger.debug(f"Validating sentence: {sentence}")
 
                     # Check required fields
-                    required_fields = ['sentence', 'verb', 'fill_in_blank', 'fill_in_blank_answer', 'arrange_question', 'correct_arrangement', 'level', 'for_user']
+                    # required_fields = ['sentence', 'verb', 'fill_in_blank', 'fill_in_blank_answer', 'arrange_question', 'correct_arrangement', 'level', 'for_user']
+                    required_fields = ['sentence', 'verb', 'level', 'for_user']
                     missing_fields = [f for f in required_fields if f not in sentence_data or not sentence_data[f]]
                     if missing_fields:
                         app.logger.warning(f"Skipping sentence with missing fields {missing_fields}: {sentence}")
@@ -448,6 +592,56 @@ def generate():
                             db.session.add(mc)
                             db.session.flush()  # Get the ID before commit
                             sentence_data['multiple_choice_id'] = mc.id
+                            
+                        # Selection Question
+                        sel_data = sentence_data.get('selection_question')
+                        if sel_data:
+                            if not all(key in sel_data for key in ['question_text', 'sentences', 'correct_sentence']):
+                                app.logger.warning(f"Skipping invalid selection_question for sentence: {sentence}")
+                                continue
+                            
+                            # Convert sentences list to string if needed
+                            sentences_str = sel_data['sentences']
+                            if isinstance(sentences_str, list):
+                                sentences_str = ",".join(map(str, sentences_str))
+                                
+                            sel = SelectionQuestion(
+                                question_text=sel_data['question_text'],
+                                sentences=sentences_str,
+                                correct_sentence=sel_data['correct_sentence'],
+                                level=sentence_data['level'],
+                                for_user=sentence_data['for_user'],
+                                ground_truth_id=gt.id
+                            )
+                            db.session.add(sel)
+                            db.session.flush()  # Get the ID before commit
+                            sentence_data['selection_question_id'] = sel.id
+                            
+                        # Labeling Question
+                        lab_data = sentence_data.get('labeling_question')
+                        if lab_data:
+                            if not all(key in lab_data for key in ['question_text', 'instruction', 'correct_labels']):
+                                app.logger.warning(f"Skipping invalid labeling_question for sentence: {sentence}")
+                                continue
+                                
+                            # Convert correct_labels to string if it's a dictionary/list
+                            correct_labels = lab_data['correct_labels']
+                            if isinstance(correct_labels, (dict, list)):
+                                import json
+                                correct_labels = json.dumps(correct_labels)
+                                
+                            lab = LabelingQuestion(
+                                question_text=lab_data['question_text'],
+                                instruction=lab_data['instruction'],
+                                correct_labels=correct_labels,
+                                level=sentence_data['level'],
+                                for_user=sentence_data['for_user'],
+                                ground_truth_id=gt.id
+                            )
+                            db.session.add(lab)
+                            db.session.flush()  # Get the ID before commit
+                            sentence_data['labeling_question_id'] = lab.id
+
                     except Exception as e:
                         app.logger.error(f"Database error for sentence '{sentence}': {str(e)}")
                         db.session.rollback()
@@ -499,6 +693,167 @@ def generate():
     else:
         return jsonify({"error": "Method not allowed", "success": False}), 405
 
+@app.route('/api/submit_placement_test', methods=['POST'])
+def submit_placement_test():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+    
+    data = request.get_json()
+    if not data or 'answers' not in data:
+        return jsonify({'success': False, 'error': 'Invalid request data'}), 400
+    
+    user_answers = data['answers']
+    
+    # Calculate level based on answers
+    level_results = {'A1': [], 'A2': [], 'B1': [], 'B2': [], 'C1': [], 'C2': []}
+    
+    for ans in user_answers:
+        question_id = ans.get('id')
+        question_type = ans.get('type')
+        user_answer = ans.get('answer', '')
+        
+        if not question_id or not question_type:
+            continue
+            
+        question = None
+        level = None
+        correct = False
+        
+        if question_type == 'fill_in_blank':
+            question = FillInTheBlank.query.get(question_id)
+            if question:
+                level = question.level
+                correct = (question.answer.strip().lower() == user_answer.strip().lower())
+                question.is_seen = True
+                question.user_answer = user_answer
+                question.is_correct = correct
+                
+        elif question_type == 'arrange':
+            question = ArrangeTheWord.query.get(question_id)
+            if question:
+                level = question.level
+                # Normalize spacing and punctuation for comparison
+                correct_arr = ' '.join(question.correct_arrangement.split()).lower()
+                user_arr = ' '.join(user_answer.split()).lower()
+                correct = (correct_arr == user_arr)
+                question.is_seen = True
+                question.user_answer = user_answer
+                question.is_correct = correct
+                
+        elif question_type == 'multiple_choice':
+            question = MultipleChoice.query.get(question_id)
+            if question:
+                level = question.level
+                correct = (question.correct_answer.strip().lower() == user_answer.strip().lower())
+                question.is_seen = True
+                question.user_answer = user_answer
+                question.is_correct = correct
+                
+        elif question_type == 'selection_question':
+            question = SelectionQuestion.query.get(question_id)
+            if question:
+                level = question.level
+                correct = (question.correct_sentence.strip().lower() == user_answer.strip().lower())
+                question.is_seen = True
+                question.user_answer = user_answer
+                question.is_correct = correct
+                
+        elif question_type == 'labeling_question':
+            question = LabelingQuestion.query.get(question_id)
+            if question:
+                level = question.level
+                
+                # Parse user answer
+                user_labels = {}
+                try:
+                    user_labels = json.loads(user_answer)
+                except:
+                    user_labels = {}
+                
+                # Get correct labels
+                correct_labels = {}
+                if isinstance(question.correct_labels, str):
+                    try:
+                        correct_labels = json.loads(question.correct_labels)
+                    except:
+                        correct_labels = {}
+                else:
+                    correct_labels = question.correct_labels
+                
+                # Compare answers
+                all_matched = True
+                for label, expected_word in correct_labels.items():
+                    user_word = user_labels.get(label)
+                    if not user_word:
+                        all_matched = False
+                        break
+                        
+                    # Normalize for comparison
+                    expected_clean = expected_word.lower().replace('.', '').replace(',', '')
+                    user_clean = user_word.lower().replace('.', '').replace(',', '')
+                    
+                    if expected_clean != user_clean:
+                        all_matched = False
+                        break
+                
+                correct = all_matched
+                question.is_seen = True
+                question.user_answer = user_answer
+                question.is_correct = correct
+        
+        if level and level in level_results:
+            level_results[level].append(correct)
+    
+    # Save all question updates
+    try:
+        db.session.commit()
+    except Exception as e:
+        app.logger.error(f"Error updating question status: {str(e)}")
+        db.session.rollback()
+    
+    # Determine user's level - the highest level with at least 60% correct answers and minimum 2 questions
+    assigned_level = 'A1'  # Default
+    level_messages = {
+        'A1': "You're at the beginner level. We'll help you build a solid foundation.",
+        'A2': "You have basic knowledge. Let's expand your vocabulary and grammar.",
+        'B1': "You're at an intermediate level. We'll work on more complex structures.",
+        'B2': "You have upper-intermediate skills. Let's refine your language use.",
+        'C1': "You're at an advanced level. We'll focus on nuance and fluency.",
+        'C2': "You've reached proficiency level. We'll help you master the subtleties."
+    }
+    
+    for level in ['C2', 'C1', 'B2', 'B1', 'A2', 'A1']:
+        results = level_results[level]
+        if len(results) >= 2 and sum(results) / max(len(results), 1) >= 0.6:
+            assigned_level = level
+            break
+    
+    # Record the placement test attempt
+    try:
+        test_attempt = PlacementTestAttempt(
+            user_id=user_id,
+            completed_at=datetime.datetime.now(),
+            estimated_level=assigned_level
+        )
+        db.session.add(test_attempt)
+        
+        # Update user's level
+        user = User.query.get(user_id)
+        if user:
+            user.level = assigned_level
+        
+        db.session.commit()
+    except Exception as e:
+        app.logger.error(f"Error saving placement test results: {str(e)}")
+        db.session.rollback()
+    
+    return jsonify({
+        'success': True,
+        'level': assigned_level,
+        'message': level_messages.get(assigned_level, "Thank you for completing the placement test.")
+    })
+
 @app.route('/submit_answer', methods=['POST'])
 def submit_answer():
     data = request.get_json()
@@ -548,6 +903,10 @@ def submit_answer():
         question = ArrangeTheWord.query.get(question_id)
     elif question_type == 'multiple_choice':
         question = MultipleChoice.query.get(question_id)
+    elif question_type == 'selection_question':
+        question = SelectionQuestion.query.get(question_id)
+    elif question_type == 'labeling_question':
+        question = LabelingQuestion.query.get(question_id)
     else:
         question = None
 
@@ -612,6 +971,42 @@ def placement_test_questions():
                 'correct_answer': q.correct_answer,
                 'level': level
             })
+            
+        # Selection questions
+        sq = SelectionQuestion.query.filter_by(is_seen=False, for_user=user_id, level=level).all()
+        for q in sq:
+            if isinstance(q.sentences, str):
+                sentences = [s.strip() for s in q.sentences.split(',')]
+            else:
+                sentences = q.sentences
+            level_questions.append({
+                'id': q.id,
+                'type': 'selection_question',
+                'question': q.question_text,
+                'sentences': sentences,
+                'correct_sentence': q.correct_sentence,
+                'level': level
+            })
+            
+        # Labeling questions
+        lq = LabelingQuestion.query.filter_by(is_seen=False, for_user=user_id, level=level).all()
+        for q in lq:
+            import json
+            correct_labels = q.correct_labels
+            if isinstance(correct_labels, str):
+                try:
+                    correct_labels = json.loads(correct_labels)
+                except:
+                    pass  # Keep as string if not valid JSON
+                    
+            level_questions.append({
+                'id': q.id,
+                'type': 'labeling_question',
+                'question': q.question_text,
+                'instruction': q.instruction,
+                'correct_labels': correct_labels,
+                'level': level
+            })
 
         random.shuffle(level_questions)
         questions.extend(level_questions[:3])  # Take up to 3 per level
@@ -637,4 +1032,4 @@ with app.app_context():
         db.session.commit()
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()

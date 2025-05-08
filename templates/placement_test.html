@@ -162,12 +162,117 @@
                             `;
                         });
                         html += `</div>`;
+                    } else if (q.type === 'selection_question') {
+                        let sentences = q.sentences || [];
+                        if (!Array.isArray(sentences) && typeof sentences === 'string') {
+                            sentences = sentences.split(',').map(s => s.trim());
+                        }
+                        
+                        html += `<div>Select the correct sentence:</div>`;
+                        sentences.forEach((s, idx) => {
+                            html += `
+                                <label style="display:block;margin-bottom:10px;padding:8px;border:1px solid #ddd;border-radius:4px;">
+                                    <input type="radio" name="selection_answer" value="${s}" style="margin-right:8px;" required>
+                                    ${s}
+                                </label>
+                            `;
+                        });
+                    } else if (q.type === 'labeling_question') {
+                        let instruction = q.instruction || '';
+                        let correctLabels = q.correct_labels || {};
+                        
+                        if (typeof correctLabels === 'string') {
+                            try {
+                                correctLabels = JSON.parse(correctLabels);
+                            } catch(e) {
+                                correctLabels = {};
+                            }
+                        }
+                        
+                        html += `<div style="margin-bottom:16px;font-style:italic;">${instruction}</div>`;
+                        
+                        const questionMatch = questionText.match(/Label the constituents in the sentence:\s*(.*?)(?:$|\s*###)/i);
+                        const sentenceToLabel = questionMatch ? questionMatch[1].trim() : questionText.trim();
+                        
+                        const textToLabelMap = {};
+                        Object.entries(correctLabels).forEach(([label, text]) => {
+                            textToLabelMap[text.toLowerCase()] = label;
+                        });
+                        
+                        const sentenceWords = sentenceToLabel.split(/\s+/).filter(word => word.trim() !== '');
+                        
+                        const displayItems = [];
+                        let i = 0;
+                        
+                        const cleanedPhrases = {};
+                        Object.values(correctLabels).forEach(phrase => {
+                            cleanedPhrases[phrase.toLowerCase().replace(/[.,!?;:"'()]/g, '')] = phrase;
+                        });
+                        
+                        while (i < sentenceWords.length) {
+                            let foundMatch = false;
+                            
+                            for (let phraseLength = Math.min(8, sentenceWords.length - i); phraseLength > 0; phraseLength--) {
+                                const potentialPhrase = sentenceWords.slice(i, i + phraseLength).join(' ');
+                                const cleanPotentialPhrase = potentialPhrase.toLowerCase().replace(/[.,!?;:"'()]/g, '');
+                                
+                                for (const [cleanPhrase, originalPhrase] of Object.entries(cleanedPhrases)) {
+                                    if (cleanPotentialPhrase === cleanPhrase.toLowerCase().replace(/[.,!?;:"'()]/g, '')) {
+                                        displayItems.push({
+                                            text: potentialPhrase,
+                                            original: originalPhrase,
+                                            isPhrase: true
+                                        });
+                                        i += phraseLength;
+                                        foundMatch = true;
+                                        break;
+                                    }
+                                }
+                                
+                                if (foundMatch) break;
+                            }
+                            
+                            if (!foundMatch) {
+                                displayItems.push({
+                                    text: sentenceWords[i],
+                                    original: sentenceWords[i],
+                                    isPhrase: false
+                                });
+                                i++;
+                            }
+                        }
+                        
+                        html += `<div class="sentence-display" style="margin-bottom:20px;display:flex;flex-wrap:wrap;gap:16px;">`;
+                        displayItems.forEach((item, idx) => {
+                            const dataValue = item.original.toLowerCase().replace(/[.,!?;:"'()]/g, '');
+                            
+                            html += `
+                                <div style="display:inline-block;text-align:center;margin-right:16px;vertical-align:top;margin-bottom:15px;">
+                                    <div style="font-weight:bold;margin-bottom:8px;font-size:16px;">${item.text}</div>
+                                    <div class="label-target" id="label-target-${idx}" data-word="${dataValue}" 
+                                        style="min-width:80px;min-height:36px;border:1px dashed #ccc;border-radius:4px;padding:4px;"></div>
+                                </div>
+                            `;
+                        });
+                        html += `</div>`;
+                        
+                        const labelTypes = Object.keys(correctLabels);
+                        
+                        html += `<div style="margin-bottom:10px;">Drag these labels under the appropriate words:</div>`;
+                        html += `<div id="available-labels" class="jumbled-words" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:15px;">`;
+                        labelTypes.forEach((label) => {
+                            html += `<span class="label-chip word-chip" data-label="${label}" 
+                                style="padding:8px 12px;background:#fffbe6;border-radius:6px;cursor:pointer;border:1px solid #dab98f;margin-bottom:5px;">${label}</span>`;
+                        });
+                        html += `</div>`;
+                        
+                        html += `<input type="hidden" id="placementAnswer">`;
                     }
+                    
                     html += `</div>`;
                     html += `<button id="nextQuestion" style="background:var(--accent-color);color:#fff;padding:12px 24px;border:none;border-radius:8px;font-size:16px;cursor:pointer;margin-top:24px;">${idx === questions.length-1 ? 'Submit Answers' : 'Next'}</button>`;
                     $('#output').html(html);
 
-                    // Arrange logic
                     if (q.type === 'arrange') {
                         $('#jumbled-words').on('click', '.word-chip', function() {
                             $('#answer-box').append($(this));
@@ -195,6 +300,33 @@
                             });
                             $('#placementAnswer').val(arranged.join(' '));
                         }
+                    } else if (q.type === 'labeling_question') {
+                        Sortable.create(document.getElementById('available-labels'), {
+                            group: 'labels',
+                            animation: 150,
+                            onEnd: updateLabelingAnswer
+                        });
+                        
+                        document.querySelectorAll('.label-target').forEach(target => {
+                            Sortable.create(target, {
+                                group: 'labels',
+                                animation: 150,
+                                onAdd: updateLabelingAnswer,
+                                onRemove: updateLabelingAnswer
+                            });
+                        });
+                        
+                        function updateLabelingAnswer() {
+                            const answers = {};
+                            document.querySelectorAll('.label-target').forEach(target => {
+                                const word = target.dataset.word;
+                                const labelChip = target.querySelector('.label-chip');
+                                if (labelChip && word) {
+                                    answers[labelChip.dataset.label] = word;
+                                }
+                            });
+                            $('#placementAnswer').val(JSON.stringify(answers));
+                        }
                     }
                 }
 
@@ -203,14 +335,19 @@
                 $('#output').on('click', '#nextQuestion', function() {
                     let q = questions[current];
                     let answer = '';
+                    
                     if (q.type === 'fill_in_blank' || q.type === 'arrange') {
                         answer = $('#placementAnswer').val();
                     } else if (q.type === 'multiple_choice') {
                         answer = $('input[name="mc"]:checked').val() || '';
+                    } else if (q.type === 'selection_question') {
+                        answer = $('input[name="selection_answer"]:checked').val() || '';
+                    } else if (q.type === 'labeling_question') {
+                        answer = $('#placementAnswer').val() || '{}';
                     }
 
                     // Prevent submitting if answer is empty
-                    if (!answer || answer.trim() === "") {
+                    if (!answer || (answer.trim() === "" || answer === "{}")) {
                         if ($('#output .warning').length === 0) {
                             $('#output').append('<div class="warning" style="color:red;margin-top:10px;">Please provide your answer before continuing.</div>');
                         }
@@ -225,7 +362,31 @@
                         renderQuestion(current);
                     } else {
                         $('#output').html('<div style="text-align:center;color:var(--accent-color);font-size:20px;margin-top:40px;">Thank you! Your answers have been submitted.</div>');
-                        // Optionally, send answers to backend here
+                        // Submit answers to backend
+                        $.ajax({
+                            url: '/api/submit_placement_test',
+                            type: 'POST',
+                            contentType: 'application/json',
+                            data: JSON.stringify({answers: answers}),
+                            success: function(response) {
+                                if (response.success) {
+                                    $('#output').html(`
+                                        <div style="text-align:center;margin-top:40px;">
+                                            <div style="font-size:24px;color:var(--accent-color);margin-bottom:16px;">Your CEFR Level: ${response.level}</div>
+                                            <div style="margin-bottom:20px;">${response.message}</div>
+                                            <button onclick="window.location.href='/generate'" style="background:var(--accent-color);color:#fff;padding:12px 24px;border:none;border-radius:8px;font-size:16px;cursor:pointer;">
+                                                Continue to Dashboard
+                                            </button>
+                                        </div>
+                                    `);
+                                } else {
+                                    $('#output').html(`<div style="text-align:center;color:red;margin-top:40px;">Error: ${response.error || 'Could not submit answers'}</div>`);
+                                }
+                            },
+                            error: function() {
+                                $('#output').html(`<div style="text-align:center;color:red;margin-top:40px;">Error: Could not connect to server</div>`);
+                            }
+                        });
                     }
                 });
             });
@@ -256,6 +417,39 @@
                     if (q) {
                         level = q.level;
                         correct = (q.correct_answer.trim().toLowerCase() === ans.answer.trim().toLowerCase());
+                    }
+                } else if (ans.type === 'selection_question') {
+                    q = SelectionQuestion.query.get(ans.id);
+                    if (q) {
+                        level = q.level;
+                        correct = (q.correct_sentence.trim().toLowerCase() === ans.answer.trim().toLowerCase());
+                    }
+                } else if (ans.type === 'labeling_question') {
+                    q = LabelingQuestion.query.get(ans.id);
+                    if (q) {
+                        level = q.level;
+                        let userLabels = {};
+                        try {
+                            userLabels = JSON.parse(ans.answer);
+                        } catch(e) {
+                            userLabels = {};
+                        }
+                        
+                        let correctLabels = {};
+                        try {
+                            correctLabels = typeof q.correct_labels === 'string' ? 
+                                JSON.parse(q.correct_labels) : q.correct_labels;
+                        } catch(e) {
+                            correctLabels = {};
+                        }
+                        
+                        // Check if all labels match correctly
+                        correct = Object.entries(correctLabels).every(([label, expectedWord]) => {
+                            const userWord = userLabels[label];
+                            if (!userWord) return false;
+                            return expectedWord.toLowerCase().replace(/[.,!?;:"'()]/g, '') === 
+                                userWord.toLowerCase().replace(/[.,!?;:"'()]/g, '');
+                        });
                     }
                 }
                 if (level in level_results) {
