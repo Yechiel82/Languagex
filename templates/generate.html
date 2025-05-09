@@ -320,6 +320,15 @@
             <input type="text" id="topic" name="topic" placeholder="e.g., games, travel, food" required>
             <label for="num_sentences">Number of Sentences:</label>
             <input type="number" id="num_sentences" name="num_sentences" value="2" min="1" max="10">
+            <label for="question_type">Question Type:</label>
+            <select id="question_type" name="question_type">
+                <option value="random">Random</option>
+                <option value="fill_in_blank">Fill in the Blank</option>
+                <option value="arrange">Arrange the Words</option>
+                <option value="multiple_choice">Multiple Choice</option>
+                <option value="selection">Selection Question</option>
+                <option value="labeling">Labeling Question</option>
+            </select>
             <button type="submit">Generate Sentences</button>
             <button type="button" id="placementTestBtn" style="margin-top:10px;background:var(--accent-color-alt);color:var(--text-color);">Test my CEFR Level</button>
         </form>
@@ -345,6 +354,12 @@
             let currentTopic = '';
             let lessonStartTime = null;
             let lessonEndTime = null;
+            let savedAnswers = {};
+
+            // Clear previous session data
+            savedAnswers = {};
+            currentIndex = 0;
+            questions = [];
 
             // Call this when the first question is displayed
             function startLessonTimer() {
@@ -387,6 +402,22 @@
                 sentence._chosenType = chosenType; // Save for consistency
 
                 output += `<form id="question-form">`;
+
+                // Navigation controls for questions
+                output += `<div class="question-navigation" style="display:flex;justify-content:space-between;margin-bottom:15px;">`;
+                if (index > 0) {
+                    output += `<button type="button" id="prev-question" class="nav-button" 
+                        style="background:#f0f0f0;color:#333;border:1px solid #ddd;padding:5px 10px;border-radius:4px;">
+                        ← Previous Question
+                    </button>`;
+                } else {
+                    output += `<button type="button" disabled style="opacity:0.5;background:#f0f0f0;color:#333;border:1px solid #ddd;padding:5px 10px;border-radius:4px;">
+                        ← Previous Question
+                    </button>`;
+                }
+                output += `<span style="align-self:center;font-weight:bold;">Question ${index+1} of ${questions.length}</span>`;
+                output += `</div>`;
+
                 if (chosenType === 'fill_in_blank') {
                     // Existing fill_in_blank code
                     output += `<p><strong>Fill-in-the-blank:</strong> ${sentence.fill_in_blank}</p>`;
@@ -409,15 +440,43 @@
                     output += `<div id="answer-box" class="answer-box" style="min-height:40px;display:flex;flex-wrap:wrap;gap:8px;padding:8px 0;border-bottom:1px solid #dab98f;margin-bottom:15px;"></div>`;
                     output += `<input type="hidden" name="answer" id="arrange-answer" required>`;
                 } else if (chosenType === 'multiple_choice') {
-                    let questionText = sentence.multiple_choice.question_text || '';
+                    // Get question text from the correct location in the data structure
+                    let questionText = '';
+                    let choices = [];
+                    let correctAnswer = '';
+                    
+                    // Check both possible locations for the multiple choice data
+                    const mcData = sentence.multiple_choice || sentence.multiple_choice_question;
+                    
+                    if (mcData) {
+                        questionText = mcData.question_text || '';
+                        correctAnswer = mcData.correct_answer || '';
+                        
+                        // Handle choices in different possible formats
+                        if (Array.isArray(mcData.options)) {
+                            choices = mcData.options;
+                        } else if (typeof mcData.options === 'string') {
+                            // Try to split by comma if it's a string
+                            choices = mcData.options.split(',').map(c => c.trim());
+                        } else if (mcData.choices) {
+                            // Sometimes the property might be called choices instead of options
+                            if (Array.isArray(mcData.choices)) {
+                                choices = mcData.choices;
+                            } else if (typeof mcData.choices === 'string') {
+                                choices = mcData.choices.split(',').map(c => c.trim());
+                            }
+                        }
+                    }
+                    
                     output += `<p><strong>Multiple Choice:</strong></p>`;
                     output += `<div style="margin-bottom:12px;">${cleanQuestionText(questionText)}</div>`;
-                    let choices = [];
-                    if (sentence.multiple_choice.options) {
-                        choices = sentence.multiple_choice.options;
-                    } else if (sentence.multiple_choice && Array.isArray(sentence.multiple_choice.options)) {
-                        choices = sentence.multiple_choice.options;
+                    
+                    // Ensure choices is not empty
+                    if (choices.length === 0) {
+                        console.warn('No choices found for multiple choice question:', sentence);
+                        choices = ['Option 1', 'Option 2', 'Option 3']; // Fallback
                     }
+                    
                     choices.forEach((opt, i) => {
                         output += `<div><label><input type="radio" name="answer" value="${opt}" required> ${opt}</label></div>`;
                     });
@@ -426,9 +485,15 @@
                     output += `<p><strong>Selection Question:</strong></p>`;
                     output += `<div style="margin-bottom:12px;">${cleanQuestionText(questionText)}</div>`;
                     
+                    // Update this part to handle pipe-separated sentences
                     let sentences = sentence.selection_question.sentences || [];
-                    if (!Array.isArray(sentences) && typeof sentences === 'string') {
-                        sentences = sentences.split(',').map(s => s.trim());
+                    if (!Array.isArray(sentences)) {
+                        if (typeof sentences === 'string') {
+                            // Split by pipe character instead of comma
+                            sentences = sentences.split('|').map(s => s.trim());
+                        } else {
+                            sentences = [];
+                        }
                     }
                     
                     output += `<div>Select the correct sentence:</div>`;
@@ -611,21 +676,118 @@
                     }
                 }
 
+                // General handler for previous question navigation that works with all question types
+                $('#prev-question').on('click', function() {
+                    if (currentIndex > 0) {
+                        // Save current answers before navigating back
+                        const sentence = questions[currentIndex];
+                        let userAnswer = '';
+                        
+                        // Get the user's current input based on question type
+                        if (sentence._chosenType === 'fill_in_blank') {
+                            userAnswer = $('input[name="answer"]').val().trim();
+                        } else if (sentence._chosenType === 'arrange_question') {
+                            userAnswer = $('#arrange-answer').val().trim();
+                        } else if (sentence._chosenType === 'multiple_choice') {
+                            const checked = $('input[name="answer"]:checked');
+                            userAnswer = checked.length ? checked.val() : '';
+                        } else if (sentence._chosenType === 'selection_question') {
+                            const checked = $('input[name="selection_answer"]:checked');
+                            userAnswer = checked.length ? checked.val() : '';
+                        } else if (sentence._chosenType === 'labeling_question') {
+                            userAnswer = $('#labeling-answer').val();
+                        }
+                        
+                        // Save current answer state
+                        if (userAnswer) {
+                            savedAnswers[currentIndex] = {
+                                userAnswer: userAnswer,
+                                isCorrect: false // We don't evaluate correctness when just navigating
+                            };
+                        }
+                        
+                        // Navigate to previous question
+                        currentIndex -= 1;
+                        displayQuestion(currentIndex);
+                    }
+                });
+
+                // Restore saved answer if available
+                if (savedAnswers[index]) {
+                    setTimeout(function() {
+                        const savedAnswer = savedAnswers[index].userAnswer;
+                        
+                        if (sentence._chosenType === 'fill_in_blank') {
+                            $('input[name="answer"]').val(savedAnswer);
+                        } else if (sentence._chosenType === 'multiple_choice' || sentence._chosenType === 'selection_question') {
+                            $(`input[value="${savedAnswer}"]`).prop('checked', true);
+                        } else if (sentence._chosenType === 'arrange_question') {
+                            // Clear the jumbled area
+                            $('#jumbled-words').empty();
+                            
+                            // Populate the answer box with the saved arrangement
+                            const words = savedAnswer.split(' ');
+                            words.forEach(word => {
+                                const chip = $(`.word-chip[data-word="${word}"]`).detach();
+                                $('#answer-box').append(chip);
+                            });
+                            
+                            // Update the hidden field
+                            $('#arrange-answer').val(savedAnswer);
+                        } else if (sentence._chosenType === 'labeling_question') {
+                            try {
+                                const answers = JSON.parse(savedAnswer);
+                                
+                                // Reset all labels back to the available labels area
+                                $('.label-chip').appendTo('#available-labels');
+                                
+                                // Place each label in its corresponding target
+                                Object.entries(answers).forEach(([label, word]) => {
+                                    const labelChip = $(`.label-chip[data-label="${label}"]`).detach();
+                                    const target = $(`.label-target[data-word="${word}"]`);
+                                    if (target.length) {
+                                        target.append(labelChip);
+                                    }
+                                });
+                                
+                                // Update the hidden field
+                                $('#labeling-answer').val(savedAnswer);
+                            } catch (e) {
+                                console.error('Error restoring labeling answer:', e);
+                            }
+                        }
+                    }, 100); // Small delay to ensure elements are in the DOM
+                }
+
                 if (currentIndex === 0) {
                     startLessonTimer();
                 }
             }
 
+            // Update the sentence-form submit handler to clear previous session data
             $('#sentence-form').submit(function(e) {
                 e.preventDefault();
                 $('#welcomeMessage').hide();
                 $('#loading').show();
                 $('#output').html('');
+                
+                // Clear previous session data
+                savedAnswers = {};
+                currentIndex = 0;
+                questions = [];
+                
                 const formData = {
                     level: $('#level').val(),
                     topic: $('#topic').val(),
                     num_sentences: $('#num_sentences').val()
                 };
+                
+                // Add question type selection
+                const questionType = $('#question_type').val();
+                if (questionType !== 'random') {
+                    formData.question_types = [questionType];
+                }
+                
                 currentTopic = $('#topic').val();
                 $.ajax({
                     url: '/generate',
@@ -666,8 +828,25 @@
                     isCorrect = normalizeAnswer(userAnswer) === normalizeAnswer(sentence.sentence);
                 } else if (sentence._chosenType === 'multiple_choice') {
                     userAnswer = $(this).find('input[name="answer"]:checked').val();
-                    let correctAnswer = sentence.correct_answer || (sentence.multiple_choice && sentence.multiple_choice.correct_answer) || '';
+                    
+                    // Get the correct answer from the right location
+                    let correctAnswer = '';
+                    // Check both possible locations for the data
+                    const mcData = sentence.multiple_choice || sentence.multiple_choice_question;
+                    
+                    if (mcData && mcData.correct_answer) {
+                        correctAnswer = mcData.correct_answer;
+                    } else if (sentence.correct_answer) {
+                        correctAnswer = sentence.correct_answer;
+                    }
+                    
+                    // If it's still empty, log a warning
+                    if (!correctAnswer) {
+                        console.warn('Could not find correct answer for multiple choice question:', sentence);
+                    }
+                    
                     isCorrect = normalizeAnswer(userAnswer) === normalizeAnswer(correctAnswer);
+                    console.log('Multiple choice answer:', userAnswer, 'Correct:', correctAnswer, 'Match:', isCorrect);
                 } else if (sentence._chosenType === 'selection_question') {
                     userAnswer = $(this).find('input[name="selection_answer"]:checked').val();
                     let correctAnswer = sentence.selection_question && sentence.selection_question.correct_sentence;
@@ -730,17 +909,25 @@
                 } else if (sentence._chosenType === 'arrange_question') {
                     questionId = sentence.arrange_id;
                 } else if (sentence._chosenType === 'multiple_choice') {
-                    questionId = sentence.multiple_choice_id;
+                    questionId = sentence.multiple_choice_id || sentence.multiple_choice_question_id;
                 } else if (sentence._chosenType === 'selection_question') {
                     questionId = sentence.selection_question_id;
                 } else if (sentence._chosenType === 'labeling_question') {
                     questionId = sentence.labeling_question_id;
                 }
 
+                // Save the current answer
+                if (!savedAnswers[currentIndex]) {
+                    savedAnswers[currentIndex] = {
+                        userAnswer: userAnswer,
+                        isCorrect: isCorrect
+                    };
+                }
+
                 if (currentIndex === questions.length - 1) {
                     const timeSpent = endLessonTimer();
                     $.ajax({
-                        url: '/submit_answer',
+                        url: '/submit_answer',  // Make sure this is exactly as defined in your route
                         type: 'POST',
                         contentType: 'application/json',
                         data: JSON.stringify({
@@ -756,6 +943,10 @@
                             displayQuestion(currentIndex);
                         },
                         error: function(xhr, status, error) {
+                            console.error('URL requested:', '/submit_answer');  // Add this for debugging
+                            console.error('Error status:', xhr.status);
+                            console.error('Error response:', xhr.responseText);
+                            console.error('Error object:', error);
                             alert('Error saving answer!');
                             currentIndex += 1;
                             displayQuestion(currentIndex);
@@ -763,7 +954,7 @@
                     });
                 } else {
                     $.ajax({
-                        url: '/submit_answer',
+                        url: '/submit_answer',  // Make sure this is exactly as defined in your route
                         type: 'POST',
                         contentType: 'application/json',
                         data: JSON.stringify({
@@ -778,6 +969,10 @@
                             displayQuestion(currentIndex);
                         },
                         error: function(xhr, status, error) {
+                            console.error('URL requested:', '/submit_answer');  // Add this for debugging
+                            console.error('Error status:', xhr.status);
+                            console.error('Error response:', xhr.responseText);
+                            console.error('Error object:', error);
                             alert('Error saving answer!');
                             currentIndex += 1;
                             displayQuestion(currentIndex);
@@ -794,11 +989,6 @@
                     $('#sidebar-toggle').html('&#9776;');
                 }
             });
-            if ($('#sidebar').hasClass('collapsed')) {
-                $('#sidebar-toggle').html('&rarr;');
-            } else {
-                $('#sidebar-toggle').html('&#9776;');
-            }
 
             $('#profileCircle').on('click', function() {
                 window.location.href = '/profile';

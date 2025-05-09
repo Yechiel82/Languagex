@@ -22,7 +22,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 # Cloud API configuration
-CLOUD_API_URL = os.getenv('CLOUD_API_URL', 'https://a1f5-34-82-146-235.ngrok-free.app')
+CLOUD_API_URL = os.getenv('CLOUD_API_URL', 'https://1c42-34-23-153-154.ngrok-free.app')
 
 # Add these configurations for file uploads
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static/uploads')
@@ -64,8 +64,8 @@ class User(db.Model):
 
 class SelectionQuestion(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    question_text = db.Column(db.Text, nullable=False)
-    sentences = db.Column(db.Text, nullable=False)  # Store as JSON string or comma-separated
+    question_text = db.Column(db.Text, nullable=False)  # Note: field is question_text, not question
+    sentences = db.Column(db.Text, nullable=False)
     correct_sentence = db.Column(db.Text, nullable=False)
     level = db.Column(db.String(10), nullable=False)
     generated_at = db.Column(db.DateTime, default=func.now())
@@ -292,7 +292,7 @@ def profile():
         return redirect(url_for('login'))
     
     user_id = session.get('user_id')
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if not user:
         return redirect(url_for('login'))
     
@@ -329,7 +329,7 @@ def update_profile():
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
     
     user_id = session.get('user_id')
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if not user:
         return jsonify({'success': False, 'error': 'User not found'}), 404
     
@@ -429,7 +429,12 @@ def generate():
                 "user_id": user_id,
                 "topic": topic
             }
-            
+
+            # Modify to add question_types if provided
+            question_types = data.get('question_types')
+            if question_types:
+                payload["question_types"] = question_types
+
             app.logger.info(f"Sending request to {CLOUD_API_URL}/generate_sentences with payload: {payload}")
             response = requests.post(f"{CLOUD_API_URL}/generate_sentences", json=payload, headers=headers, timeout=60)
             app.logger.info(f"API response status: {response.status_code}")
@@ -554,35 +559,37 @@ def generate():
                         db.session.flush()  # Get gt.id
 
                         # FillInTheBlank
-                        fill_blank = FillInTheBlank(
-                            question=sentence_data['fill_in_blank'],
-                            answer=sentence_data['fill_in_blank_answer'],
-                            level=sentence_data['level'],
-                            for_user=sentence_data['for_user'],
-                            ground_truth_id=gt.id
-                        )
-                        db.session.add(fill_blank)
-                        db.session.flush()  # Get the ID before commit
-                        sentence_data['fill_in_blank_id'] = fill_blank.id
+                        fib_data = sentence_data.get('fill_in_blank_question')
+                        if fib_data and 'question_text' in fib_data and 'correct_answer' in fib_data:
+                            fill_blank = FillInTheBlank(
+                                question=fib_data['question_text'],
+                                answer=fib_data['correct_answer'],
+                                level=sentence_data['level'],
+                                for_user=sentence_data['for_user'],
+                                ground_truth_id=gt.id
+                            )
+                            db.session.add(fill_blank)
+                            db.session.flush()  # Get the ID before commit
+                            sentence_data['fill_in_blank_id'] = fill_blank.id
 
                         # ArrangeTheWord
-                        arrange = ArrangeTheWord(
-                            question=sentence_data['arrange_question'],
-                            correct_arrangement=sentence_data['correct_arrangement'],
-                            level=sentence_data['level'],
-                            for_user=sentence_data['for_user'],
-                            ground_truth_id=gt.id
-                        )
-                        db.session.add(arrange)
-                        db.session.flush()  # Get the ID before commit
-                        sentence_data['arrange_id'] = arrange.id
+                        arr_data = sentence_data.get('arrange_question')
+                        if arr_data and 'correct_arrangement' in sentence_data:
+                            arrange = ArrangeTheWord(
+                                question=sentence_data['arrange_question'],
+                                correct_arrangement=sentence_data['correct_arrangement'],
+                                level=sentence_data['level'],
+                                for_user=sentence_data['for_user'],
+                                ground_truth_id=gt.id
+                            )
+                            db.session.add(arrange)
+                            db.session.flush()  # Get the ID before commit
+                            sentence_data['arrange_id'] = arrange.id
 
                         # MultipleChoice
                         mc_data = sentence_data.get('multiple_choice')
-                        if mc_data:
-                            if not all(key in mc_data for key in ['question_text', 'options', 'correct_answer']):
-                                app.logger.warning(f"Skipping invalid multiple_choice for sentence: {sentence}")
-                                continue
+                        if mc_data and all(key in mc_data for key in ['question_text', 'options', 'correct_answer']):
+                            # Use the provided multiple choice data
                             mc = MultipleChoice(
                                 question=mc_data['question_text'],
                                 choices=",".join(map(str, mc_data['options'])),
@@ -591,33 +598,69 @@ def generate():
                                 for_user=sentence_data['for_user'],
                                 ground_truth_id=gt.id
                             )
-                            db.session.add(mc)
-                            db.session.flush()  # Get the ID before commit
-                            sentence_data['multiple_choice_id'] = mc.id
+                        else:
+                            # Create default multiple choice data if none exists
+                            # Generate simple options with the correct verb and some distractors
+                            correct_verb = sentence_data['verb']
+                            # Simple common verbs to use as distractors
+                            distractors = ['have', 'do', 'go', 'make', 'take', 'see', 'come', 'know', 'get', 'give']
+                            options = [correct_verb]
                             
+                            # Add 3 distractors that aren't the correct answer
+                            for verb in distractors:
+                                if verb != correct_verb and len(options) < 4:
+                                    options.append(verb)
+                            
+                            # If we don't have enough distractors, add some common variations
+                            while len(options) < 4:
+                                suffix = random.choice(['s', 'ed', 'ing'])
+                                distractor = random.choice(distractors) + suffix
+                                if distractor not in options:
+                                    options.append(distractor)
+                            
+                            # Shuffle options
+                            random.shuffle(options)
+                            
+                            # Create a simple question text
+                            question_text = f"Choose the correct verb for: {sentence.replace(correct_verb, '____')}"
+                            
+                            mc = MultipleChoice(
+                                question=question_text,
+                                choices=",".join(options),
+                                correct_answer=correct_verb,
+                                level=sentence_data['level'],
+                                for_user=sentence_data['for_user'],
+                                ground_truth_id=gt.id
+                            )
+
+                        db.session.add(mc)
+                        db.session.flush()  # Get the ID before commit
+                        sentence_data['multiple_choice_id'] = mc.id
+                        
                         # Selection Question
                         sel_data = sentence_data.get('selection_question')
+                        # In the generate function where selection questions are created:
                         if sel_data:
                             if not all(key in sel_data for key in ['question_text', 'sentences', 'correct_sentence']):
                                 app.logger.warning(f"Skipping invalid selection_question for sentence: {sentence}")
                                 continue
-                            
-                            # Convert sentences list to string if needed
-                            sentences_str = sel_data['sentences']
-                            if isinstance(sentences_str, list):
-                                sentences_str = ",".join(map(str, sentences_str))
                                 
-                            sel = SelectionQuestion(
-                                question_text=sel_data['question_text'],
-                                sentences=sentences_str,
+                            # Ensure sentences are stored with pipe separator
+                            sentences = sel_data['sentences']
+                            if isinstance(sentences, list):
+                                sentences = "|".join(map(str, sentences))
+                            
+                            sq = SelectionQuestion(
+                                question_text=sel_data['question_text'],  # FIXED: use the correct field name
+                                sentences=sentences,
                                 correct_sentence=sel_data['correct_sentence'],
                                 level=sentence_data['level'],
                                 for_user=sentence_data['for_user'],
                                 ground_truth_id=gt.id
                             )
-                            db.session.add(sel)
+                            db.session.add(sq)
                             db.session.flush()  # Get the ID before commit
-                            sentence_data['selection_question_id'] = sel.id
+                            sentence_data['selection_question_id'] = sq.id  # Changed to match the frontend's expected property name
                             
                         # Labeling Question
                         lab_data = sentence_data.get('labeling_question')
@@ -658,7 +701,7 @@ def generate():
                 try:
                     db.session.commit()
                     # Increment lessons_completed ONCE per request
-                    user = User.query.get(user_id)
+                    user = db.session.get(User, user_id)
                     if user:
                         user.lessons_completed = (user.lessons_completed or 0) + 1
                         db.session.commit()
@@ -723,7 +766,7 @@ def submit_placement_test():
         correct = False
         
         if question_type == 'fill_in_blank':
-            question = FillInTheBlank.query.get(question_id)
+            question = db.session.get(FillInTheBlank, question_id)
             if question:
                 level = question.level
                 correct = (question.answer.strip().lower() == user_answer.strip().lower())
@@ -732,7 +775,7 @@ def submit_placement_test():
                 question.is_correct = correct
                 
         elif question_type == 'arrange':
-            question = ArrangeTheWord.query.get(question_id)
+            question = db.session.get(ArrangeTheWord, question_id)
             if question:
                 level = question.level
                 # Normalize spacing and punctuation for comparison
@@ -744,7 +787,7 @@ def submit_placement_test():
                 question.is_correct = correct
                 
         elif question_type == 'multiple_choice':
-            question = MultipleChoice.query.get(question_id)
+            question = db.session.get(MultipleChoice, question_id)
             if question:
                 level = question.level
                 correct = (question.correct_answer.strip().lower() == user_answer.strip().lower())
@@ -752,17 +795,28 @@ def submit_placement_test():
                 question.user_answer = user_answer
                 question.is_correct = correct
                 
+        # In the submit_placement_test function, update the selection_question block:
+        # Update the selection_question block in submit_placement_test function
         elif question_type == 'selection_question':
-            question = SelectionQuestion.query.get(question_id)
+            # Check if question_id is valid before querying
+            if not question_id or not isinstance(question_id, int):
+                app.logger.warning(f"Invalid question_id for selection_question: {question_id}")
+                continue
+                
+            # Use the session.get() method instead of query.get()
+            question = db.session.get(SelectionQuestion, question_id)
             if question:
                 level = question.level
-                correct = (question.correct_sentence.strip().lower() == user_answer.strip().lower())
+                # Clean and compare user answer and correct answer
+                user_answer_clean = user_answer.strip()
+                correct_answer_clean = question.correct_sentence.strip()
+                correct = (correct_answer_clean == user_answer_clean)
                 question.is_seen = True
                 question.user_answer = user_answer
                 question.is_correct = correct
                 
         elif question_type == 'labeling_question':
-            question = LabelingQuestion.query.get(question_id)
+            question = db.session.get(LabelingQuestion, question_id)
             if question:
                 level = question.level
                 
@@ -841,7 +895,7 @@ def submit_placement_test():
         db.session.add(test_attempt)
         
         # Update user's level
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if user:
             user.level = assigned_level
         
@@ -865,7 +919,7 @@ def submit_answer():
     question_type = data.get('question_type')
     time_spent = data.get('time_spent', 0)  # sent from frontend
 
-    user = User.query.get(session['user_id'])
+    user = db.session.get(User, session['user_id'])
     today = date.today()
     if user.last_active_date == today - timedelta(days=1):
         user.streak += 1
@@ -900,15 +954,20 @@ def submit_answer():
     db.session.commit()
 
     if question_type == 'fill_in_blank':
-        question = FillInTheBlank.query.get(question_id)
+        question = db.session.get(FillInTheBlank, question_id)
     elif question_type == 'arrange_question':
-        question = ArrangeTheWord.query.get(question_id)
+        question = db.session.get(ArrangeTheWord, question_id)
     elif question_type == 'multiple_choice':
-        question = MultipleChoice.query.get(question_id)
-    elif question_type == 'selection_question':
-        question = SelectionQuestion.query.get(question_id)
+        question = db.session.get(MultipleChoice, question_id)
+    elif question_type == 'selection_question' and question_id is not None:
+        question = db.session.get(SelectionQuestion, question_id)
+        if question:
+            question.user_answer = user_answer
+            question.is_correct = is_correct
+            db.session.commit()
+            return jsonify({'success': True})
     elif question_type == 'labeling_question':
-        question = LabelingQuestion.query.get(question_id)
+        question = db.session.get(LabelingQuestion, question_id)
     else:
         question = None
 
@@ -975,16 +1034,20 @@ def placement_test_questions():
             })
             
         # Selection questions
+        # In the API that returns placement test questions, update the selection_question block:
+# Selection questions
         sq = SelectionQuestion.query.filter_by(is_seen=False, for_user=user_id, level=level).all()
         for q in sq:
+            # Handle sentence splitting properly based on the pipe separator
             if isinstance(q.sentences, str):
-                sentences = [s.strip() for s in q.sentences.split(',')]
+                sentences = q.sentences.split('|')
             else:
                 sentences = q.sentences
+                
             level_questions.append({
                 'id': q.id,
                 'type': 'selection_question',
-                'question': q.question_text,
+                'question': q.question_text,  # Use consistent field name
                 'sentences': sentences,
                 'correct_sentence': q.correct_sentence,
                 'level': level
@@ -1030,7 +1093,7 @@ def delete_account():
         return jsonify({'success': False, 'error': 'Not logged in'}), 401
     
     user_id = session.get('user_id')
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if not user:
         return jsonify({'success': False, 'error': 'User not found'}), 404
     
@@ -1067,4 +1130,4 @@ if __name__ == '__main__':
 # # In the Flask shell, run:
 # from app import db
 # db.drop_all()
-# db.create_all() 
+# db.create_all()

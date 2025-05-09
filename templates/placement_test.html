@@ -164,8 +164,10 @@
                         html += `</div>`;
                     } else if (q.type === 'selection_question') {
                         let sentences = q.sentences || [];
-                        if (!Array.isArray(sentences) && typeof sentences === 'string') {
-                            sentences = sentences.split(',').map(s => s.trim());
+                        
+                        // If sentences is a string, split by the pipe character
+                        if (typeof sentences === 'string') {
+                            sentences = sentences.split('|').map(s => s.trim());
                         }
                         
                         html += `<div>Select the correct sentence:</div>`;
@@ -335,21 +337,27 @@
                 $('#output').on('click', '#nextQuestion', function() {
                     let q = questions[current];
                     let answer = '';
-                    
+                    let isValid = true;
+                    let errorMsg = '';
+
                     if (q.type === 'fill_in_blank' || q.type === 'arrange') {
                         answer = $('#placementAnswer').val();
                     } else if (q.type === 'multiple_choice') {
                         answer = $('input[name="mc"]:checked').val() || '';
                     } else if (q.type === 'selection_question') {
-                        answer = $('input[name="selection_answer"]:checked').val() || '';
+                        answer = $('input[name="selection_answer"]:checked').val();
+                        if (!answer) {
+                            isValid = false;
+                            errorMsg = "Please select an answer";
+                        }
                     } else if (q.type === 'labeling_question') {
                         answer = $('#placementAnswer').val() || '{}';
                     }
 
-                    // Prevent submitting if answer is empty
-                    if (!answer || (answer.trim() === "" || answer === "{}")) {
+                    // Prevent submitting if answer is empty or invalid
+                    if (!isValid || !answer || (answer.trim() === "" || answer === "{}")) {
                         if ($('#output .warning').length === 0) {
-                            $('#output').append('<div class="warning" style="color:red;margin-top:10px;">Please provide your answer before continuing.</div>');
+                            $('#output').append(`<div class="warning" style="color:red;margin-top:10px;">${errorMsg || 'Please provide your answer before continuing.'}</div>`);
                         }
                         return;
                     } else {
