@@ -127,8 +127,26 @@
                         html += `<input type="text" id="placementAnswer" placeholder="Your answer..." 
                             style="width:100%;height:54px;font-size:22px;padding:12px 16px;border-radius:8px;border:2px solid var(--border-color);margin-bottom:22px;box-sizing:border-box;">`;
                     } else if (q.type === 'arrange') {
-                        let words = q.correct_arrangement.match(/[\w'-]+|[.,!?;:()]/g);
-                        let shuffled = words.slice().sort(() => Math.random() - 0.5);
+                        let words = [];
+                        if (q.correct_arrangement) {
+                            const matches = q.correct_arrangement.match(/[\w'-]+|[.,!?;:()]/g) || [];
+                            for (let i = 0; i < matches.length; i++) {
+                                const token = matches[i];
+                                if (/^[.,!?;:()]+$/.test(token)) {
+                                    if (i > 0 && /[\w'-]+/.test(matches[i-1])) {
+                                    } else {
+                                        continue;
+                                    }
+                                } else {
+                                    words.push(token);
+                                    if (i < matches.length - 1 && /^[.,!?;:()]+$/.test(matches[i+1])) {
+                                        i++;
+                                    }
+                                }
+                            }
+                        }
+                        const cleanWords = words.map(word => word.replace(/[.,!?;:()]+/g, '').trim()).filter(w => w);
+                        let shuffled = [...words].sort(() => Math.random() - 0.5);
                         html += `<div id="jumbled-words" class="jumbled-words" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:15px;">`;
                         shuffled.forEach(word => {
                             html += `<span class="word-chip" data-word="${word}" style="padding:8px 12px;background:#fffbe6;border-radius:6px;cursor:pointer;border:1px solid var(--accent-color);margin-bottom:5px;">${word}</span>`;
@@ -151,7 +169,7 @@
                             questionText = q.multiple_choice.question_text;
                             correctAnswer = q.multiple_choice.correct_answer;
                         }
-                        html += `<div style="margin-bottom:12px;">${cleanQuestionText(questionText)}</div>`;
+                        html += `<p><strong>Multiple Choice:</strong></p>`;
                         html += `<div>`;
                         choices.forEach((choice, cidx) => {
                             html += `
@@ -170,7 +188,7 @@
                             sentences = sentences.split('|').map(s => s.trim());
                         }
                         
-                        html += `<div>Select the correct sentence:</div>`;
+                        html += `<div>`;
                         sentences.forEach((s, idx) => {
                             html += `
                                 <label style="display:block;margin-bottom:10px;padding:8px;border:1px solid #ddd;border-radius:4px;">

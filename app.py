@@ -22,7 +22,8 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 # Cloud API configuration
-CLOUD_API_URL = os.getenv('CLOUD_API_URL', 'https://1c42-34-23-153-154.ngrok-free.app')
+CLOUD_API_URL = os.getenv('CLOUD_API_URL', 'https://f3ff-35-233-186-74.ngrok-free.app')
+# CLOUD_API_Grammar_URL = os.getenv('CLOUD_API_URL', 'https://1c42-34-23-153-154.ngrok-free.app')
 
 # Add these configurations for file uploads
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static/uploads')
@@ -520,28 +521,11 @@ def generate():
                     if mc_data and "'" in str(mc_data.get('correct_answer', '')):
                         contraction_in_answer = True
 
-                    # If contraction is found, only create ArrangeTheWord and skip fill-in-the-blank/multiple-choice
+                    # If contraction is found, handle specially but don't skip multiple-choice completely
                     if contraction_in_answer:
-                        try:
-                            arrange = ArrangeTheWord(
-                                question=sentence_data['arrange_question'],
-                                correct_arrangement=sentence_data['correct_arrangement'],
-                                level=sentence_data['level'],
-                                for_user=sentence_data['for_user']
-                            )
-                            db.session.add(arrange)
-                            db.session.flush()
-                            sentence_data['arrange_id'] = arrange.id
-                            # Mark only arrange_question as available
-                            sentence_data['fill_in_blank'] = None
-                            sentence_data['fill_in_blank_id'] = None
-                            sentence_data['multiple_choice'] = None
-                            sentence_data['multiple_choice_id'] = None
-                            valid_sentences.append(sentence_data)
-                        except Exception as e:
-                            app.logger.error(f"Database error for arrange sentence '{sentence}': {str(e)}")
-                            db.session.rollback()
-                        continue  # Skip the rest of the loop for this sentence
+                        # Only skip fill-in-the-blank, but still create multiple-choice if present
+                        sentence_data['fill_in_blank'] = None
+                        sentence_data['fill_in_blank_id'] = None
 
                     valid_sentences.append(sentence_data)
                     
@@ -636,6 +620,8 @@ def generate():
                         db.session.add(mc)
                         db.session.flush()  # Get the ID before commit
                         sentence_data['multiple_choice_id'] = mc.id
+                        # Also add this line to ensure compatibility with frontend
+                        sentence_data['multiple_choice_question_id'] = mc.id
                         
                         # Selection Question
                         sel_data = sentence_data.get('selection_question')
