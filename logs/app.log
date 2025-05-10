@@ -1,28 +1,16 @@
-2025-05-10 16:57:56,835 - app - INFO - Sending request to https://f3ff-35-233-186-74.ngrok-free.app/generate_sentences with payload: {'level': 'C1', 'num_sentences': 2, 'user_id': 2, 'topic': 'daily activites'}
-2025-05-10 16:58:09,056 - app - INFO - API response status: 200
-2025-05-10 16:58:09,058 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'As I wake up every morning, I usually take a leisurely walk around the block, stopping to admire the blooming flowers and chatting with the friendly neighbors.', 'verb': 'take', 'level': 'C1', 'for_user': 2, 'selection_question': {'question_text': 'Choose the correct sentence.', 'sentences': 'As I wake up every morning, I usually take a leisurely walk around the block, stopping to admire the blooming flowers and chatting with the friendly neighbors.|As I wake up every morning , I usually take a leisurely moon around the block , stopping to admire the blooming flowers and chatting with the friendly neighbors .|As I had wakeed up every morning , I usually take a leisurely walk around the block , stopping to admire the blooming flowers and chatting with the friendly neighbors .', 'correct_sentence': 'As I wake up every morning, I usually take a leisurely walk around the block, stopping to admire the blooming flowers and chatting with the friendly neighbors.'}, 'labeling_question': {'question_text': 'As I wake up every morning, I usually take a leisurely walk around the block, stopping to admire the blooming flowers and chatting with the friendly neighbors.', 'instruction': 'Assign subject, verb, object, adjective, adverb, prepositional phrase to the correct words or phrases.', 'correct_labels': {'subject': 'I', 'verb': 'take', 'object': 'leisurely a walk', 'adjective': 'leisurely', 'adverb': 'usually', 'prepositional phrase': 'around the block'}}, 'fill_in_blank_question': {'question_text': 'As I wake up every morning , I usually __ a leisurely walk around the block , stopping to admire the blooming flowers and chatting with the friendly neighbors  (take).', 'correct_answer': 'take'}, 'multiple_choice_question': {'question_text': 'As I wake up every morning , I usually __ a leisurely walk around the block , stopping to admire the blooming flowers and chatting with the friendly neighbors .', 'options': ['talk', 'walk', 'look', 'take'], 'correct_answer': 'take'}, 'arrange_question': {'question_text': 'Arrange the words to form the correct sentence.', 'words': ['neighbors', 'usually', 'chatting', 'up', 'wake', 'take', 'a', 'the', 'admire', 'I', ',', 'I', 'morning', 'to', 'flowers', 'the', 'leisurely', 'every', 'walk', 'around', 'the', 'and', 'friendly', 'blooming', 'stopping', 'with', 'block', ',', 'As'], 'correct_sentence': 'As I wake up every morning, I usually take a leisurely walk around the block, stopping to admire the blooming flowers and chatting with the friendly neighbors.'}}, {'sentence': 'After a busy morning of teaching and writing, I often unwind by taking a leisurely walk around the lake in the evening.', 'verb': 'unwind', 'level': 'C1', 'for_user': 2, 'selection_question': {'question_text': 'Choose the correct sentence.', 'sentences': 'After a busy morning of teaching and writing , I often unwinding by taking a leisurely walk around the lake in the evening .|After a busy morning of teaching and writing, I often unwind by taking a leisurely walk around the lake in the evening.|After a busy morning of teaching and writing , I often had unwinded by taking a leisurely walk around the lake in the evening .', 'correct_sentence': 'After a busy morning of teaching and writing, I often unwind by taking a leisurely walk around the lake in the evening.'}, 'labeling_question': {'question_text': 'After a busy morning of teaching and writing, I often unwind by taking a leisurely walk around the lake in the evening.', 'instruction': 'Assign subject, verb, object, adjective, prepositional phrase to the correct words or phrases.', 'correct_labels': {'subject': 'I', 'verb': 'unwind', 'object': 'leisurely a walk', 'adjective': 'busy', 'prepositional phrase': 'After a busy morning'}}, 'fill_in_blank_question': {'question_text': 'After a busy morning of teaching and writing , I often __ by taking a leisurely walk around the lake in the evening  (unwind).', 'correct_answer': 'unwind'}, 'multiple_choice_question': {'question_text': 'After a busy morning of teaching and writing , I often __ by taking a leisurely walk around the lake in the evening .', 'options': ['walk', 'unwind', 'look', 'talk'], 'correct_answer': 'unwind'}, 'arrange_question': {'question_text': 'Arrange the words to form the correct sentence.', 'words': [',', 'writing', 'by', 'I', 'in', 'a', 'morning', 'taking', 'busy', 'the', 'around', 'After', 'walk', 'lake', 'evening', 'the', 'and', 'of', 'unwind', 'often', 'a', 'teaching', 'leisurely'], 'correct_sentence': 'After a busy morning of teaching and writing, I often unwind by taking a leisurely walk around the lake in the evening.'}}], 'message': "Generated 2 sentences for level C1 on topic 'daily activites' with question types ['selection', 'labeling', 'fill_in_blank', 'multiple_choice', 'arrange']", 'processing_time': 11.354892253875732, 'timestamp': '2025-05-10T09:58:09.008673'}
-2025-05-10 16:58:09,085 - app - INFO - Stored 2 valid sentences for user 2
-2025-05-10 16:58:09,086 - app - INFO - Returning 2 sentences to client
-2025-05-10 16:58:14,357 - app - INFO - Received generate request: level=C2, topic=daily activites, num_sentences=2, user_id=2
-2025-05-10 16:58:14,359 - app - INFO - Sending request to https://f3ff-35-233-186-74.ngrok-free.app/generate_sentences with payload: {'level': 'C2', 'num_sentences': 2, 'user_id': 2, 'topic': 'daily activites'}
-2025-05-10 16:59:14,559 - app - ERROR - Cloud API request timed out
-2025-05-10 16:59:19,085 - app - INFO - Received generate request: level=C2, topic=daily activites, num_sentences=2, user_id=2
-2025-05-10 16:59:19,085 - app - INFO - Sending request to https://f3ff-35-233-186-74.ngrok-free.app/generate_sentences with payload: {'level': 'C2', 'num_sentences': 2, 'user_id': 2, 'topic': 'daily activites'}
-2025-05-10 17:00:19,356 - app - ERROR - Cloud API request timed out
-2025-05-10 17:00:22,810 - app - INFO - Received generate request: level=C2, topic=daily activites, num_sentences=1, user_id=2
-2025-05-10 17:00:22,810 - app - INFO - Sending request to https://f3ff-35-233-186-74.ngrok-free.app/generate_sentences with payload: {'level': 'C2', 'num_sentences': 1, 'user_id': 2, 'topic': 'daily activites'}
-2025-05-10 17:01:23,022 - app - ERROR - Cloud API request timed out
-2025-05-10 17:20:39,308 - app - INFO - Flask app is starting up
-2025-05-10 17:29:53,652 - app - INFO - Flask app is starting up
-2025-05-10 17:32:39,661 - app - INFO - Flask app is starting up
-2025-05-10 17:36:51,676 - app - INFO - Flask app is starting up
-2025-05-10 17:44:50,044 - app - INFO - Flask app is starting up
-2025-05-10 17:53:12,508 - app - INFO - Flask app is starting up
-2025-05-10 17:57:29,489 - app - INFO - Flask app is starting up
-2025-05-10 18:03:30,115 - app - INFO - Flask app is starting up
-2025-05-10 18:08:42,257 - app - INFO - Flask app is starting up
-2025-05-10 18:08:49,243 - app - INFO - Flask app is starting up
-2025-05-10 19:05:41,533 - app - INFO - Flask app is starting up
-2025-05-10 19:11:09,654 - app - INFO - Flask app is starting up
-2025-05-10 19:17:02,358 - app - INFO - Flask app is starting up
-2025-05-10 19:17:31,443 - app - INFO - Flask app is starting up
+2025-05-10 23:15:07,654 - app - INFO - Flask app is starting up
+2025-05-10 23:15:18,148 - app - INFO - Flask app is starting up
+2025-05-10 23:19:00,852 - app - INFO - Flask app is starting up
+2025-05-10 23:19:04,932 - app - INFO - Flask app is starting up
+2025-05-10 23:22:27,858 - app - INFO - Flask app is starting up
+2025-05-10 23:26:15,466 - app - INFO - Flask app is starting up
+2025-05-10 23:30:37,506 - app - INFO - Flask app is starting up
+2025-05-10 23:36:03,396 - app - INFO - Flask app is starting up
+2025-05-10 23:40:54,028 - app - INFO - Flask app is starting up
+2025-05-10 23:46:42,688 - app - INFO - Flask app is starting up
+2025-05-10 23:46:53,100 - app - INFO - Flask app is starting up
+2025-05-10 23:48:29,234 - app - INFO - Flask app is starting up
+2025-05-10 23:53:14,761 - app - INFO - Flask app is starting up
+2025-05-10 23:57:56,668 - app - INFO - Flask app is starting up
+2025-05-11 00:00:09,860 - app - INFO - Flask app is starting up
+2025-05-11 00:00:33,996 - app - INFO - Flask app is starting up

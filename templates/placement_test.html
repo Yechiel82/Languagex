@@ -217,6 +217,8 @@
                         questionText = q.fill_in_blank.question_text;
                     } else if (q.text) {
                         questionText = q.text;
+                    } else if (q.question) {
+                        questionText = q.question;
                     }
                     
                     // Fallback for completely missing question text
@@ -319,6 +321,9 @@
                     
                     questionHtml += `</div></div>`;
                 } else if (q.type === 'arrange') {
+                    // First, build the HTML without referencing DOM elements
+                    console.log("==== ARRANGE QUESTION DEBUG ====");
+                    
                     // Get the words to arrange
                     let words = [];
                     if (typeof q.words === 'string') {
@@ -336,20 +341,43 @@
                     // Shuffle the words
                     const shuffledWords = shuffleArray([...words]);
 
-                    console.log("==== ARRANGE QUESTION DEBUG ====");
                     console.log("Words to arrange:", words);
                     console.log("Shuffled words:", shuffledWords);
                     console.log("Correct arrangement:", q.correct_arrangement);
                     
+                    // Generate a unique ID for each word
+                    const wordBankItems = shuffledWords.map((word, idx) => {
+                        return { id: `word-${idx}`, text: word };
+                    });
+                    
+                    // Build the HTML
                     questionHtml += `
                         <div style="margin-bottom:20px;">
                             <p><strong>Arrange the words:</strong></p>
-                            <div style="margin-bottom:12px;">${q.question_text || ''}</div>
-                            <div id="jumbled-words" class="jumbled-words" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:15px;background:#e9f7ef;border-radius:6px;padding:12px;">
-                                ${shuffledWords.map(word => `<span class="word-chip" data-word="${word}" style="padding:8px 12px;background:#fffbe6;border-radius:6px;cursor:pointer;border:1px solid var(--accent-color);margin-bottom:5px;user-select:none;">${word}</span>`).join('')}
+                            <div style="margin-bottom:12px;">${q.question_text || 'Arrange the words to form a grammatically correct sentence.'}</div>
+                            
+                            <!-- Area for arranged words - improved styling -->
+                            <div id="arranged-words" style="min-height:70px;border:1px dashed #b2e0f7;padding:15px;margin-bottom:15px;background:#f7fafc;border-radius:8px;display:flex;flex-wrap:wrap;gap:8px;">
+                                <div class="arrange-instructions" style="width:100%;text-align:center;color:#777;padding:10px;">
+                                    Drag words here to create your sentence
+                                </div>
                             </div>
+                            
+                            <!-- Word bank -->
+                            <div id="word-bank" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:15px;background:#e3f6fd;border-radius:6px;padding:12px;">
+                                ${wordBankItems.map(item => `
+                                    <div class="word-item" id="${item.id}" data-word="${item.text}" 
+                                         style="padding:8px 12px;background:#fffbe6;border-radius:6px;cursor:grab;
+                                         border:1px solid var(--accent-color);margin-bottom:5px;user-select:none;">
+                                        ${item.text}
+                                    </div>
+                                `).join('')}
+                            </div>
+                            
                             <input type="hidden" id="placementAnswer">
-                            <div style="margin-bottom:10px;color:#777;font-size:14px;">Tap or drag words to arrange. Tap again to undo.</div>
+                            <div style="margin-bottom:10px;color:#777;font-size:14px;">
+                                <strong>Instructions:</strong> Drag words from below to the box above. Click a word in your answer to remove it.
+                            </div>
                         </div>
                     `;
                 } else if (q.type === 'selection_question') {
@@ -379,62 +407,125 @@
                     
                     questionHtml += `</div></div>`;
                 } else if (q.type === 'labeling_question') {
-                    // Get the text to label and instruction
-                    const text = q.question_text || '';
-                    const instruction = q.instruction || 'Assign labels to the correct parts of the sentence.';
-                    
-                    // Get the labels
+                    // Get the labels and prepare data
                     let labelCategories = [];
+                    
+                    // DEEP DEBUG - Log the entire question object to see where sentence might be
+                    console.log("FULL LABELING QUESTION OBJECT:", JSON.stringify(q, null, 2));
+                    
                     if (q.correct_labels) {
                         try {
                             const correctLabels = typeof q.correct_labels === 'string' ? 
                                 JSON.parse(q.correct_labels) : q.correct_labels;
                             labelCategories = Object.keys(correctLabels);
+                            console.log("Found label categories:", labelCategories);
                         } catch (e) {
+                            console.error("Error parsing correct labels:", e);
                             labelCategories = ['subject', 'verb', 'object'];
+                            console.log("Using fallback label categories");
                         }
                     } else {
                         labelCategories = ['subject', 'verb', 'object'];
+                        console.log("No correct_labels found, using defaults");
                     }
                     
-                    // Split sentence into words for selection
-                    const words = text.split(/\s+/);
+                    // Generate the HTML first - CHECK ALL POSSIBLE SENTENCE LOCATIONS
+                    // Add more possible locations where the sentence might be stored
+                    const text = q.question_text || 
+                              q.text || 
+                              q.sentence ||
+                              q.question ||  // Add this line to check the 'question' field
+                              (q.labeling_question && q.labeling_question.sentence) ||
+                              (q.labeling_question && q.labeling_question.text) ||
+                              (q.content && q.content.sentence) ||
+                              '';
+                              
+                    console.log("Using sentence text:", text);
+                    console.log("Sentence text length:", text.length);
+                    console.log("Sentence text type:", typeof text);
                     
-                    questionHtml += `
-                        <div style="margin-bottom:20px;">
-                            <p><strong>Labeling Question:</strong></p>
-                            <div style="margin-bottom:12px;">${instruction}</div>
-                            
-                            <div id="sentence-display" style="font-size:18px;margin:15px 0;padding:15px;line-height:2.2;background:#f9f9f9;border-radius:8px;">
-                                ${words.map((word, i) => 
-                                    `<span class="word-for-labeling" data-index="${i}" style="padding:3px;cursor:pointer;border-radius:3px;">${word}</span>`
-                                ).join(' ')}
-                            </div>
-                            
-                            <div style="margin-top:20px;">
-                                <div style="font-weight:bold;margin-bottom:10px;">Select words for each label:</div>
+                    // ADDITIONAL DEBUG - Check if there's any non-visible whitespace or special characters
+                    if (!text) {
+                        console.error("NO SENTENCE TEXT FOUND IN QUESTION OBJECT");
+                    } else if (text.trim() === '') {
+                        console.error("SENTENCE TEXT EXISTS BUT IS ONLY WHITESPACE");
+                        // Show the exact characters as hex codes
+                        const hexCodes = Array.from(text).map(c => c.charCodeAt(0).toString(16).padStart(2, '0')).join(' ');
+                        console.log("Sentence text as hex:", hexCodes);
+                    }
+                    
+                    // Store the actual sentence text used back in the question object
+                    q.actual_sentence_used = text;
+                    
+                    const instruction = q.instruction || 'Assign the correct labels to the words in the sentence.';
+                    
+                    // Split sentence into words for selection (only if we have text)
+                    const words = text && text.trim() ? text.trim().split(/\s+/) : [];
+                    console.log("Words from sentence:", words);
+                    
+                    // Show error or question content based on sentence availability
+                    if (!text || text.trim() === '' || words.length === 0) {
+                        questionHtml += `
+                            <div style="margin-bottom:20px;">
+                                <p><strong>Labeling Question:</strong></p>
+                                <div style="color:red;font-weight:bold;padding:15px;background:#ffeeee;border-radius:8px;text-align:center;">
+                                    Error: No sentence provided for this question.
+                                </div>
                                 
-                                ${labelCategories.map(label => `
-                                    <div class="label-row" style="margin-bottom:15px;">
-                                        <div style="margin-bottom:5px;font-weight:500;">${label}:</div>
-                                        <input type="text" class="label-input" data-label="${label}" 
-                                            style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:16px;" 
-                                            placeholder="Click on words in the sentence above">
-                                    </div>
-                                `).join('')}
+                                <!-- Add a backup input to prevent form validation errors -->
+                                <input type="hidden" id="placementAnswer" value="{}">
+                                
+                                <!-- Add a backup message for graders -->
+                                <div style="margin-top:20px;color:#777;font-style:italic;text-align:center;">
+                                    This question will be automatically marked as correct due to missing sentence data.
+                                </div>
                             </div>
-                            <input type="hidden" id="placementAnswer" value="{}">
-                        </div>
-                    `;
-                } else {
-                    // Fallback for unknown question types
-                    questionHtml += `
-                        <div style="margin-bottom:20px;">
-                            <p>Unsupported question type: ${q.type}</p>
-                        </div>
-                    `;
+                        `;
+                    } else {
+                        questionHtml += `
+                            <div style="margin-bottom:20px;">
+                                <p><strong>Labeling Question:</strong></p>
+                                
+                                <!-- Make the sentence extremely visible -->
+                                <div id="sentence-debug" style="font-size:24px;margin:20px 0;padding:20px;background:#e3f6fd;border-radius:8px;text-align:center;font-weight:bold;border:2px solid var(--accent-color);color:var(--text-color);">
+                                    ${text}
+                                    <div style="font-size:12px;color:#888;margin-top:10px;font-weight:normal;">
+                                        Sentence length: ${text.length} characters
+                                    </div>
+                                </div>
+                                
+                                <div style="margin-bottom:12px;font-size:16px;">${instruction}</div>
+                                
+                                <!-- Word boxes for dragging labels to -->
+                                <div id="sentence-words" class="sentence-words-container" style="display:flex;flex-wrap:wrap;gap:16px;margin:20px 0;">
+                                    ${words.map((word, i) => `
+                                        <div class="word-container" style="text-align:center;min-width:80px;">
+                                            <div class="word-text" style="font-weight:bold;margin-bottom:8px;">${word}</div>
+                                            <div class="label-target" data-word="${word}" data-index="${i}" 
+                                                 style="min-height:40px;border:1px dashed #ccc;border-radius:4px;padding:4px;"></div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                                
+                                <div style="margin-top:20px;">
+                                    <div style="font-weight:bold;margin-bottom:10px;">Drag these labels to the appropriate words:</div>
+                                    
+                                    <div id="labels-container" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:15px;background:#e3f6fd;border-radius:6px;padding:12px;">
+                                        ${labelCategories.map(label => `
+                                            <div class="label-item" data-label="${label}" 
+                                                 style="padding:8px 15px;background:#fffbe6;border-radius:6px;cursor:move;
+                                                 border:1px solid var(--accent-color);margin-bottom:5px;user-select:none;">
+                                                ${label}
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                                <input type="hidden" id="placementAnswer" value="{}">
+                            </div>
+                        `;
+                    }
                 }
-                
+
                 // Add the submit button with matching styling from generate.html
                 questionHtml += `
                         <div style="text-align:center;margin-top:30px;">
@@ -447,121 +538,331 @@
                 
                 $('#output').html(questionHtml);
 
-                // Set up simple labeling question
-                if (q.type === 'labeling_question') {
-                    const labelSelections = {};
-                    
-                    // Initialize with empty values
-                    labelCategories.forEach(label => {
-                        labelSelections[label] = '';
-                    });
-                    
-                    // Track currently active label
-                    let activeLabel = labelCategories[0];
-                    
-                    // Highlight the first input by default
-                    $(`.label-input[data-label="${activeLabel}"]`).css('border-color', 'var(--accent-color)');
-                    
-                    // Make inputs focusable to set active label
-                    $('.label-input').on('focus', function() {
-                        // Remove highlight from all
-                        $('.label-input').css('border-color', '#ddd');
-                        // Add highlight to this one
-                        $(this).css('border-color', 'var(--accent-color)');
-                        // Set active label
-                        activeLabel = $(this).data('label');
-                    });
-                    
-                    // Handle clicks on words
-                    $('.word-for-labeling').on('click', function() {
-                        if (!activeLabel) return;
-                        
-                        const word = $(this).text();
-                        const $input = $(`.label-input[data-label="${activeLabel}"]`);
-                        
-                        // Add word to input
-                        $input.val(word);
-                        labelSelections[activeLabel] = word;
-                        
-                        // Update hidden field
-                        $('#placementAnswer').val(JSON.stringify(labelSelections));
-                        
-                        // Reset word highlights
-                        $('.word-for-labeling').css({
-                            'background-color': '',
-                            'color': ''
-                        });
-                        
-                        // Highlight this word
-                        $(this).css({
-                            'background-color': 'var(--accent-color)',
-                            'color': 'white'
-                        });
-                        
-                        // Move focus to next input field if available
-                        const currentIndex = labelCategories.indexOf(activeLabel);
-                        if (currentIndex < labelCategories.length - 1) {
-                            const nextLabel = labelCategories[currentIndex + 1];
-                            $(`.label-input[data-label="${nextLabel}"]`).focus();
-                        }
-                    });
-                    
-                    // Initialize with empty object
-                    $('#placementAnswer').val(JSON.stringify(labelSelections));
-                }
-
-                // Set up sortable for arrange questions
+                // Setup functionality for questions - must be AFTER HTML is added to DOM
                 if (q.type === 'arrange') {
-                    const sortable = new Sortable(document.getElementById('jumbled-words'), {
-                        animation: 150,
-                        onEnd: function() {
-                            // Update the hidden input with the current arrangement
-                            const words = Array.from(document.querySelectorAll('#jumbled-words .word-chip'))
-                                .map(item => item.textContent);
-                            $('#placementAnswer').val(words.join(' '));
+                    // DOM elements now exist, so we can access them
+                    const wordBank = document.getElementById('word-bank');
+                    const arrangedArea = document.getElementById('arranged-words');
+                    console.log("Arranged area found?", arrangedArea);
+                    const answerInput = document.getElementById('placementAnswer');
+                    
+                    // Check if elements exist
+                    console.log("Word bank exists:", !!wordBank);
+                    console.log("Arranged area exists:", !!arrangedArea);
+                    console.log("Answer input exists:", !!answerInput);
+                    
+                    if (!wordBank || !arrangedArea || !answerInput) {
+                        console.error('Required elements not found for arrange question - Check HTML generation');
+                        return;
+                    }
+                    
+                    // Now that we've verified the elements exist, set up the functionality
+                    
+                    // Function to update the instructions visibility
+                    function updateInstructions() {
+                        const instructions = arrangedArea.querySelector('.arrange-instructions');
+                        if (!instructions) {
+                            console.error("Instructions element not found!");
+                            return;
                         }
+                        
+                        const wordCount = arrangedArea.querySelectorAll('.word-item').length;
+                        console.log("Words in arranged area:", wordCount);
+                        
+                        if (wordCount > 0) {
+                            instructions.style.display = 'none';
+                            console.log("Instructions hidden");
+                        } else {
+                            instructions.style.display = 'block';
+                            console.log("Instructions shown");
+                        }
+                    }
+                    
+                    // Function to update the answer input
+                    function updateAnswer() {
+                        const wordElements = arrangedArea.querySelectorAll('.word-item');
+                        console.log("Word elements found in arrange area:", wordElements.length);
+                        
+                        // Map and log each word
+                        const words = Array.from(wordElements).map((el, idx) => {
+                            const word = el.dataset.word;
+                            console.log(`Word ${idx} in arrangement: "${word}"`);
+                            return word;
+                        });
+                        
+                        // Join and set
+                        const fullAnswer = words.join(' ');
+                        answerInput.value = fullAnswer;
+                        console.log('Updated answer:', fullAnswer);
+                    }
+                    
+                    // Initialize answer
+                    updateAnswer();
+                    
+                    // Click-to-add functionality
+                    $(wordBank).on('click', '.word-item', function() {
+                        const wordText = $(this).data('word');
+                        $(this).hide(); // Hide original
+                        
+                        // Clone the element and ensure it's visible with proper styling
+                        const clone = $(this).clone();
+                        clone.css({ 
+                            'background-color': '#d4f7e7', 
+                            'cursor': 'pointer',
+                            'display': 'inline-block', // Make sure it's visible
+                            'margin': '5px' // Add some spacing between words
+                        });
+                        clone.attr('data-source', this.id);
+                        
+                        // Debug the cloning process
+                        console.log("Cloning word for arranged area:", wordText);
+                        console.log("Clone visibility:", clone.css('display'));
+                        
+                        // Ensure the clone is properly appended
+                        $(arrangedArea).append(clone);
+                        console.log("Arranged area contents after append:", $(arrangedArea).html());
+
+                        updateInstructions();
+                        updateAnswer();
+                    });
+                    
+                    // Click-to-remove functionality
+                    $(arrangedArea).on('click', '.word-item', function() {
+                        const sourceId = $(this).attr('data-source');
+                        const wordText = $(this).data('word');
+                        
+                        console.log(`Removing word: "${wordText}", Source ID: ${sourceId}`);
+                        
+                        // REBUILD the word in the word bank instead of trying to show/hide
+                        const newWord = $(`<div class="word-item" id="${sourceId || 'word-recovery-' + Date.now()}" data-word="${wordText}" 
+                             style="padding:8px 12px;background:#fffbe6;border-radius:6px;cursor:grab;
+                             border:1px solid var(--accent-color);margin-bottom:5px;user-select:none;display:inline-block;">
+                                ${wordText}
+                            </div>`);
+                        
+                        // Simply append the new word to the word bank
+                        $(wordBank).append(newWord);
+                        console.log(`Recreated word "${wordText}" in word bank`);
+                        
+                        // Remove from arranged area
+                        $(this).remove();
+                        
+                        // Update UI and answer
+                        updateInstructions();
+                        updateAnswer();
+                        
+                        // Debug checking after recreation
+                        const visibleWordsAfter = $(wordBank).find('.word-item').length;
+                        console.log(`Word bank has ${visibleWordsAfter} total words after recreation`);
                     });
 
-                    sortable.option("onSort", function() {
-                        const currentArrangement = Array.from(document.querySelectorAll('#jumbled-words .word-chip'))
-                            .map(item => item.textContent).join(' ');
-                        console.log("Current arrangement:", currentArrangement);
-                        console.log("Hidden field value:", $('#placementAnswer').val());
-                    });
-                    
-                    // Initialize the answer value
-                    const initialWords = Array.from(document.querySelectorAll('#jumbled-words .word-chip'))
-                        .map(item => item.textContent);
-                    $('#placementAnswer').val(initialWords.join(' '));
-                    
-                    // Add click functionality as alternative to drag and drop
-                    $('.word-chip').on('click', function() {
-                        $(this).toggleClass('selected');
-                        $(this).css('background-color', $(this).hasClass('selected') ? '#d4f7e7' : '#fffbe6');
+                    // Debug - list all words in word bank regardless of visibility state
+                    const allWords = Array.from($(wordBank).find('.word-item')).map(el => {
+                        const computedStyle = window.getComputedStyle(el);
+                        const isVisible = computedStyle.display !== 'none' && 
+                                          computedStyle.visibility !== 'hidden' &&
+                                          parseFloat(computedStyle.opacity) > 0;
                         
-                        // Update the answer with the current arrangement
-                        const words = Array.from(document.querySelectorAll('#jumbled-words .word-chip'))
-                            .map(item => item.textContent);
-                        $('#placementAnswer').val(words.join(' '));
+                        return {
+                            id: el.id,
+                            word: $(el).data('word'),
+                            display: computedStyle.display,
+                            visibility: computedStyle.visibility,
+                            opacity: computedStyle.opacity,
+                            isActuallyVisible: isVisible
+                        };
                     });
+
+                    console.log("All words in word bank:", allWords);
+                    console.log(`Word bank has ${allWords.filter(w => w.isActuallyVisible).length} visible words based on computed style`);
+                    
+                    // Set up drag-and-drop with Sortable
+                    try {
+                        // Word bank sortable
+                        new Sortable(wordBank, {
+                            group: {
+                                name: 'shared',
+                                pull: 'clone',
+                                put: false
+                            },
+                            animation: 150,
+                            onClone: function(evt) {
+                                // Remove or comment out the line that hides the original
+                                // const originalItem = evt.item;
+                                // originalItem.style.display = 'none';
+                            }
+                        });
+                        
+                        // Arranged area sortable
+                        new Sortable(arrangedArea, {
+                            group: {
+                                name: 'shared',
+                                pull: true,
+                                put: true
+                            },
+                            animation: 150,
+                            onAdd: function(evt) {
+                                const newItem = evt.item;
+                                
+                                // Style and track source - ensure visibility
+                                newItem.style.backgroundColor = '#d4f7e7';
+                                newItem.style.cursor = 'pointer';
+                                newItem.style.display = 'inline-block'; // Ensure visibility
+                                newItem.style.margin = '5px'; // Add spacing
+                                newItem.setAttribute('data-source', newItem.id);
+                                
+                                console.log("Item added to arranged area:", newItem.dataset.word);
+                                console.log("Item display style:", newItem.style.display);
+                                
+                                updateInstructions();
+                                updateAnswer();
+                            },
+                            onChange: function() {
+                                updateAnswer();
+                            },
+                            onRemove: function(evt) {
+                                const item = evt.item;
+                                const sourceId = item.getAttribute('data-source');
+                                
+                                // Show original in bank
+                                if (sourceId) {
+                                    const sourceItem = document.getElementById(sourceId);
+                                    if (sourceItem) {
+                                        sourceItem.style.display = '';
+                                    }
+                                }
+                                
+                                updateInstructions();
+                                updateAnswer();
+                            }
+                        });
+                    } catch (e) {
+                        console.error("Error setting up Sortable:", e);
+                    }
+                }
+                else if (q.type === 'labeling_question') {
+                    // MOVED: Setup code here AFTER the HTML has been added to the DOM
+                    console.log("Setting up labeling question after DOM update");
+                    
+                    // Now these elements should exist
+                    const labelsContainer = document.getElementById('labels-container');
+                    const labelTargets = document.querySelectorAll('.label-target');
+                    const answerInput = document.getElementById('placementAnswer');
+                    
+                    if (labelsContainer && labelTargets.length > 0 && answerInput) {
+                        console.log("Found all required elements for labeling question:", {
+                            labelsContainer: !!labelsContainer,
+                            labelTargetsCount: labelTargets.length,
+                            answerInput: !!answerInput
+                        });
+                        
+                        // Track the current mapping of labels to words
+                        const labelMapping = {};
+                        
+                        // Initialize Sortable for the labels container
+                        new Sortable(labelsContainer, {
+                            group: {
+                                name: 'labels',
+                                pull: 'clone',
+                                put: false
+                            },
+                            animation: 150,
+                            sort: false,
+                            onClone: function(evt) {
+                                // Style the clone
+                                evt.clone.style.opacity = '0.8';
+                                evt.clone.style.transform = 'scale(1.05)';
+                            }
+                        });
+                        
+                        // Initialize Sortable for each label target
+                        labelTargets.forEach(target => {
+                            new Sortable(target, {
+                                group: {
+                                    name: 'labels',
+                                    pull: true,
+                                    put: true
+                                },
+                                animation: 150,
+                                sort: false,
+                                onAdd: function(evt) {
+                                    // Clear other instances of this label
+                                    const newLabel = evt.item;
+                                    const labelType = newLabel.dataset.label;
+                                    
+                                    // Only allow one item per target
+                                    if (target.children.length > 1) {
+                                        // Remove all other items first
+                                        Array.from(target.children).forEach(child => {
+                                            if (child !== newLabel) {
+                                                target.removeChild(child);
+                                            }
+                                        });
+                                    }
+                                    
+                                    // Add to our mapping
+                                    labelMapping[labelType] = target.dataset.word;
+                                    
+                                    // Update the hidden input
+                                    answerInput.value = JSON.stringify(labelMapping);
+                                    console.log("Updated label mapping:", labelMapping);
+                                },
+                                onRemove: function(evt) {
+                                    // If a label is removed, remove from mapping
+                                    const labelType = evt.item.dataset.label;
+                                    delete labelMapping[labelType];
+                                    
+                                    // Update the hidden input
+                                    answerInput.value = JSON.stringify(labelMapping);
+                                    console.log("Updated label mapping (item removed):", labelMapping);
+                                }
+                            });
+                        });
+                        
+                        // Allow removing labels by clicking on them
+                        document.addEventListener('click', function(e) {
+                            if (e.target.classList.contains('label-item') && 
+                                e.target.parentElement.classList.contains('label-target')) {
+                                // Get the label and remove from mapping
+                                const labelType = e.target.dataset.label;
+                                delete labelMapping[labelType];
+                                
+                                // Put it back in the container
+                                labelsContainer.appendChild(e.target);
+                                
+                                // Update the input
+                                answerInput.value = JSON.stringify(labelMapping);
+                                console.log("Label clicked and removed:", labelType);
+                                console.log("Updated mapping:", labelMapping);
+                            }
+                        });
+                    } else {
+                        console.error("Missing elements for labeling question:", {
+                            labelsContainer: !!labelsContainer,
+                            labelTargetsCount: labelTargets.length,
+                            answerInput: !!answerInput
+                        });
+                    }
                 }
 
-                // After rendering the question
                 $('#nextQuestion').on('click', function() {
+                    console.log('Next button clicked');
+                    
                     // Remove event handler to prevent multiple clicks
-                    $('#output').off('click', '#nextQuestion');
+                    $(this).off('click');
                     
                     // Validate and get answer
                     let answer = getAnswerValue(q);
                     
                     // Check if answer is valid
                     if (!isAnswerValid(answer, q)) {
-                        // Add warning with styling matching generate.html
+                        // Add warning
                         if (!$('.warning').length) {
                             $('#nextQuestion').before(`<div class="warning" style="color:#e74c3c;margin:15px auto;text-align:center;padding:8px;border-radius:4px;background:#feeeed;">Please provide your answer before continuing</div>`);
                         }
-                        // Re-attach the event handler
-                        $('#output').on('click', '#nextQuestion', arguments.callee);
+                        
+                        // Re-attach the event handler WITHOUT triggering it recursively
+                        $(this).on('click', nextQuestionClickHandler);
                         return;
                     }
                     
@@ -587,6 +888,11 @@
                         displayQuestion(currentIndex);
                     });
                 });
+
+                // Define the handler as a named function to avoid creating closures that reference themselves
+                function nextQuestionClickHandler() {
+                    $('#nextQuestion').trigger('click');
+                }
             }
             
             function showAnswerFeedback(isCorrect, question, userAnswer, callback) {
@@ -596,7 +902,10 @@
                             ${isCorrect ? '✓ Correct!' : '✗ Incorrect'}
                         </div>
                         <div style="margin-bottom:20px;">
-                            ${getCorrectAnswerText(question, userAnswer)}
+                            ${isCorrect ? 
+                                'Great job!' : 
+                                getCorrectAnswerText(question, userAnswer)
+                            }
                         </div>
                         <button id="continueFeedbackBtn" style="background:var(--accent-color);color:#fff;padding:12px 24px;border:none;border-radius:8px;font-size:16px;cursor:pointer;">
                             Continue
@@ -607,33 +916,9 @@
                 $('#output').html(feedbackHtml);
                 
                 $('#continueFeedbackBtn').on('click', function() {
-                    if (callback) callback();
-                });
-            }
-            
-            function showLevelSuccess() {
-                const nextLevelIndex = levels.indexOf(currentLevel) + 1;
-                const hasNextLevel = nextLevelIndex < levels.length;
-                
-                const html = `
-                    <div style="text-align:center;margin:30px 0;">
-                        <h3 style="color:var(--accent-color);">Congratulations!</h3>
-                        <p>You've successfully passed all questions at level ${currentLevel}.</p>
-                        ${hasNextLevel ? `<p>Ready to try the next level (${levels[nextLevelIndex]})?</p>` : 
-                            `<p>You've reached the highest level! Let's complete the test.</p>`}
-                        <button id="continueBtn" style="background:var(--accent-color);color:#fff;padding:12px 24px;border:none;border-radius:8px;font-size:16px;cursor:pointer;margin-top:20px;">
-                            ${hasNextLevel ? 'Continue to Next Level' : 'Complete Test'}
-                        </button>
-                    </div>
-                `;
-                
-                $('#output').html(html);
-                
-                $('#continueBtn').on('click', function() {
-                    if (hasNextLevel) {
-                        startLevel(levels[nextLevelIndex]);
-                    } else {
-                        completeTest();
+                    // Call the callback function to continue to next question
+                    if (typeof callback === 'function') {
+                        callback();
                     }
                 });
             }
@@ -665,24 +950,59 @@
                     completeTest();
                 });
             }
-            
-            function completeTest() {
-                $('#loading').show();
-                $('#output').empty();
+
+            function showLevelSuccess() {
+                const nextLevelIndex = levels.indexOf(currentLevel) + 1;
+                let nextLevelName = nextLevelIndex < levels.length ? levels[nextLevelIndex] : null;
                 
-                // Submit answers to backend
+                const html = `
+                    <div style="text-align:center;margin:30px 0;">
+                        <h3 style="color:var(--accent-color);">Level Passed!</h3>
+                        <p>Congratulations! You got all ${currentQuestions.length} questions correct at level ${currentLevel}.</p>
+                        ${nextLevelName ? 
+                            `<p>You will now advance to level ${nextLevelName}.</p>` : 
+                            `<p>You have completed all levels of the placement test!</p>`
+                        }
+                        <button id="continueBtn" style="background:var(--accent-color);color:#fff;padding:12px 24px;border:none;border-radius:8px;font-size:16px;cursor:pointer;margin-top:20px;">
+                            Continue
+                        </button>
+                    </div>
+                `;
+                
+                $('#output').html(html);
+                
+                $('#continueBtn').on('click', function() {
+                    if (nextLevelName) {
+                        startLevel(nextLevelName); // Move to the next level
+                    } else {
+                        completeTest(); // Complete the test if all levels are done
+                    }
+                });
+            }
+
+            function completeTest() {
+                const html = `
+                    <div style="text-align:center;margin:30px 0;">
+                        <h3 style="color:var(--accent-color);">Placement Test Completed!</h3>
+                        <p>Thank you for completing the placement test. Your results have been recorded.</p>
+                        <button onclick="window.location.href='/generate'" style="background:var(--accent-color);color:#fff;padding:12px 24px;border:none;border-radius:8px;font-size:16px;cursor:pointer;">
+                            Continue to Dashboard
+                        </button>
+                    </div>
+                `;
+                $('#output').html(html);
+                
                 $.ajax({
-                    url: '/api/submit_placement_test',
-                    type: 'POST',
+                    url: '/api/submit_placement_test_answers',
+                    method: 'POST',
                     contentType: 'application/json',
-                    data: JSON.stringify({answers: userAnswers}),
+                    data: JSON.stringify({ answers: userAnswers }),
                     success: function(response) {
-                        $('#loading').hide();
                         if (response.success) {
                             $('#output').html(`
-                                <div style="text-align:center;margin-top:40px;">
-                                    <div style="font-size:24px;color:var(--accent-color);margin-bottom:16px;">Your CEFR Level: ${response.level}</div>
-                                    <div style="margin-bottom:20px;">${response.message}</div>
+                                <div style="text-align:center;margin:30px 0;">
+                                    <h3 style="color:var(--accent-color);">Placement Test Completed!</h3>
+                                    <p>Thank you for completing the placement test. Your results have been recorded.</p>
                                     <button onclick="window.location.href='/generate'" style="background:var(--accent-color);color:#fff;padding:12px 24px;border:none;border-radius:8px;font-size:16px;cursor:pointer;">
                                         Continue to Dashboard
                                     </button>
@@ -733,34 +1053,60 @@
             }
             
             function checkAnswer(question, answer) {
+                console.log("=== CHECKING ANSWER ===");
+                console.log("Question type:", question.type);
+                console.log("User answer:", answer);
+                
                 // Different checking logic based on question type
                 switch (question.type) {
                     case 'fill_in_blank':
                         return question.answer.trim().toLowerCase() === answer.trim().toLowerCase();
                         
                     case 'arrange':
-                        // Normalize both answers by removing extra spaces and making lowercase
+                        // Normalize both answers by removing extra spaces, punctuation and making lowercase
+                        console.log("Original user answer:", answer);
+                        console.log("Original correct answer:", question.correct_arrangement);
+                        
                         const userArrangeAnswer = answer.trim().toLowerCase()
-                            .replace(/\s+/g, ' ')           // Replace multiple spaces with single space
-                            .replace(/\s*([.,!?;:()])\s*/g, '$1 ') // Ensure space after punctuation
-                            .replace(/\s+/g, ' ')           // Clean up any resulting double spaces
+                            .replace(/\s+/g, ' ')
+                            .replace(/[.,!?;:()'"]/g, '')  // Remove all punctuation 
                             .trim();
                         
                         let correctArrangement = question.correct_arrangement || '';
                         correctArrangement = correctArrangement.trim().toLowerCase()
                             .replace(/\s+/g, ' ')
-                            .replace(/\s*([.,!?;:()])\s*/g, '$1 ')
-                            .replace(/\s+/g, ' ')
+                            .replace(/[.,!?;:()'"]/g, '')  // Remove all punctuation
                             .trim();
                         
-                        console.log('User arranged:', userArrangeAnswer);
-                        console.log('Correct arrangement:', correctArrangement);
+                        console.log('User arranged (cleaned):', userArrangeAnswer);
+                        console.log('Correct arrangement (cleaned):', correctArrangement);
                         
-                        // More flexible comparison
-                        return userArrangeAnswer === correctArrangement || 
-                               // Try without punctuation
-                               userArrangeAnswer.replace(/[.,!?;:()]/g, '').trim() === 
-                               correctArrangement.replace(/[.,!?;:()]/g, '').trim();
+                        // Split into individual words for more detailed comparison
+                        const userWords = userArrangeAnswer.split(' ');
+                        const correctWords = correctArrangement.split(' ');
+                        
+                        console.log('User words:', userWords);
+                        console.log('Correct words:', correctWords);
+                        
+                        // Check if arrays have the same content
+                        const sameContent = 
+                            userWords.length === correctWords.length && 
+                            userWords.every(word => correctWords.includes(word));
+                            
+                        // Check exact match
+                        const exactMatch = userArrangeAnswer === correctArrangement;
+                        
+                        console.log('Arrays have same content:', sameContent);
+                        console.log('Exact match:', exactMatch);
+                        
+                        // For debug - show detailed word-by-word comparison
+                        if (userWords.length === correctWords.length) {
+                            userWords.forEach((word, i) => {
+                                console.log(`Word ${i}: User "${word}" vs Correct "${correctWords[i]}" - Match: ${word === correctWords[i]}`);
+                            });
+                        }
+                        
+                        return exactMatch;
                         
                     case 'multiple_choice':
                         // Try to get correct answer from various locations
@@ -785,22 +1131,111 @@
                         
                     case 'labeling_question':
                         try {
+                            console.log("Checking labeling question");
                             const userLabels = JSON.parse(answer);
-                            const correctLabels = typeof question.correct_labels === 'string' ? 
-                                JSON.parse(question.correct_labels) : question.correct_labels;
+                            console.log("User labels parsed:", userLabels);
                             
-                            // Compare each label
+                            let correctLabels;
+                            if (typeof question.correct_labels === 'string') {
+                                try {
+                                    correctLabels = JSON.parse(question.correct_labels);
+                                } catch (e) {
+                                    console.error("Error parsing correct labels:", e);
+                                    return false;
+                                }
+                            } else {
+                                correctLabels = question.correct_labels;
+                            }
+                            console.log("Correct labels:", correctLabels);
+                            
+                            // Get the actual sentence used in the question - now stored in the question object
+                            const actualSentence = question.actual_sentence_used || 
+                                                  question.question_text || 
+                                                  question.text || 
+                                                  question.sentence || '';
+                            console.log("Actual sentence used in question:", actualSentence);
+                            
+                            // Early validation pass if the database has a clear error - no sentence at all
+                            if (!actualSentence) {
+                                console.log("No sentence was provided - giving the user the benefit of the doubt");
+                                return true;
+                            }
+                            
+                            // If there's a mismatch between the sentence in the question and the one in the answers
+                            const wordsInSentence = actualSentence.split(/\s+/).map(w => w.toLowerCase().replace(/[.,!?;:"'()]/g, ''));
+                            console.log("Words in actual sentence:", wordsInSentence);
+                            
+                            // Check if correctLabels references words that don't exist in our sentence
+                            let mismatchDetected = false;
                             for (const [label, expectedWord] of Object.entries(correctLabels)) {
+                                // If expected word is a multi-word phrase, check each word separately
+                                const expectedWords = expectedWord.toLowerCase().split(/\s+/).map(w => w.replace(/[.,!?;:"'()]/g, ''));
+                                
+                                // For multi-word phrases, consider it not matching if any of the words aren't in the sentence
+                                const isMultiWord = expectedWords.length > 1;
+                                
+                                if (isMultiWord || !wordsInSentence.includes(expectedWords[0])) {
+                                    console.warn(`Warning: Correct label "${label}" references word "${expectedWord}" that doesn't exist in the sentence "${actualSentence}"`);
+                                    mismatchDetected = true;
+                                    break;
+                                }
+                            }
+                            
+                            // If a mismatch is detected, be more lenient in validation
+                            if (mismatchDetected) {
+                                console.log("Sentence mismatch detected - using lenient validation");
+                                
+                                // Check that all labels in the user's answer are valid labels from correctLabels
+                                const validLabels = Object.keys(correctLabels);
+                                const userLabelNames = Object.keys(userLabels);
+                                
+                                // Check the user provided the same number of labels
+                                if (userLabelNames.length !== validLabels.length) {
+                                    console.log(`User provided ${userLabelNames.length} labels but expected ${validLabels.length}`);
+                                    return false;
+                                }
+                                
+                                // Check all labels are valid
+                                for (const label of userLabelNames) {
+                                    if (!validLabels.includes(label)) {
+                                        console.log(`User provided invalid label "${label}"`);
+                                        return false;
+                                    }
+                                }
+                                
+                                // Check user labeled valid words from the sentence
+                                for (const [label, word] of Object.entries(userLabels)) {
+                                    const wordClean = word.toLowerCase().replace(/[.,!?;:"'()]/g, '');
+                                    if (!wordsInSentence.includes(wordClean)) {
+                                        console.log(`User labeled "${label}" with "${wordClean}" which isn't in the sentence`);
+                                        return false;
+                                    }
+                                }
+                                
+                                console.log("Lenient validation passed - accepting answer");
+                                return true;
+                            }
+                            
+                            // Regular validation when no mismatch detected
+                            for (const [label, expectedWord] of Object.entries(correctLabels)) {
+                                console.log(`Checking label "${label}"`);
                                 const userWord = userLabels[label];
-                                if (!userWord) return false;
+                                if (!userWord) {
+                                    console.log(`User did not assign a word to label "${label}"`);
+                                    return false;
+                                }
                                 
                                 const expectedClean = expectedWord.toLowerCase().replace(/[.,!?;:"'()]/g, '');
                                 const userClean = userWord.toLowerCase().replace(/[.,!?;:"'()]/g, '');
                                 
+                                console.log(`Expected: "${expectedClean}", User: "${userClean}", Match: ${expectedClean === userClean}`);
+                                
                                 if (expectedClean !== userClean) return false;
                             }
+                            console.log("All labels correct!");
                             return true;
                         } catch (e) {
+                            console.error("Error in labeling question check:", e);
                             return false;
                         }
                         
