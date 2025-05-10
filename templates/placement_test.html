@@ -95,402 +95,755 @@
         $(document).ready(function() {
             $('#loading').show();
             $('#output').empty();
-
-            $.get('/api/placement_test_questions', function(data) {
-                $('#loading').hide();
-                if (!data.success || !data.questions.length) {
-                    $('#output').html('<div style="text-align:center;color:var(--accent-color);">No placement test questions available.</div>');
-                    return;
-                }
-            $('#profileCircle').on('click', function() {
-                window.location.href = '/profile';
-            });
-
-                let questions = data.questions;
-                let current = 0;
-                let answers = [];
-
-                function cleanQuestionText(text) {
-                    return (text || '').replace(/\s*### Output:.*$/g, '').trim();
-                }
-
-                function renderQuestion(idx) {
-                    console.log('Rendering question', current, questions[current]);
-                    let q = questions[idx];
-                    let questionText = q.question || (q.multiple_choice && q.multiple_choice.question_text) || '';
-                    let correctAnswer = q.correct_answer || (q.multiple_choice && q.multiple_choice.correct_answer) || '';
-                    let html = `<div class="sentence-block" style="margin-bottom:32px;padding:18px 16px;background:var(--sidebar-color);border-radius:10px;box-shadow:0 1px 4px rgba(50,150,200,0.07);display:flex;flex-direction:column;align-items:center;">`;
-                    html += `<div style="font-weight:bold;color:var(--accent-color);margin-bottom:8px;">Question ${idx+1} of ${questions.length}</div>`;
-                    html += `<div style="margin-bottom:12px;">${cleanQuestionText(questionText)}</div>`;
-
-                    if (q.type === 'fill_in_blank') {
-                        html += `<input type="text" id="placementAnswer" placeholder="Your answer..." 
-                            style="width:100%;height:54px;font-size:22px;padding:12px 16px;border-radius:8px;border:2px solid var(--border-color);margin-bottom:22px;box-sizing:border-box;">`;
-                    } else if (q.type === 'arrange') {
-                        let words = [];
-                        if (q.correct_arrangement) {
-                            const matches = q.correct_arrangement.match(/[\w'-]+|[.,!?;:()]/g) || [];
-                            for (let i = 0; i < matches.length; i++) {
-                                const token = matches[i];
-                                if (/^[.,!?;:()]+$/.test(token)) {
-                                    if (i > 0 && /[\w'-]+/.test(matches[i-1])) {
-                                    } else {
-                                        continue;
-                                    }
-                                } else {
-                                    words.push(token);
-                                    if (i < matches.length - 1 && /^[.,!?;:()]+$/.test(matches[i+1])) {
-                                        i++;
-                                    }
-                                }
-                            }
-                        }
-                        const cleanWords = words.map(word => word.replace(/[.,!?;:()]+/g, '').trim()).filter(w => w);
-                        let shuffled = [...words].sort(() => Math.random() - 0.5);
-                        html += `<div id="jumbled-words" class="jumbled-words" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:15px;">`;
-                        shuffled.forEach(word => {
-                            html += `<span class="word-chip" data-word="${word}" style="padding:8px 12px;background:#fffbe6;border-radius:6px;cursor:pointer;border:1px solid var(--accent-color);margin-bottom:5px;">${word}</span>`;
-                        });
-                        html += `</div>`;
-                        html += `<div style="margin-bottom:10px;">Click or drag words below to form your answer:</div>`;
-                        html += `<div id="answer-box" class="answer-box" style="min-height:40px;display:flex;flex-wrap:wrap;gap:8px;padding:8px 0;border-bottom:1px solid #dab98f;margin-bottom:15px;"></div>`;
-                        html += `<input type="hidden" id="placementAnswer">`;
-                        html += `<div style="font-size:13px;color:#888;">Tap or drag words to arrange. Tap again to undo.</div>`;
-                    } else if (q.type === 'multiple_choice') {
-                        let choices = [];
-                        let questionText = '';
-                        let correctAnswer = '';
-                        if (q.choices) {
-                            choices = q.choices;
-                            questionText = q.question;
-                            correctAnswer = q.correct_answer;
-                        } else if (q.multiple_choice) {
-                            choices = q.multiple_choice.options;
-                            questionText = q.multiple_choice.question_text;
-                            correctAnswer = q.multiple_choice.correct_answer;
-                        }
-                        html += `<p><strong>Multiple Choice:</strong></p>`;
-                        html += `<div>`;
-                        choices.forEach((choice, cidx) => {
-                            html += `
-                                <label style="display:block;margin-bottom:6px;">
-                                    <input type="radio" name="mc" value="${choice}" style="margin-right:8px;">
-                                    ${choice}
-                                </label>
-                            `;
-                        });
-                        html += `</div>`;
-                    } else if (q.type === 'selection_question') {
-                        let sentences = q.sentences || [];
-                        
-                        // If sentences is a string, split by the pipe character
-                        if (typeof sentences === 'string') {
-                            sentences = sentences.split('|').map(s => s.trim());
-                        }
-                        
-                        html += `<div>`;
-                        sentences.forEach((s, idx) => {
-                            html += `
-                                <label style="display:block;margin-bottom:10px;padding:8px;border:1px solid #ddd;border-radius:4px;">
-                                    <input type="radio" name="selection_answer" value="${s}" style="margin-right:8px;" required>
-                                    ${s}
-                                </label>
-                            `;
-                        });
-                    } else if (q.type === 'labeling_question') {
-                        let instruction = q.instruction || '';
-                        let correctLabels = q.correct_labels || {};
-                        
-                        if (typeof correctLabels === 'string') {
-                            try {
-                                correctLabels = JSON.parse(correctLabels);
-                            } catch(e) {
-                                correctLabels = {};
-                            }
-                        }
-                        
-                        html += `<div style="margin-bottom:16px;font-style:italic;">${instruction}</div>`;
-                        
-                        const questionMatch = questionText.match(/Label the constituents in the sentence:\s*(.*?)(?:$|\s*###)/i);
-                        const sentenceToLabel = questionMatch ? questionMatch[1].trim() : questionText.trim();
-                        
-                        const textToLabelMap = {};
-                        Object.entries(correctLabels).forEach(([label, text]) => {
-                            textToLabelMap[text.toLowerCase()] = label;
-                        });
-                        
-                        const sentenceWords = sentenceToLabel.split(/\s+/).filter(word => word.trim() !== '');
-                        
-                        const displayItems = [];
-                        let i = 0;
-                        
-                        const cleanedPhrases = {};
-                        Object.values(correctLabels).forEach(phrase => {
-                            cleanedPhrases[phrase.toLowerCase().replace(/[.,!?;:"'()]/g, '')] = phrase;
-                        });
-                        
-                        while (i < sentenceWords.length) {
-                            let foundMatch = false;
-                            
-                            for (let phraseLength = Math.min(8, sentenceWords.length - i); phraseLength > 0; phraseLength--) {
-                                const potentialPhrase = sentenceWords.slice(i, i + phraseLength).join(' ');
-                                const cleanPotentialPhrase = potentialPhrase.toLowerCase().replace(/[.,!?;:"'()]/g, '');
-                                
-                                for (const [cleanPhrase, originalPhrase] of Object.entries(cleanedPhrases)) {
-                                    if (cleanPotentialPhrase === cleanPhrase.toLowerCase().replace(/[.,!?;:"'()]/g, '')) {
-                                        displayItems.push({
-                                            text: potentialPhrase,
-                                            original: originalPhrase,
-                                            isPhrase: true
-                                        });
-                                        i += phraseLength;
-                                        foundMatch = true;
-                                        break;
-                                    }
-                                }
-                                
-                                if (foundMatch) break;
-                            }
-                            
-                            if (!foundMatch) {
-                                displayItems.push({
-                                    text: sentenceWords[i],
-                                    original: sentenceWords[i],
-                                    isPhrase: false
-                                });
-                                i++;
-                            }
-                        }
-                        
-                        html += `<div class="sentence-display" style="margin-bottom:20px;display:flex;flex-wrap:wrap;gap:16px;">`;
-                        displayItems.forEach((item, idx) => {
-                            const dataValue = item.original.toLowerCase().replace(/[.,!?;:"'()]/g, '');
-                            
-                            html += `
-                                <div style="display:inline-block;text-align:center;margin-right:16px;vertical-align:top;margin-bottom:15px;">
-                                    <div style="font-weight:bold;margin-bottom:8px;font-size:16px;">${item.text}</div>
-                                    <div class="label-target" id="label-target-${idx}" data-word="${dataValue}" 
-                                        style="min-width:80px;min-height:36px;border:1px dashed #ccc;border-radius:4px;padding:4px;"></div>
-                                </div>
-                            `;
-                        });
-                        html += `</div>`;
-                        
-                        const labelTypes = Object.keys(correctLabels);
-                        
-                        html += `<div style="margin-bottom:10px;">Drag these labels under the appropriate words:</div>`;
-                        html += `<div id="available-labels" class="jumbled-words" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:15px;">`;
-                        labelTypes.forEach((label) => {
-                            html += `<span class="label-chip word-chip" data-label="${label}" 
-                                style="padding:8px 12px;background:#fffbe6;border-radius:6px;cursor:pointer;border:1px solid #dab98f;margin-bottom:5px;">${label}</span>`;
-                        });
-                        html += `</div>`;
-                        
-                        html += `<input type="hidden" id="placementAnswer">`;
+            
+            // Track current level and questions
+            let currentLevel = 'A1';
+            let allQuestions = [];
+            let currentQuestions = [];
+            let currentIndex = 0;
+            let currentBatchCorrect = 0;
+            let userAnswers = [];
+            
+            // CEFR level progression
+            const levels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+            
+            // Initial fetch of all questions
+            fetchQuestions();
+            
+            function fetchQuestions() {
+                $.get('/api/placement_test_questions', function(data) {
+                    $('#loading').hide();
+                    if (!data.success || !data.questions.length) {
+                        $('#output').html('<div style="text-align:center;color:var(--accent-color);">No placement test questions available.</div>');
+                        return;
                     }
                     
-                    html += `</div>`;
-                    html += `<button id="nextQuestion" style="background:var(--accent-color);color:#fff;padding:12px 24px;border:none;border-radius:8px;font-size:16px;cursor:pointer;margin-top:24px;">${idx === questions.length-1 ? 'Submit Answers' : 'Next'}</button>`;
-                    $('#output').html(html);
-
-                    if (q.type === 'arrange') {
-                        $('#jumbled-words').on('click', '.word-chip', function() {
-                            $('#answer-box').append($(this));
-                            updateArrangeAnswer();
-                        });
-                        $('#answer-box').on('click', '.word-chip', function() {
-                            $('#jumbled-words').append($(this));
-                            updateArrangeAnswer();
-                        });
-                        Sortable.create(document.getElementById('jumbled-words'), {
-                            group: 'words',
-                            animation: 150
-                        });
-                        Sortable.create(document.getElementById('answer-box'), {
-                            group: 'words',
-                            animation: 150,
-                            onSort: updateArrangeAnswer,
-                            onAdd: updateArrangeAnswer,
-                            onRemove: updateArrangeAnswer
-                        });
-                        function updateArrangeAnswer() {
-                            const arranged = [];
-                            $('#answer-box .word-chip').each(function() {
-                                arranged.push($(this).data('word'));
-                            });
-                            $('#placementAnswer').val(arranged.join(' '));
-                        }
-                    } else if (q.type === 'labeling_question') {
-                        Sortable.create(document.getElementById('available-labels'), {
-                            group: 'labels',
-                            animation: 150,
-                            onEnd: updateLabelingAnswer
-                        });
-                        
-                        document.querySelectorAll('.label-target').forEach(target => {
-                            Sortable.create(target, {
-                                group: 'labels',
-                                animation: 150,
-                                onAdd: updateLabelingAnswer,
-                                onRemove: updateLabelingAnswer
-                            });
-                        });
-                        
-                        function updateLabelingAnswer() {
-                            const answers = {};
-                            document.querySelectorAll('.label-target').forEach(target => {
-                                const word = target.dataset.word;
-                                const labelChip = target.querySelector('.label-chip');
-                                if (labelChip && word) {
-                                    answers[labelChip.dataset.label] = word;
-                                }
-                            });
-                            $('#placementAnswer').val(JSON.stringify(answers));
+                    allQuestions = data.questions;
+                    
+                    // Group questions by level
+                    const questionsByLevel = {};
+                    levels.forEach(level => {
+                        questionsByLevel[level] = allQuestions.filter(q => q.level === level);
+                    });
+                    
+                    // Start with level A1 (or use user's current level if available)
+                    startLevel(currentLevel);
+                });
+            }
+            
+            function startLevel(level) {
+                currentLevel = level;
+                currentBatchCorrect = 0;
+                
+                // Get questions for this level
+                const levelQuestions = allQuestions.filter(q => q.level === level);
+                
+                // If no questions for this level, try to advance or complete the test
+                if (!levelQuestions.length) {
+                    if (level !== 'C2') {
+                        const nextLevelIndex = levels.indexOf(level) + 1;
+                        if (nextLevelIndex < levels.length) {
+                            startLevel(levels[nextLevelIndex]);
+                            return;
                         }
                     }
+                    
+                    // If we reached here, we've completed all levels
+                    completeTest();
+                    return;
+                }
+                
+                // Randomly select 3 questions from this level
+                currentQuestions = shuffleArray(levelQuestions).slice(0, 3);
+                currentIndex = 0;
+                
+                // Display level introduction
+                showLevelIntro(level);
+            }
+            
+            function showLevelIntro(level) {
+                const levelNames = {
+                    'A1': 'Beginner',
+                    'A2': 'Elementary',
+                    'B1': 'Intermediate',
+                    'B2': 'Upper Intermediate',
+                    'C1': 'Advanced',
+                    'C2': 'Proficient'
+                };
+                
+                const html = `
+                    <div style="text-align:center;margin:30px 0;">
+                        <h3 style="color:var(--accent-color);">CEFR Level ${level} - ${levelNames[level]}</h3>
+                        <p>You'll be presented with 3 questions at this level. Try to answer them correctly.</p>
+                        <button id="startLevelBtn" style="background:var(--accent-color);color:#fff;padding:12px 24px;border:none;border-radius:8px;font-size:16px;cursor:pointer;margin-top:20px;">
+                            Start ${levelNames[level]} Level
+                        </button>
+                    </div>
+                `;
+                
+                $('#output').html(html);
+                
+                $('#startLevelBtn').on('click', function() {
+                    displayQuestion(currentIndex);
+                });
+            }
+            
+            function displayQuestion(idx) {
+                if (idx >= currentQuestions.length) {
+                    // Check if user passed this level
+                    if (currentBatchCorrect === currentQuestions.length) {
+                        showLevelSuccess();
+                    } else {
+                        showLevelFailed();
+                    }
+                    return;
+                }
+                
+                const q = currentQuestions[idx];
+                
+                // Build the question HTML based on question type, using styling from generate.html
+                let questionHtml = `
+                    <div class="sentence-block" style="margin-bottom:30px;padding-bottom:20px;border-bottom:1px solid var(--border-color);">
+                        <h4 style="color:var(--accent-color);margin-bottom:15px;">Question ${idx + 1} of ${currentQuestions.length}</h4>
+                `;
+                
+                // Render different question types
+                if (q.type === 'fill_in_blank') {
+                    // Try to get question text from different sources
+                    let questionText = '';
+                    if (q.question_text) {
+                        questionText = q.question_text;
+                    } else if (q.fill_in_blank && q.fill_in_blank.question_text) {
+                        questionText = q.fill_in_blank.question_text;
+                    } else if (q.text) {
+                        questionText = q.text;
+                    }
+                    
+                    // Fallback for completely missing question text
+                    if (!questionText) {
+                        questionText = 'Fill in the blank with the correct word:';
+                        console.error('Missing question text for fill in blank:', q);
+                    }
+                    
+                    questionHtml += `
+                        <div style="margin-bottom:20px;">
+                            <p><strong>Fill in the blank:</strong></p>
+                            <div style="margin-bottom:12px;font-size:16px;line-height:1.6;">${questionText}</div>
+                            <input type="text" id="placementAnswer" class="answer-input" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:16px;" placeholder="Type your answer here...">
+                        </div>
+                    `;
+                } else if (q.type === 'multiple_choice') {
+                    // Debug logging
+                    console.log("Rendering multiple choice question:", q);
+                    
+                    // Try various ways to get the question text
+                    let questionText = '';
+                    if (q.question_text) {
+                        questionText = q.question_text;
+                    } else if (q.multiple_choice_question && q.multiple_choice_question.question_text) {
+                        questionText = q.multiple_choice_question.question_text;
+                    } else if (q.question) {
+                        questionText = q.question;
+                    } else {
+                        questionText = 'Choose the correct option:';
+                    }
+                    
+                    // Try various ways to get options
+                    let options = [];
+                    // From q.multiple_choice_question.options
+                    if (q.multiple_choice_question && q.multiple_choice_question.options) {
+                        if (Array.isArray(q.multiple_choice_question.options)) {
+                            options = q.multiple_choice_question.options;
+                        } else {
+                            options = q.multiple_choice_question.options.split(',').map(opt => opt.trim());
+                        }
+                    } 
+                    // From q.multiple_choice.options
+                    else if (q.multiple_choice && q.multiple_choice.options) {
+                        if (Array.isArray(q.multiple_choice.options)) {
+                            options = q.multiple_choice.options;
+                        } else {
+                            options = q.multiple_choice.options.split(',').map(opt => opt.trim());
+                        }
+                    } 
+                    // From q.options
+                    else if (q.options) {
+                        if (Array.isArray(q.options)) {
+                            options = q.options;
+                        } else {
+                            options = q.options.split(',').map(opt => opt.trim());
+                        }
+                    }
+                    // From q.choices 
+                    else if (q.choices) {
+                        if (Array.isArray(q.choices)) {
+                            options = q.choices;
+                        } else {
+                            options = q.choices.split(',').map(opt => opt.trim());
+                        }
+                    }
+                    
+                    console.log("Question text:", questionText);
+                    console.log("Options found:", options);
+                    
+                    questionHtml += `
+                        <div style="margin-bottom:20px;">
+                            <p><strong>Multiple Choice:</strong></p>
+                            <div style="margin-bottom:12px;font-size:16px;line-height:1.6;">${questionText}</div>
+                            <div style="display:flex;flex-direction:column;gap:10px;">
+                    `;
+                    
+                    // Make sure we have options to display - fallback to dummy options if needed
+                    if (options && options.length > 0) {
+                        options.forEach((option, i) => {
+                            questionHtml += `
+                                <label style="display:flex;align-items:center;cursor:pointer;padding:10px;border:1px solid #ddd;border-radius:8px;margin-bottom:8px;">
+                                    <input type="radio" name="mc" value="${option.trim()}" style="margin-right:10px;">
+                                    <span>${option.trim()}</span>
+                                </label>
+                            `;
+                        });
+                    } else {
+                        // Emergency fallback
+                        console.error('No options found for question:', q);
+                        const fallbackOptions = ["Option 1", "Option 2", "Option 3", "Option 4"];
+                        fallbackOptions.forEach(option => {
+                            questionHtml += `
+                                <label style="display:flex;align-items:center;cursor:pointer;padding:10px;border:1px solid #ddd;border-radius:8px;margin-bottom:8px;">
+                                    <input type="radio" name="mc" value="${option}" style="margin-right:10px;">
+                                    <span>${option}</span>
+                                </label>
+                            `;
+                        });
+                    }
+                    
+                    questionHtml += `</div></div>`;
+                } else if (q.type === 'arrange') {
+                    // Get the words to arrange
+                    let words = [];
+                    if (typeof q.words === 'string') {
+                        words = q.words.split(',').map(w => w.trim());
+                    } else if (Array.isArray(q.words)) {
+                        words = q.words;
+                    } else if (q.correct_arrangement) {
+                        // Split by spaces, but handle punctuation properly
+                        words = q.correct_arrangement.match(/[\w'-]+|[.,!?;:()]/g) || [];
+                        
+                        // Filter out standalone punctuation
+                        words = words.filter(word => !/^[.,!?;:()]+$/.test(word));
+                    }
+                    
+                    // Shuffle the words
+                    const shuffledWords = shuffleArray([...words]);
+
+                    console.log("==== ARRANGE QUESTION DEBUG ====");
+                    console.log("Words to arrange:", words);
+                    console.log("Shuffled words:", shuffledWords);
+                    console.log("Correct arrangement:", q.correct_arrangement);
+                    
+                    questionHtml += `
+                        <div style="margin-bottom:20px;">
+                            <p><strong>Arrange the words:</strong></p>
+                            <div style="margin-bottom:12px;">${q.question_text || ''}</div>
+                            <div id="jumbled-words" class="jumbled-words" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:15px;background:#e9f7ef;border-radius:6px;padding:12px;">
+                                ${shuffledWords.map(word => `<span class="word-chip" data-word="${word}" style="padding:8px 12px;background:#fffbe6;border-radius:6px;cursor:pointer;border:1px solid var(--accent-color);margin-bottom:5px;user-select:none;">${word}</span>`).join('')}
+                            </div>
+                            <input type="hidden" id="placementAnswer">
+                            <div style="margin-bottom:10px;color:#777;font-size:14px;">Tap or drag words to arrange. Tap again to undo.</div>
+                        </div>
+                    `;
+                } else if (q.type === 'selection_question') {
+                    // Get the sentences to choose from
+                    let sentences = [];
+                    if (typeof q.sentences === 'string') {
+                        sentences = q.sentences.split('|').map(s => s.trim());
+                    } else if (Array.isArray(q.sentences)) {
+                        sentences = q.sentences;
+                    }
+                    
+                    questionHtml += `
+                        <div style="margin-bottom:20px;">
+                            <p><strong>Selection Question:</strong></p>
+                            <div style="margin-bottom:12px;">${q.question_text || ''}</div>
+                            <div style="display:flex;flex-direction:column;gap:10px;">
+                    `;
+                    
+                    sentences.forEach((sentence, i) => {
+                        questionHtml += `
+                            <label style="display:flex;align-items:center;cursor:pointer;padding:10px;border:1px solid #ddd;border-radius:8px;margin-bottom:8px;">
+                                <input type="radio" name="selection_answer" value="${sentence}" style="margin-right:10px;">
+                                <span>${sentence}</span>
+                            </label>
+                        `;
+                    });
+                    
+                    questionHtml += `</div></div>`;
+                } else if (q.type === 'labeling_question') {
+                    // Get the text to label and instruction
+                    const text = q.question_text || '';
+                    const instruction = q.instruction || 'Assign labels to the correct parts of the sentence.';
+                    
+                    // Get the labels
+                    let labelCategories = [];
+                    if (q.correct_labels) {
+                        try {
+                            const correctLabels = typeof q.correct_labels === 'string' ? 
+                                JSON.parse(q.correct_labels) : q.correct_labels;
+                            labelCategories = Object.keys(correctLabels);
+                        } catch (e) {
+                            labelCategories = ['subject', 'verb', 'object'];
+                        }
+                    } else {
+                        labelCategories = ['subject', 'verb', 'object'];
+                    }
+                    
+                    // Split sentence into words for selection
+                    const words = text.split(/\s+/);
+                    
+                    questionHtml += `
+                        <div style="margin-bottom:20px;">
+                            <p><strong>Labeling Question:</strong></p>
+                            <div style="margin-bottom:12px;">${instruction}</div>
+                            
+                            <div id="sentence-display" style="font-size:18px;margin:15px 0;padding:15px;line-height:2.2;background:#f9f9f9;border-radius:8px;">
+                                ${words.map((word, i) => 
+                                    `<span class="word-for-labeling" data-index="${i}" style="padding:3px;cursor:pointer;border-radius:3px;">${word}</span>`
+                                ).join(' ')}
+                            </div>
+                            
+                            <div style="margin-top:20px;">
+                                <div style="font-weight:bold;margin-bottom:10px;">Select words for each label:</div>
+                                
+                                ${labelCategories.map(label => `
+                                    <div class="label-row" style="margin-bottom:15px;">
+                                        <div style="margin-bottom:5px;font-weight:500;">${label}:</div>
+                                        <input type="text" class="label-input" data-label="${label}" 
+                                            style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:16px;" 
+                                            placeholder="Click on words in the sentence above">
+                                    </div>
+                                `).join('')}
+                            </div>
+                            <input type="hidden" id="placementAnswer" value="{}">
+                        </div>
+                    `;
+                } else {
+                    // Fallback for unknown question types
+                    questionHtml += `
+                        <div style="margin-bottom:20px;">
+                            <p>Unsupported question type: ${q.type}</p>
+                        </div>
+                    `;
+                }
+                
+                // Add the submit button with matching styling from generate.html
+                questionHtml += `
+                        <div style="text-align:center;margin-top:30px;">
+                            <button id="nextQuestion" style="padding:12px 24px;background-color:var(--accent-color);color:#fff;border:none;border-radius:8px;font-size:16px;cursor:pointer;transition:background 0.2s;">
+                                ${idx === currentQuestions.length - 1 ? 'Submit' : 'Next Question'}
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                $('#output').html(questionHtml);
+
+                // Set up simple labeling question
+                if (q.type === 'labeling_question') {
+                    const labelSelections = {};
+                    
+                    // Initialize with empty values
+                    labelCategories.forEach(label => {
+                        labelSelections[label] = '';
+                    });
+                    
+                    // Track currently active label
+                    let activeLabel = labelCategories[0];
+                    
+                    // Highlight the first input by default
+                    $(`.label-input[data-label="${activeLabel}"]`).css('border-color', 'var(--accent-color)');
+                    
+                    // Make inputs focusable to set active label
+                    $('.label-input').on('focus', function() {
+                        // Remove highlight from all
+                        $('.label-input').css('border-color', '#ddd');
+                        // Add highlight to this one
+                        $(this).css('border-color', 'var(--accent-color)');
+                        // Set active label
+                        activeLabel = $(this).data('label');
+                    });
+                    
+                    // Handle clicks on words
+                    $('.word-for-labeling').on('click', function() {
+                        if (!activeLabel) return;
+                        
+                        const word = $(this).text();
+                        const $input = $(`.label-input[data-label="${activeLabel}"]`);
+                        
+                        // Add word to input
+                        $input.val(word);
+                        labelSelections[activeLabel] = word;
+                        
+                        // Update hidden field
+                        $('#placementAnswer').val(JSON.stringify(labelSelections));
+                        
+                        // Reset word highlights
+                        $('.word-for-labeling').css({
+                            'background-color': '',
+                            'color': ''
+                        });
+                        
+                        // Highlight this word
+                        $(this).css({
+                            'background-color': 'var(--accent-color)',
+                            'color': 'white'
+                        });
+                        
+                        // Move focus to next input field if available
+                        const currentIndex = labelCategories.indexOf(activeLabel);
+                        if (currentIndex < labelCategories.length - 1) {
+                            const nextLabel = labelCategories[currentIndex + 1];
+                            $(`.label-input[data-label="${nextLabel}"]`).focus();
+                        }
+                    });
+                    
+                    // Initialize with empty object
+                    $('#placementAnswer').val(JSON.stringify(labelSelections));
                 }
 
-                renderQuestion(current);
-
-                $('#output').on('click', '#nextQuestion', function() {
-                    let q = questions[current];
-                    let answer = '';
-                    let isValid = true;
-                    let errorMsg = '';
-
-                    if (q.type === 'fill_in_blank' || q.type === 'arrange') {
-                        answer = $('#placementAnswer').val();
-                    } else if (q.type === 'multiple_choice') {
-                        answer = $('input[name="mc"]:checked').val() || '';
-                    } else if (q.type === 'selection_question') {
-                        answer = $('input[name="selection_answer"]:checked').val();
-                        if (!answer) {
-                            isValid = false;
-                            errorMsg = "Please select an answer";
+                // Set up sortable for arrange questions
+                if (q.type === 'arrange') {
+                    const sortable = new Sortable(document.getElementById('jumbled-words'), {
+                        animation: 150,
+                        onEnd: function() {
+                            // Update the hidden input with the current arrangement
+                            const words = Array.from(document.querySelectorAll('#jumbled-words .word-chip'))
+                                .map(item => item.textContent);
+                            $('#placementAnswer').val(words.join(' '));
                         }
-                    } else if (q.type === 'labeling_question') {
-                        answer = $('#placementAnswer').val() || '{}';
-                    }
+                    });
 
-                    // Prevent submitting if answer is empty or invalid
-                    if (!isValid || !answer || (answer.trim() === "" || answer === "{}")) {
-                        if ($('#output .warning').length === 0) {
-                            $('#output').append(`<div class="warning" style="color:red;margin-top:10px;">${errorMsg || 'Please provide your answer before continuing.'}</div>`);
+                    sortable.option("onSort", function() {
+                        const currentArrangement = Array.from(document.querySelectorAll('#jumbled-words .word-chip'))
+                            .map(item => item.textContent).join(' ');
+                        console.log("Current arrangement:", currentArrangement);
+                        console.log("Hidden field value:", $('#placementAnswer').val());
+                    });
+                    
+                    // Initialize the answer value
+                    const initialWords = Array.from(document.querySelectorAll('#jumbled-words .word-chip'))
+                        .map(item => item.textContent);
+                    $('#placementAnswer').val(initialWords.join(' '));
+                    
+                    // Add click functionality as alternative to drag and drop
+                    $('.word-chip').on('click', function() {
+                        $(this).toggleClass('selected');
+                        $(this).css('background-color', $(this).hasClass('selected') ? '#d4f7e7' : '#fffbe6');
+                        
+                        // Update the answer with the current arrangement
+                        const words = Array.from(document.querySelectorAll('#jumbled-words .word-chip'))
+                            .map(item => item.textContent);
+                        $('#placementAnswer').val(words.join(' '));
+                    });
+                }
+
+                // After rendering the question
+                $('#nextQuestion').on('click', function() {
+                    // Remove event handler to prevent multiple clicks
+                    $('#output').off('click', '#nextQuestion');
+                    
+                    // Validate and get answer
+                    let answer = getAnswerValue(q);
+                    
+                    // Check if answer is valid
+                    if (!isAnswerValid(answer, q)) {
+                        // Add warning with styling matching generate.html
+                        if (!$('.warning').length) {
+                            $('#nextQuestion').before(`<div class="warning" style="color:#e74c3c;margin:15px auto;text-align:center;padding:8px;border-radius:4px;background:#feeeed;">Please provide your answer before continuing</div>`);
                         }
+                        // Re-attach the event handler
+                        $('#output').on('click', '#nextQuestion', arguments.callee);
                         return;
-                    } else {
-                        $('#output .warning').remove();
                     }
-
-                    answers.push({id: q.id, type: q.type, answer: answer});
-                    current++;
-                    if (current < questions.length) {
-                        renderQuestion(current);
+                    
+                    // Store answer
+                    const userAnswer = {
+                        id: q.id,
+                        type: q.type,
+                        answer: answer,
+                        level: q.level
+                    };
+                    userAnswers.push(userAnswer);
+                    
+                    // Check correctness
+                    const isCorrect = checkAnswer(q, answer);
+                    if (isCorrect) {
+                        currentBatchCorrect++;
+                    }
+                    
+                    // Show feedback
+                    showAnswerFeedback(isCorrect, q, answer, function() {
+                        // Move to next question after feedback
+                        currentIndex++;
+                        displayQuestion(currentIndex);
+                    });
+                });
+            }
+            
+            function showAnswerFeedback(isCorrect, question, userAnswer, callback) {
+                const feedbackHtml = `
+                    <div style="text-align:center;margin:30px 0;">
+                        <div style="font-size:24px;color:${isCorrect ? 'var(--accent-color)' : '#e74c3c'};margin-bottom:16px;">
+                            ${isCorrect ? '✓ Correct!' : '✗ Incorrect'}
+                        </div>
+                        <div style="margin-bottom:20px;">
+                            ${getCorrectAnswerText(question, userAnswer)}
+                        </div>
+                        <button id="continueFeedbackBtn" style="background:var(--accent-color);color:#fff;padding:12px 24px;border:none;border-radius:8px;font-size:16px;cursor:pointer;">
+                            Continue
+                        </button>
+                    </div>
+                `;
+                
+                $('#output').html(feedbackHtml);
+                
+                $('#continueFeedbackBtn').on('click', function() {
+                    if (callback) callback();
+                });
+            }
+            
+            function showLevelSuccess() {
+                const nextLevelIndex = levels.indexOf(currentLevel) + 1;
+                const hasNextLevel = nextLevelIndex < levels.length;
+                
+                const html = `
+                    <div style="text-align:center;margin:30px 0;">
+                        <h3 style="color:var(--accent-color);">Congratulations!</h3>
+                        <p>You've successfully passed all questions at level ${currentLevel}.</p>
+                        ${hasNextLevel ? `<p>Ready to try the next level (${levels[nextLevelIndex]})?</p>` : 
+                            `<p>You've reached the highest level! Let's complete the test.</p>`}
+                        <button id="continueBtn" style="background:var(--accent-color);color:#fff;padding:12px 24px;border:none;border-radius:8px;font-size:16px;cursor:pointer;margin-top:20px;">
+                            ${hasNextLevel ? 'Continue to Next Level' : 'Complete Test'}
+                        </button>
+                    </div>
+                `;
+                
+                $('#output').html(html);
+                
+                $('#continueBtn').on('click', function() {
+                    if (hasNextLevel) {
+                        startLevel(levels[nextLevelIndex]);
                     } else {
-                        $('#output').html('<div style="text-align:center;color:var(--accent-color);font-size:20px;margin-top:40px;">Thank you! Your answers have been submitted.</div>');
-                        // Submit answers to backend
-                        $.ajax({
-                            url: '/api/submit_placement_test',
-                            type: 'POST',
-                            contentType: 'application/json',
-                            data: JSON.stringify({answers: answers}),
-                            success: function(response) {
-                                if (response.success) {
-                                    $('#output').html(`
-                                        <div style="text-align:center;margin-top:40px;">
-                                            <div style="font-size:24px;color:var(--accent-color);margin-bottom:16px;">Your CEFR Level: ${response.level}</div>
-                                            <div style="margin-bottom:20px;">${response.message}</div>
-                                            <button onclick="window.location.href='/generate'" style="background:var(--accent-color);color:#fff;padding:12px 24px;border:none;border-radius:8px;font-size:16px;cursor:pointer;">
-                                                Continue to Dashboard
-                                            </button>
-                                        </div>
-                                    `);
-                                } else {
-                                    $('#output').html(`<div style="text-align:center;color:red;margin-top:40px;">Error: ${response.error || 'Could not submit answers'}</div>`);
-                                }
-                            },
-                            error: function() {
-                                $('#output').html(`<div style="text-align:center;color:red;margin-top:40px;">Error: Could not connect to server</div>`);
-                            }
-                        });
+                        completeTest();
                     }
                 });
-            });
+            }
+            
+            function showLevelFailed() {
+                const html = `
+                    <div style="text-align:center;margin:30px 0;">
+                        <h3 style="color:#e74c3c;">Level Not Passed</h3>
+                        <p>You got ${currentBatchCorrect} out of ${currentQuestions.length} questions correct at level ${currentLevel}.</p>
+                        <p>Would you like to try this level again or complete the test with your current results?</p>
+                        <div style="display:flex;justify-content:center;gap:20px;margin-top:20px;">
+                            <button id="retryBtn" style="background:#f39c12;color:#fff;padding:12px 24px;border:none;border-radius:8px;font-size:16px;cursor:pointer;">
+                                Try Again
+                            </button>
+                            <button id="finishBtn" style="background:var(--accent-color);color:#fff;padding:12px 24px;border:none;border-radius:8px;font-size:16px;cursor:pointer;">
+                                Complete Test
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                $('#output').html(html);
+                
+                $('#retryBtn').on('click', function() {
+                    startLevel(currentLevel); // Restart the current level
+                });
+                
+                $('#finishBtn').on('click', function() {
+                    completeTest();
+                });
+            }
+            
+            function completeTest() {
+                $('#loading').show();
+                $('#output').empty();
+                
+                // Submit answers to backend
+                $.ajax({
+                    url: '/api/submit_placement_test',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({answers: userAnswers}),
+                    success: function(response) {
+                        $('#loading').hide();
+                        if (response.success) {
+                            $('#output').html(`
+                                <div style="text-align:center;margin-top:40px;">
+                                    <div style="font-size:24px;color:var(--accent-color);margin-bottom:16px;">Your CEFR Level: ${response.level}</div>
+                                    <div style="margin-bottom:20px;">${response.message}</div>
+                                    <button onclick="window.location.href='/generate'" style="background:var(--accent-color);color:#fff;padding:12px 24px;border:none;border-radius:8px;font-size:16px;cursor:pointer;">
+                                        Continue to Dashboard
+                                    </button>
+                                </div>
+                            `);
+                        } else {
+                            $('#output').html(`<div style="text-align:center;color:red;margin-top:40px;">Error: ${response.error || 'Could not submit answers'}</div>`);
+                        }
+                    },
+                    error: function() {
+                        $('#loading').hide();
+                        $('#output').html(`<div style="text-align:center;color:red;margin-top:40px;">Error: Could not connect to server</div>`);
+                    }
+                });
+            }
+            
+            // Helper functions
+            function shuffleArray(array) {
+                const newArray = [...array];
+                for (let i = newArray.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+                }
+                return newArray;
+            }
+            
+            function getAnswerValue(question) {
+                let answer = '';
+                if (question.type === 'fill_in_blank') {
+                    answer = $('#placementAnswer').val();
+                } else if (question.type === 'arrange') {
+                    answer = $('#placementAnswer').val();
+                } else if (question.type === 'multiple_choice') {
+                    answer = $('input[name="mc"]:checked').val() || '';
+                } else if (question.type === 'selection_question') {
+                    answer = $('input[name="selection_answer"]:checked').val() || '';
+                } else if (question.type === 'labeling_question') {
+                    answer = $('#placementAnswer').val() || '{}';
+                }
+                return answer;
+            }
+            
+            function isAnswerValid(answer, question) {
+                if (!answer || answer.trim() === "" || answer === "{}") {
+                    return false;
+                }
+                return true;
+            }
+            
+            function checkAnswer(question, answer) {
+                // Different checking logic based on question type
+                switch (question.type) {
+                    case 'fill_in_blank':
+                        return question.answer.trim().toLowerCase() === answer.trim().toLowerCase();
+                        
+                    case 'arrange':
+                        // Normalize both answers by removing extra spaces and making lowercase
+                        const userArrangeAnswer = answer.trim().toLowerCase()
+                            .replace(/\s+/g, ' ')           // Replace multiple spaces with single space
+                            .replace(/\s*([.,!?;:()])\s*/g, '$1 ') // Ensure space after punctuation
+                            .replace(/\s+/g, ' ')           // Clean up any resulting double spaces
+                            .trim();
+                        
+                        let correctArrangement = question.correct_arrangement || '';
+                        correctArrangement = correctArrangement.trim().toLowerCase()
+                            .replace(/\s+/g, ' ')
+                            .replace(/\s*([.,!?;:()])\s*/g, '$1 ')
+                            .replace(/\s+/g, ' ')
+                            .trim();
+                        
+                        console.log('User arranged:', userArrangeAnswer);
+                        console.log('Correct arrangement:', correctArrangement);
+                        
+                        // More flexible comparison
+                        return userArrangeAnswer === correctArrangement || 
+                               // Try without punctuation
+                               userArrangeAnswer.replace(/[.,!?;:()]/g, '').trim() === 
+                               correctArrangement.replace(/[.,!?;:()]/g, '').trim();
+                        
+                    case 'multiple_choice':
+                        // Try to get correct answer from various locations
+                        let correctChoice = '';
+                        
+                        if (question.multiple_choice && question.multiple_choice.correct_answer) {
+                            correctChoice = question.multiple_choice.correct_answer;
+                        } else if (question.multiple_choice_question && question.multiple_choice_question.correct_answer) {
+                            correctChoice = question.multiple_choice_question.correct_answer;
+                        } else if (question.correct_answer) {
+                            correctChoice = question.correct_answer;
+                        }
+                        
+                        console.log("Checking multiple choice answer:");
+                        console.log("User answer:", answer);
+                        console.log("Correct answer:", correctChoice);
+                        
+                        return correctChoice.trim().toLowerCase() === answer.trim().toLowerCase();
+                        
+                    case 'selection_question':
+                        return question.correct_sentence.trim() === answer.trim();
+                        
+                    case 'labeling_question':
+                        try {
+                            const userLabels = JSON.parse(answer);
+                            const correctLabels = typeof question.correct_labels === 'string' ? 
+                                JSON.parse(question.correct_labels) : question.correct_labels;
+                            
+                            // Compare each label
+                            for (const [label, expectedWord] of Object.entries(correctLabels)) {
+                                const userWord = userLabels[label];
+                                if (!userWord) return false;
+                                
+                                const expectedClean = expectedWord.toLowerCase().replace(/[.,!?;:"'()]/g, '');
+                                const userClean = userWord.toLowerCase().replace(/[.,!?;:"'()]/g, '');
+                                
+                                if (expectedClean !== userClean) return false;
+                            }
+                            return true;
+                        } catch (e) {
+                            return false;
+                        }
+                        
+                    default:
+                        return false;
+                }
+            }
+            
+            function getCorrectAnswerText(question, userAnswer) {
+                switch (question.type) {
+                    case 'fill_in_blank':
+                        return `The correct answer is: <strong>${question.answer}</strong>`;
+                        
+                    case 'arrange':
+                        return `The correct arrangement is: <strong>${question.correct_arrangement}</strong>`;
+                        
+                    case 'multiple_choice':
+                        const correctChoice = question.correct_answer || 
+                            (question.multiple_choice && question.multiple_choice.correct_answer);
+                        return `The correct answer is: <strong>${correctChoice}</strong>`;
+                        
+                    case 'selection_question':
+                        return `The correct sentence is: <strong>${question.correct_sentence}</strong>`;
+                        
+                    case 'labeling_question':
+                        try {
+                            const correctLabels = typeof question.correct_labels === 'string' ? 
+                                JSON.parse(question.correct_labels) : question.correct_labels;
+                            
+                            let text = "The correct labels are:<br>";
+                            for (const [label, word] of Object.entries(correctLabels)) {
+                                text += `<strong>${label}</strong>: ${word}<br>`;
+                            }
+                            return text;
+                        } catch (e) {
+                            return "Correct answer information not available";
+                        }
+                        
+                    default:
+                        return "";
+                }
+            }
         });
-
-        function calculate_cefr_level(user_answers) {
-            // user_answers: [{'id': ..., 'type': ..., 'answer': ...}, ...]
-            // You need to fetch the correct answers and their levels from the DB
-            let level_results = {'A1': [], 'A2': [], 'B1': [], 'B2': [], 'C1': [], 'C2': []};
-            for (let ans of user_answers) {
-                let q = null;
-                let level = null;
-                let correct = false;
-                if (ans.type === 'fill_in_blank') {
-                    q = FillInTheBlank.query.get(ans.id);
-                    if (q) {
-                        level = q.level;
-                        correct = (q.answer.trim().toLowerCase() === ans.answer.trim().toLowerCase());
-                    }
-                } else if (ans.type === 'arrange') {
-                    q = ArrangeTheWord.query.get(ans.id);
-                    if (q) {
-                        level = q.level;
-                        correct = (q.correct_arrangement.trim().toLowerCase() === ans.answer.trim().toLowerCase());
-                    }
-                } else if (ans.type === 'multiple_choice') {
-                    q = MultipleChoice.query.get(ans.id);
-                    if (q) {
-                        level = q.level;
-                        correct = (q.correct_answer.trim().toLowerCase() === ans.answer.trim().toLowerCase());
-                    }
-                } else if (ans.type === 'selection_question') {
-                    q = SelectionQuestion.query.get(ans.id);
-                    if (q) {
-                        level = q.level;
-                        correct = (q.correct_sentence.trim().toLowerCase() === ans.answer.trim().toLowerCase());
-                    }
-                } else if (ans.type === 'labeling_question') {
-                    q = LabelingQuestion.query.get(ans.id);
-                    if (q) {
-                        level = q.level;
-                        let userLabels = {};
-                        try {
-                            userLabels = JSON.parse(ans.answer);
-                        } catch(e) {
-                            userLabels = {};
-                        }
-                        
-                        let correctLabels = {};
-                        try {
-                            correctLabels = typeof q.correct_labels === 'string' ? 
-                                JSON.parse(q.correct_labels) : q.correct_labels;
-                        } catch(e) {
-                            correctLabels = {};
-                        }
-                        
-                        // Check if all labels match correctly
-                        correct = Object.entries(correctLabels).every(([label, expectedWord]) => {
-                            const userWord = userLabels[label];
-                            if (!userWord) return false;
-                            return expectedWord.toLowerCase().replace(/[.,!?;:"'()]/g, '') === 
-                                userWord.toLowerCase().replace(/[.,!?;:"'()]/g, '');
-                        });
-                    }
-                }
-                if (level in level_results) {
-                    level_results[level].push(correct);
-                }
-            }
-
-            // Assign the highest level with at least 2 correct answers
-            for (let level of ['C2', 'C1', 'B2', 'B1', 'A2', 'A1'].reverse()) {
-                if (level_results[level].filter(Boolean).length >= 2) {
-                    return level;
-                }
-            }
-            return 'A1';  // fallback
-        }
     </script>
 </body>
 </html>

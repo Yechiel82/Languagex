@@ -13,3 +13,16 @@
 2025-05-10 17:00:22,810 - app - INFO - Sending request to https://f3ff-35-233-186-74.ngrok-free.app/generate_sentences with payload: {'level': 'C2', 'num_sentences': 1, 'user_id': 2, 'topic': 'daily activites'}
 2025-05-10 17:01:23,022 - app - ERROR - Cloud API request timed out
 2025-05-10 17:20:39,308 - app - INFO - Flask app is starting up
+2025-05-10 17:29:53,652 - app - INFO - Flask app is starting up
+2025-05-10 17:32:39,661 - app - INFO - Flask app is starting up
+2025-05-10 17:36:51,676 - app - INFO - Flask app is starting up
+2025-05-10 17:44:50,044 - app - INFO - Flask app is starting up
+2025-05-10 17:53:12,508 - app - INFO - Flask app is starting up
+2025-05-10 17:57:29,489 - app - INFO - Flask app is starting up
+2025-05-10 18:03:30,115 - app - INFO - Flask app is starting up
+2025-05-10 18:08:42,257 - app - INFO - Flask app is starting up
+2025-05-10 18:08:49,243 - app - INFO - Flask app is starting up
+2025-05-10 19:05:41,533 - app - INFO - Flask app is starting up
+2025-05-10 19:11:09,654 - app - INFO - Flask app is starting up
+2025-05-10 19:17:02,358 - app - INFO - Flask app is starting up
+2025-05-10 19:17:31,443 - app - INFO - Flask app is starting up
