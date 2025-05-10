@@ -219,6 +219,8 @@
                         questionText = q.text;
                     } else if (q.question) {
                         questionText = q.question;
+                    } else if (q.question_text) {
+                        questionText = q.question_text;
                     }
                     
                     // Fallback for completely missing question text
@@ -413,9 +415,10 @@
                     // DEEP DEBUG - Log the entire question object to see where sentence might be
                     console.log("FULL LABELING QUESTION OBJECT:", JSON.stringify(q, null, 2));
                     
+                    let correctLabels = {};
                     if (q.correct_labels) {
                         try {
-                            const correctLabels = typeof q.correct_labels === 'string' ? 
+                            correctLabels = typeof q.correct_labels === 'string' ? 
                                 JSON.parse(q.correct_labels) : q.correct_labels;
                             labelCategories = Object.keys(correctLabels);
                             console.log("Found label categories:", labelCategories);
@@ -430,11 +433,10 @@
                     }
                     
                     // Generate the HTML first - CHECK ALL POSSIBLE SENTENCE LOCATIONS
-                    // Add more possible locations where the sentence might be stored
                     const text = q.question_text || 
                               q.text || 
                               q.sentence ||
-                              q.question ||  // Add this line to check the 'question' field
+                              q.question ||  // Make sure this is included to check the 'question' field
                               (q.labeling_question && q.labeling_question.sentence) ||
                               (q.labeling_question && q.labeling_question.text) ||
                               (q.content && q.content.sentence) ||
@@ -444,24 +446,59 @@
                     console.log("Sentence text length:", text.length);
                     console.log("Sentence text type:", typeof text);
                     
-                    // ADDITIONAL DEBUG - Check if there's any non-visible whitespace or special characters
-                    if (!text) {
-                        console.error("NO SENTENCE TEXT FOUND IN QUESTION OBJECT");
-                    } else if (text.trim() === '') {
-                        console.error("SENTENCE TEXT EXISTS BUT IS ONLY WHITESPACE");
-                        // Show the exact characters as hex codes
-                        const hexCodes = Array.from(text).map(c => c.charCodeAt(0).toString(16).padStart(2, '0')).join(' ');
-                        console.log("Sentence text as hex:", hexCodes);
-                    }
-                    
                     // Store the actual sentence text used back in the question object
                     q.actual_sentence_used = text;
                     
                     const instruction = q.instruction || 'Assign the correct labels to the words in the sentence.';
                     
-                    // Split sentence into words for selection (only if we have text)
-                    const words = text && text.trim() ? text.trim().split(/\s+/) : [];
-                    console.log("Words from sentence:", words);
+                    // NEW: Process multi-word phrases from correct labels
+                    const multiWordLabels = [];
+                    
+                    // Find all multi-word labels from correct_labels
+                    for (const [label, word] of Object.entries(correctLabels)) {
+                        if (word.includes(' ')) {
+                            multiWordLabels.push({
+                                label: label,
+                                phrase: word,
+                                startPos: text.toLowerCase().indexOf(word.toLowerCase())
+                            });
+                        }
+                    }
+                    
+                    // Sort multi-word phrases by their starting position (earliest first)
+                    multiWordLabels.sort((a, b) => a.startPos - b.startPos);
+                    
+                    console.log("Multi-word labels:", multiWordLabels);
+                    
+                    // Create a temporary working copy of the text
+                    let tempText = text;
+                    const wordMappings = [];
+                    
+                    // Replace multi-word phrases with placeholders
+                    multiWordLabels.forEach((item, index) => {
+                        const phraseRegex = new RegExp(item.phrase.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'i');
+                        const placeholder = `__MULTIWORD_${index}__`;
+                        
+                        if (phraseRegex.test(tempText)) {
+                            tempText = tempText.replace(phraseRegex, placeholder);
+                            wordMappings.push({
+                                placeholder: placeholder,
+                                original: item.phrase,
+                                isMultiWord: true
+                            });
+                        }
+                    });
+                    
+                    // Now split the text with placeholders
+                    const splitText = tempText.split(/\s+/);
+                    
+                    // Replace placeholders back with original phrases
+                    const words = splitText.map(word => {
+                        const match = wordMappings.find(m => word.includes(m.placeholder));
+                        return match ? match.original : word;
+                    });
+                    
+                    console.log("Processed words for labeling:", words);
                     
                     // Show error or question content based on sentence availability
                     if (!text || text.trim() === '' || words.length === 0) {
@@ -489,22 +526,23 @@
                                 <!-- Make the sentence extremely visible -->
                                 <div id="sentence-debug" style="font-size:24px;margin:20px 0;padding:20px;background:#e3f6fd;border-radius:8px;text-align:center;font-weight:bold;border:2px solid var(--accent-color);color:var(--text-color);">
                                     ${text}
-                                    <div style="font-size:12px;color:#888;margin-top:10px;font-weight:normal;">
-                                        Sentence length: ${text.length} characters
-                                    </div>
                                 </div>
                                 
                                 <div style="margin-bottom:12px;font-size:16px;">${instruction}</div>
                                 
                                 <!-- Word boxes for dragging labels to -->
                                 <div id="sentence-words" class="sentence-words-container" style="display:flex;flex-wrap:wrap;gap:16px;margin:20px 0;">
-                                    ${words.map((word, i) => `
-                                        <div class="word-container" style="text-align:center;min-width:80px;">
-                                            <div class="word-text" style="font-weight:bold;margin-bottom:8px;">${word}</div>
-                                            <div class="label-target" data-word="${word}" data-index="${i}" 
-                                                 style="min-height:40px;border:1px dashed #ccc;border-radius:4px;padding:4px;"></div>
-                                        </div>
-                                    `).join('')}
+                                    ${words.map((word, i) => {
+                                        // Check if this is a multi-word phrase
+                                        const isMultiWord = word.includes(' ');
+                                        return `
+                                            <div class="word-container" style="text-align:center;min-width:${isMultiWord ? '120px' : '80px'};">
+                                                <div class="word-text" style="font-weight:bold;margin-bottom:8px;${isMultiWord ? 'background:#fffbe6;padding:4px;border-radius:4px;' : ''}">${word}</div>
+                                                <div class="label-target" data-word="${word}" data-index="${i}" 
+                                                     style="min-height:40px;border:1px dashed #ccc;border-radius:4px;padding:4px;"></div>
+                                            </div>
+                                        `;
+                                    }).join('')}
                                 </div>
                                 
                                 <div style="margin-top:20px;">
@@ -763,12 +801,51 @@
                         new Sortable(labelsContainer, {
                             group: {
                                 name: 'labels',
-                                pull: 'clone',
+                                pull: function(to, from) {
+                                    // Check if we have valid arguments and index
+                                    if (!from || from.oldIndex === undefined || from.oldIndex === null) {
+                                        console.log("Invalid 'from' parameter in pull function:", from);
+                                        return 'clone'; // Default to allowing clone
+                                    }
+                                    
+                                    // Safely access the element
+                                    const labelItems = from.el.children;
+                                    if (!labelItems || labelItems.length === 0 || from.oldIndex >= labelItems.length) {
+                                        console.log("Invalid children or index in pull function");
+                                        return 'clone'; // Default to allowing clone
+                                    }
+                                    
+                                    const labelItem = labelItems[from.oldIndex];
+                                    if (!labelItem || !labelItem.dataset || !labelItem.dataset.label) {
+                                        console.log("Label item or data attributes not found");
+                                        return 'clone'; // Default to allowing clone
+                                    }
+                                    
+                                    const labelType = labelItem.dataset.label;
+                                    
+                                    // If this label is already used somewhere (exists in our mapping), don't allow it to be pulled
+                                    return !(labelType in labelMapping) ? 'clone' : false;
+                                },
                                 put: false
                             },
                             animation: 150,
                             sort: false,
+                            onStart: function(evt) {
+                                if (!evt || !evt.item || !evt.item.dataset || !evt.item.dataset.label) {
+                                    console.log("Missing data in onStart event");
+                                    return;
+                                }
+                                
+                                const labelType = evt.item.dataset.label;
+                                // Visual indication that this label can be dragged
+                                evt.item.style.opacity = labelType in labelMapping ? '0.5' : '1';
+                            },
                             onClone: function(evt) {
+                                if (!evt || !evt.clone) {
+                                    console.log("Missing clone in onClone event");
+                                    return;
+                                }
+                                
                                 // Style the clone
                                 evt.clone.style.opacity = '0.8';
                                 evt.clone.style.transform = 'scale(1.05)';
@@ -800,12 +877,27 @@
                                         });
                                     }
                                     
+                                    // If this label was previously assigned to a different word,
+                                    // remove it from that word
+                                    for (const otherTarget of labelTargets) {
+                                        if (otherTarget !== target) {
+                                            Array.from(otherTarget.children).forEach(child => {
+                                                if (child.dataset.label === labelType && child !== newLabel) {
+                                                    otherTarget.removeChild(child);
+                                                }
+                                            });
+                                        }
+                                    }
+                                    
                                     // Add to our mapping
                                     labelMapping[labelType] = target.dataset.word;
                                     
                                     // Update the hidden input
                                     answerInput.value = JSON.stringify(labelMapping);
                                     console.log("Updated label mapping:", labelMapping);
+                                    
+                                    // Update the visual state of labels in the container
+                                    updateLabelVisualState();
                                 },
                                 onRemove: function(evt) {
                                     // If a label is removed, remove from mapping
@@ -815,9 +907,34 @@
                                     // Update the hidden input
                                     answerInput.value = JSON.stringify(labelMapping);
                                     console.log("Updated label mapping (item removed):", labelMapping);
+                                    
+                                    // Update the visual state of labels in the container
+                                    updateLabelVisualState();
                                 }
                             });
                         });
+                        
+                        // Function to update the visual state of labels in the container
+                        function updateLabelVisualState() {
+                            // Make assigned labels look "used" in the container
+                            Array.from(labelsContainer.children).forEach(label => {
+                                const labelType = label.dataset.label;
+                                if (labelType in labelMapping) {
+                                    // This label is already assigned somewhere
+                                    label.style.opacity = '0.5';
+                                    label.style.cursor = 'not-allowed';
+                                    label.classList.add('used-label');
+                                } else {
+                                    // This label is available
+                                    label.style.opacity = '1';
+                                    label.style.cursor = 'move';
+                                    label.classList.remove('used-label');
+                                }
+                            });
+                        }
+                        
+                        // Initial update
+                        updateLabelVisualState();
                         
                         // Allow removing labels by clicking on them
                         document.addEventListener('click', function(e) {
@@ -834,6 +951,9 @@
                                 answerInput.value = JSON.stringify(labelMapping);
                                 console.log("Label clicked and removed:", labelType);
                                 console.log("Updated mapping:", labelMapping);
+                                
+                                // Update visual state
+                                updateLabelVisualState();
                             }
                         });
                     } else {
@@ -861,8 +981,45 @@
                             $('#nextQuestion').before(`<div class="warning" style="color:#e74c3c;margin:15px auto;text-align:center;padding:8px;border-radius:4px;background:#feeeed;">Please provide your answer before continuing</div>`);
                         }
                         
-                        // Re-attach the event handler WITHOUT triggering it recursively
-                        $(this).on('click', nextQuestionClickHandler);
+                        // Re-attach the event handler WITHOUT using nextQuestionClickHandler (this was causing the infinite recursion)
+                        $(this).on('click', function() {
+                            console.log('Next button clicked (reattached handler)');
+                            // We need to remove the current handler again
+                            $(this).off('click');
+                            // And manually call the same logic
+                            let answer = getAnswerValue(q);
+                            if (!isAnswerValid(answer, q)) {
+                                if (!$('.warning').length) {
+                                    $('#nextQuestion').before(`<div class="warning" style="color:#e74c3c;margin:15px auto;text-align:center;padding:8px;border-radius:4px;background:#feeeed;">Please provide your answer before continuing</div>`);
+                                }
+                                // Re-attach this same handler
+                                $('#nextQuestion').on('click', $('#nextQuestion').data('original-handler'));
+                                return;
+                            }
+                            
+                            // If we get here, the answer is valid, continue with the logic
+                            const userAnswer = {
+                                id: q.id,
+                                type: q.type,
+                                answer: answer,
+                                level: q.level
+                            };
+                            userAnswers.push(userAnswer);
+                            
+                            const isCorrect = checkAnswer(q, answer);
+                            if (isCorrect) {
+                                currentBatchCorrect++;
+                            }
+                            
+                            showAnswerFeedback(isCorrect, q, answer, function() {
+                                currentIndex++;
+                                displayQuestion(currentIndex);
+                            });
+                        });
+                        
+                        // Store the original handler for future re-attachment
+                        $('#nextQuestion').data('original-handler', $('#nextQuestion').get(0).onclick);
+                        
                         return;
                     }
                     
@@ -888,11 +1045,6 @@
                         displayQuestion(currentIndex);
                     });
                 });
-
-                // Define the handler as a named function to avoid creating closures that reference themselves
-                function nextQuestionClickHandler() {
-                    $('#nextQuestion').trigger('click');
-                }
             }
             
             function showAnswerFeedback(isCorrect, question, userAnswer, callback) {
@@ -1148,11 +1300,12 @@
                             }
                             console.log("Correct labels:", correctLabels);
                             
-                            // Get the actual sentence used in the question - now stored in the question object
+                            // Get the actual sentence used in the question
                             const actualSentence = question.actual_sentence_used || 
-                                                  question.question_text || 
-                                                  question.text || 
-                                                  question.sentence || '';
+                                question.question_text || 
+                                question.text || 
+                                question.sentence || 
+                                question.question || '';
                             console.log("Actual sentence used in question:", actualSentence);
                             
                             // Early validation pass if the database has a clear error - no sentence at all
@@ -1161,79 +1314,130 @@
                                 return true;
                             }
                             
-                            // If there's a mismatch between the sentence in the question and the one in the answers
-                            const wordsInSentence = actualSentence.split(/\s+/).map(w => w.toLowerCase().replace(/[.,!?;:"'()]/g, ''));
-                            console.log("Words in actual sentence:", wordsInSentence);
+                            // Generate word combinations to handle multi-word labels
+                            const wordCombinations = [];
+                            const words = actualSentence.split(/\s+/).map(w => w.toLowerCase().replace(/[.,!?;:"'()]/g, ''));
                             
-                            // Check if correctLabels references words that don't exist in our sentence
-                            let mismatchDetected = false;
+                            // Add single words
+                            for (let i = 0; i < words.length; i++) {
+                                wordCombinations.push(words[i]);
+                            }
+                            
+                            // Add multi-word combinations (up to 3 consecutive words)
+                            for (let i = 0; i < words.length - 1; i++) {
+                                for (let len = 2; len <= Math.min(3, words.length - i); len++) {
+                                    const phrase = words.slice(i, i + len).join(' ');
+                                    wordCombinations.push(phrase);
+                                }
+                            }
+                            
+                            console.log("All possible word combinations:", wordCombinations);
+                            
+                            // Check if we need lenient validation (multi-word labels might need it)
+                            let needsLenientValidation = false;
+                            
+                            // If any correct label is a multi-word phrase, we'll use lenient validation
                             for (const [label, expectedWord] of Object.entries(correctLabels)) {
-                                // If expected word is a multi-word phrase, check each word separately
-                                const expectedWords = expectedWord.toLowerCase().split(/\s+/).map(w => w.replace(/[.,!?;:"'()]/g, ''));
-                                
-                                // For multi-word phrases, consider it not matching if any of the words aren't in the sentence
-                                const isMultiWord = expectedWords.length > 1;
-                                
-                                if (isMultiWord || !wordsInSentence.includes(expectedWords[0])) {
-                                    console.warn(`Warning: Correct label "${label}" references word "${expectedWord}" that doesn't exist in the sentence "${actualSentence}"`);
-                                    mismatchDetected = true;
+                                if (expectedWord.includes(' ') && !wordCombinations.includes(expectedWord.toLowerCase().replace(/[.,!?;:"'()]/g, ''))) {
+                                    console.log(`Multi-word phrase "${expectedWord}" validation may need leniency`);
+                                    needsLenientValidation = true;
                                     break;
                                 }
                             }
                             
-                            // If a mismatch is detected, be more lenient in validation
-                            if (mismatchDetected) {
-                                console.log("Sentence mismatch detected - using lenient validation");
-                                
-                                // Check that all labels in the user's answer are valid labels from correctLabels
-                                const validLabels = Object.keys(correctLabels);
-                                const userLabelNames = Object.keys(userLabels);
-                                
-                                // Check the user provided the same number of labels
-                                if (userLabelNames.length !== validLabels.length) {
-                                    console.log(`User provided ${userLabelNames.length} labels but expected ${validLabels.length}`);
-                                    return false;
-                                }
-                                
-                                // Check all labels are valid
-                                for (const label of userLabelNames) {
-                                    if (!validLabels.includes(label)) {
-                                        console.log(`User provided invalid label "${label}"`);
-                                        return false;
-                                    }
-                                }
-                                
-                                // Check user labeled valid words from the sentence
-                                for (const [label, word] of Object.entries(userLabels)) {
-                                    const wordClean = word.toLowerCase().replace(/[.,!?;:"'()]/g, '');
-                                    if (!wordsInSentence.includes(wordClean)) {
-                                        console.log(`User labeled "${label}" with "${wordClean}" which isn't in the sentence`);
-                                        return false;
-                                    }
-                                }
-                                
-                                console.log("Lenient validation passed - accepting answer");
-                                return true;
-                            }
+                            // Regular validation approach
+                            let allCorrect = true;
                             
-                            // Regular validation when no mismatch detected
                             for (const [label, expectedWord] of Object.entries(correctLabels)) {
-                                console.log(`Checking label "${label}"`);
+                                console.log(`Checking label "${label}" with expected word "${expectedWord}"`);
+                                
                                 const userWord = userLabels[label];
                                 if (!userWord) {
                                     console.log(`User did not assign a word to label "${label}"`);
-                                    return false;
+                                    allCorrect = false;
+                                    break;
                                 }
                                 
                                 const expectedClean = expectedWord.toLowerCase().replace(/[.,!?;:"'()]/g, '');
                                 const userClean = userWord.toLowerCase().replace(/[.,!?;:"'()]/g, '');
                                 
-                                console.log(`Expected: "${expectedClean}", User: "${userClean}", Match: ${expectedClean === userClean}`);
+                                console.log(`Expected: "${expectedClean}", User: "${userClean}"`);
                                 
-                                if (expectedClean !== userClean) return false;
+                                // For multi-word phrases, we'll accept either the full phrase or a key part of it
+                                if (expectedClean.includes(' ')) {
+                                    // The user provided the full expected phrase
+                                    if (expectedClean === userClean) {
+                                        console.log(`Full multi-word match for "${label}"`);
+                                        continue;
+                                    }
+                                    
+                                    // Check if what the user provided is at least part of the expected phrase
+                                    const expectedParts = expectedClean.split(' ');
+                                    const isPartOfPhrase = expectedParts.includes(userClean);
+                                    
+                                    // For subject labels, accept the first word match (like "The" for "The dog")
+                                    if (label.toLowerCase() === 'subject' && userClean === expectedParts[0]) {
+                                        console.log(`Accepted first word "${userClean}" for subject "${expectedClean}"`);
+                                        continue;
+                                    }
+                                    
+                                    // For subject labels, also accept the second word match (like "dog" for "The dog")
+                                    if (label.toLowerCase() === 'subject' && expectedParts.length > 1 && userClean === expectedParts[1]) {
+                                        console.log(`Accepted second word "${userClean}" for subject "${expectedClean}"`);
+                                        continue;
+                                    }
+                                    
+                                    if (isPartOfPhrase) {
+                                        console.log(`Accepted partial match "${userClean}" for "${expectedClean}"`);
+                                        continue;
+                                    }
+                                    
+                                    console.log(`No match for label "${label}"`);
+                                    allCorrect = false;
+                                    break;
+                                } else {
+                                    // For single words, we require an exact match
+                                    if (expectedClean !== userClean) {
+                                        console.log(`No match for label "${label}"`);
+                                        allCorrect = false;
+                                        break;
+                                    }
+                                }
                             }
-                            console.log("All labels correct!");
-                            return true;
+                            
+                            // If normal validation failed but we have multi-word phrases, try lenient validation
+                            if (!allCorrect && needsLenientValidation) {
+                                console.log("Trying lenient validation for multi-word phrase question");
+                                
+                                // Simply verify that each user-provided label corresponds to a word in the sentence
+                                // and that the user assigned all expected label types
+                                const validLabels = Object.keys(correctLabels);
+                                const userLabelNames = Object.keys(userLabels);
+                                
+                                // Check if the user labeled with all expected label types
+                                const allLabelTypesProvided = validLabels.every(label => userLabelNames.includes(label));
+                                
+                                if (!allLabelTypesProvided) {
+                                    console.log("User didn't provide all required label types");
+                                    return false;
+                                }
+                                
+                                // Check if all provided words exist in the sentence
+                                const allWordsExistInSentence = Object.values(userLabels).every(word => {
+                                    const cleanWord = word.toLowerCase().replace(/[.,!?;:"'()]/g, '');
+                                    return wordCombinations.includes(cleanWord);
+                                });
+                                
+                                if (!allWordsExistInSentence) {
+                                    console.log("Not all user-provided words exist in the sentence");
+                                    return false;
+                                }
+                                
+                                console.log("Lenient validation passed!");
+                                return true;
+                            }
+                            
+                            return allCorrect;
                         } catch (e) {
                             console.error("Error in labeling question check:", e);
                             return false;
