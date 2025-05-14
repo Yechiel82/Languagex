@@ -12,22 +12,18 @@ from logging.handlers import RotatingFileHandler
 from datetime import date, timedelta
 import random
 import json
-import re
-import traceback
-import sys
 
 app = Flask(__name__)
-app.secret_key = "7373"
+app.secret_key = "12345"
 
 # Configure PostgreSQL database
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://yechiel@localhost/languagex'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
-# Cloud API configuration
 
-CLOUD_API_URL = os.getenv('CLOUD_API_URL', ' https://51ce-103-119-147-234.ngrok-free.app')
-# Grammar API configuration
-CLOUD_API_Grammar_URL = os.getenv('CLOUD_API_Grammar_URL', ' https://51ce-103-119-147-234.ngrok-free.app')
+# Cloud API configuration
+CLOUD_API_URL = os.getenv('CLOUD_API_URL', ' https://c11c-35-197-139-228.ngrok-free.app')
+# CLOUD_API_Grammar_URL = os.getenv('CLOUD_API_URL', 'https://1c42-34-23-153-154.ngrok-free.app')
 
 # Add these configurations for file uploads
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static/uploads')
@@ -41,28 +37,6 @@ if not os.path.exists(UPLOAD_FOLDER):
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-# Add a utility function to safely handle JSON data
-def safe_json_dumps(data):
-    """Convert dict to JSON string safely, handling potential errors"""
-    try:
-        if isinstance(data, dict):
-            return json.dumps(data)
-        elif isinstance(data, str):
-            # If it's already a string but might be JSON formatted
-            try:
-                # Try to parse it as JSON to ensure it's valid
-                json.loads(data)
-                return data  # It's already a valid JSON string
-            except:
-                # Not valid JSON, so encode it as a JSON string
-                return json.dumps(data)
-        else:
-            # Convert other types to string and then to JSON
-            return json.dumps(str(data))
-    except Exception as e:
-        app.logger.error(f"Error converting to JSON: {str(e)}")
-        return "{}"  # Return empty JSON object on error
 
 # Define User model
 class User(db.Model):
@@ -221,38 +195,10 @@ class PlacementTestAttempt(db.Model):
     estimated_level = db.Column(db.String(10), nullable=True)
     user = db.relationship('User', backref=db.backref('placement_attempts', lazy=True))
 
-class MakeASentence(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    question = db.Column(db.Text, nullable=False)  # The question text
-    words = db.Column(db.String(255), nullable=False)  # The 1-2 words used for the question
-    level = db.Column(db.String(10), nullable=False)
-    generated_at = db.Column(db.DateTime, default=func.now())
-    deleted_at = db.Column(db.DateTime, nullable=True)
-    is_seen = db.Column(db.Boolean, default=False)
-    for_user = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    user_answer = db.Column(db.Text, nullable=True)
-    score = db.Column(db.Float, nullable=True)  # Ganti dari is_correct ke score (float/angka)
-
-    user = db.relationship('User', backref=db.backref('make_a_sentence_questions', lazy=True))
-
-class FinishTheSentence(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    question = db.Column(db.Text, nullable=False)  # The sentence to be finished
-    words = db.Column(db.String(255), nullable=False)
-    level = db.Column(db.String(10), nullable=False)
-    generated_at = db.Column(db.DateTime, default=func.now())
-    deleted_at = db.Column(db.DateTime, nullable=True)
-    is_seen = db.Column(db.Boolean, default=False)
-    for_user = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    user_answer = db.Column(db.Text, nullable=True)
-    score = db.Column(db.Float, nullable=True)
-
-    user = db.relationship('User', backref=db.backref('finish_sentences', lazy=True))
-
 # Logging setup
 if not os.path.exists('logs'):
     os.makedirs('logs')
-handler = RotatingFileHandler('logs/app1.log', maxBytes=10000, backupCount=5)
+handler = RotatingFileHandler('logs/app.log', maxBytes=10000, backupCount=1)
 handler.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
@@ -319,12 +265,9 @@ def login():
         email = request.form['email']
         password = request.form['password']
         
-        # Special admin accounts handling
-        if email == 'admin@yahoo.com' and password == 'admin321':
+        if (email == 'test@test.com' and password == 'password') or (email == 'admin@yahoo.com' and password == 'admin321'):
             session['logged_in'] = True
-            session['user_id'] = 0  # Special ID for admin
-            session['user_name'] = 'Admin'
-            session['is_admin'] = True  # Set admin flag in session
+            session['user_id'] = 0
             return redirect(url_for('generate'))
         
         user = User.query.filter_by(email=email).first()
@@ -334,11 +277,10 @@ def login():
             session['logged_in'] = True
             session['user_id'] = user.id
             session['user_name'] = user.name
-            session['is_admin'] = False  # Regular user
             return redirect(url_for('generate'))
             
         return render_template('login.html', error="Invalid credentials")
-
+    
 @app.route('/logout')
 def logout():
     # Clear the session
@@ -350,23 +292,6 @@ def profile():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
     
-    # Handle admin accounts differently
-    if session.get('is_admin', False):
-        # Create a dummy user data structure for admin users
-        user_data = {
-            'name': 'Administrator',
-            'level': 'C2',
-            'language': 'English',
-            'study_time': '0h 0m',
-            'streak': '0',
-            'lessons_completed': '0',
-            'average_score': '100',
-            'performance': [],
-            'profile_picture': None
-        }
-        return render_template('profile.html', user=user_data)
-    
-    # Regular user handling
     user_id = session.get('user_id')
     user = db.session.get(User, user_id)
     if not user:
@@ -466,7 +391,6 @@ def generate():
             # Handle both JSON and form data
             if request.is_json:
                 data = request.get_json()
-                question_types = data.get("question_types") or []
                 level = data.get('level')
                 num_sentences_str = str(data.get('num_sentences', 2))
                 topic = data.get('topic', '')
@@ -476,7 +400,6 @@ def generate():
                 num_sentences_str = request.form.get('num_sentences', '2')
                 topic = request.form.get('topic', '')
                 user_id = session.get('user_id')
-                question_types = request.form.getlist("question_types")
 
             app.logger.info(f"Received generate request: level={level}, topic={topic}, num_sentences={num_sentences_str}, user_id={user_id}")
 
@@ -508,21 +431,10 @@ def generate():
                 "topic": topic
             }
 
-            # Modify to add question_types if provided - FIX THIS SECTION
-            # Ensure question_types is always a list
-            question_types = data.get('question_types', [])
-            if question_types is None:
-                question_types = []
-            
+            # Modify to add question_types if provided
+            question_types = data.get('question_types')
             if question_types:
                 payload["question_types"] = question_types
-
-            # Now these checks are safe because question_types is guaranteed to be iterable
-            if "make_a_sentence" in question_types:
-                payload["question_types"] = ["fill_in_blank"]
-
-            if "finish_the_sentence" in question_types:
-                payload["question_types"] = ["fill_in_blank"]
 
             app.logger.info(f"Sending request to {CLOUD_API_URL}/generate_sentences with payload: {payload}")
             response = requests.post(f"{CLOUD_API_URL}/generate_sentences", json=payload, headers=headers, timeout=60)
@@ -545,61 +457,6 @@ def generate():
                 app.logger.warning("No sentences returned from API")
                 return jsonify({"error": "No sentences generated", "success": False}), 400
 
-            if "make_a_sentence" in question_types:
-                make_a_sentence_questions = []
-                for s in sentences:
-                    sentence_text = s.get('sentence') or s.get('fill_in_blank') or s.get('arrange_question')
-                    if not sentence_text:
-                        continue
-                    words = re.findall(r'\b\w+\b', sentence_text)
-                    if len(words) < 2:
-                        continue
-                    selected_words = random.sample(words, k=2)
-                    question_text = f"Make a sentence using these words: {', '.join(selected_words)}"
-                    make_a_sentence_questions.append({
-                        "question": question_text,
-                        "words": selected_words,
-                        "_chosenType": "make_a_sentence"
-                    })
-                return jsonify({"success": True, "sentences": make_a_sentence_questions})
-            
-            if "finish_the_sentence" in question_types:
-                finish_sentence_questions = []
-                for s in sentences:
-                    sentence_text = s.get('sentence') or s.get('fill_in_blank') or s.get('arrange_question')
-                    if not sentence_text:
-                        continue
-                        
-                    # Bagi kalimat menjadi dua bagian berdasarkan tanda baca atau konjungsi
-                    splits = re.split(r'[,.;]\s+|\s+(?:and|but|or|because|so|while|when|if|unless)\s+', sentence_text)
-                    
-                    if len(splits) < 2:
-                        # Jika tidak ada pemisah alami, bagi kalimat berdasarkan spasi
-                        words = sentence_text.split()
-                        mid = len(words) // 2
-                        # Gabungkan kata-kata menjadi dua bagian
-                        splits = [' '.join(words[:mid]), ' '.join(words[mid:])]
-                    
-                    # Pilih secara random apakah menggunakan bagian depan atau belakang sebagai soal
-                    use_first_part = random.choice([True, False])
-                    if use_first_part:
-                        question_part = splits[0]
-                        # Tambahkan ellipsis (...) di akhir untuk menunjukkan bahwa kalimat berlanjut
-                        question_text = f"{question_part}..."
-                    else:
-                        question_part = splits[-1]
-                        # Tambahkan ellipsis (...) di awal untuk menunjukkan ada bagian sebelumnya
-                        question_text = f"...{question_part}"
-
-                    finish_sentence_questions.append({
-                        "question": question_text,
-                        "original_sentence": sentence_text,  # Simpan kalimat asli untuk referensi
-                        "_chosenType": "finish_the_sentence"
-                    })
-                
-                return jsonify({"success": True, "sentences": finish_sentence_questions})
-
-
             # Validate and store sentences
             valid_sentences = []
             for sentence_data in sentences:
@@ -616,46 +473,35 @@ def generate():
                     sentence_data['selection_sentences'] = sel.get('sentences')
                     sentence_data['selection_correct_sentence'] = sel.get('correct_sentence')
 
-                # Handle labeling_question properly - but simply ignore it
-                app.logger.debug("Skipping labeling question database creation as requested")
-                # No database operations for labeling questions
-                # Set defaults since we're ignoring labeling questions
-                sentence_data['labeling_question_text'] = ''
-                sentence_data['labeling_instruction'] = ''
-                sentence_data['labeling_correct_labels'] = '{}'
-                sentence_data['labeling_question_id'] = None
+                # Map labeling_question fields
+                lab = sentence_data.get('labeling_question')
+                if lab:
+                    sentence_data['labeling_question_text'] = lab.get('question_text')
+                    sentence_data['labeling_instruction'] = lab.get('instruction')
+                    sentence_data['labeling_correct_labels'] = lab.get('correct_labels')
 
                 # Map fill_in_blank_question fields
                 fib = sentence_data.get('fill_in_blank_question')
                 if fib:
-                    sentence_data['fill_in_blank_question_text'] = fib.get('question_text', '')
-                    sentence_data['fill_in_blank_answer'] = fib.get('correct_answer', '')
+                    sentence_data['fill_in_blank'] = fib.get('question_text')
+                    sentence_data['fill_in_blank_options'] = fib.get('options')
+                    sentence_data['fill_in_blank_answer'] = fib.get('correct_answer')
 
-                # Map multiple_choice_question fields - this needs to come after fib
-                mc = sentence_data.get('multiple_choice_question')
-                if mc:
-                    sentence_data['multiple_choice'] = mc
-                    sentence_data['multiple_choice_question_text'] = mc.get('question_text', '')
-                    sentence_data['multiple_choice_options'] = mc.get('options', [])
-                    sentence_data['multiple_choice_answer'] = mc.get('correct_answer', '')
+                # Map arrange_question fields
+                arr = sentence_data.get('arrange_question')
+                if arr:
+                    sentence_data['arrange_question'] = arr.get('question_text')
+                    sentence_data['arrange_words'] = arr.get('words')  # <-- This line ensures frontend gets the array
+                    sentence_data['correct_arrangement'] = arr.get('correct_sentence')
 
                 try:
-                    # Fix: The API is returning `for_user` as 0 for admin, which is being treated as missing
-                    # Explicitly set for_user to the user_id from session if it's missing or 0
-                    if 'for_user' not in sentence_data or sentence_data['for_user'] == 0:
-                        sentence_data['for_user'] = user_id
-
                     sentence = sentence_data.get('sentence', '')
                     app.logger.debug(f"Validating sentence: {sentence}")
 
                     # Check required fields
-                    required_fields = ['sentence', 'verb', 'level']
+                    # required_fields = ['sentence', 'verb', 'fill_in_blank', 'fill_in_blank_answer', 'arrange_question', 'correct_arrangement', 'level', 'for_user']
+                    required_fields = ['sentence', 'verb', 'level', 'for_user']
                     missing_fields = [f for f in required_fields if f not in sentence_data or not sentence_data[f]]
-
-                    # Separate check for for_user - allowing 0 as valid for admin
-                    if 'for_user' not in sentence_data:
-                        missing_fields.append('for_user')
-
                     if missing_fields:
                         app.logger.warning(f"Skipping sentence with missing fields {missing_fields}: {sentence}")
                         continue
@@ -711,15 +557,10 @@ def generate():
                             sentence_data['fill_in_blank_id'] = fill_blank.id
 
                         # ArrangeTheWord
-                        if 'arrange_question' in sentence_data:
-                            # Extract the arrange_question data
-                            arrange_data = sentence_data['arrange_question']
-                            # Convert arrange question dict to string with safe_json_dumps
-                            question_text = safe_json_dumps(arrange_data)
-                            
-                            # Create ArrangeTheWord record with the string version
+                        arr_data = sentence_data.get('arrange_question')
+                        if arr_data and 'correct_arrangement' in sentence_data:
                             arrange = ArrangeTheWord(
-                                question=question_text,  # Store JSON string instead of dict
+                                question=sentence_data['arrange_question'],
                                 correct_arrangement=sentence_data['correct_arrangement'],
                                 level=sentence_data['level'],
                                 for_user=sentence_data['for_user'],
@@ -784,29 +625,16 @@ def generate():
                         
                         # Selection Question
                         sel_data = sentence_data.get('selection_question')
-                        # Around line 775 (where SelectionQuestion is created)
+                        # In the generate function where selection questions are created:
                         if sel_data:
-                            app.logger.debug(f"Processing selection_question with data: {sel_data}")
-                            
-                            # Check for required fields
-                            has_all_fields = all(key in sel_data for key in ['question_text', 'sentences', 'correct_sentence'])
-                            app.logger.debug(f"Has all required fields: {has_all_fields}")
-                            
-                            if not has_all_fields:
+                            if not all(key in sel_data for key in ['question_text', 'sentences', 'correct_sentence']):
                                 app.logger.warning(f"Skipping invalid selection_question for sentence: {sentence}")
                                 continue
                                 
                             # Ensure sentences are stored with pipe separator
                             sentences = sel_data['sentences']
-                            app.logger.debug(f"Original 'sentences' value type: {type(sentences)}, value: {sentences}")
-                            
                             if isinstance(sentences, list):
                                 sentences = "|".join(map(str, sentences))
-                                app.logger.debug(f"Converted list to string: {sentences}")
-                            
-                            app.logger.debug(f"Creating SelectionQuestion with text: {sel_data['question_text']}")
-                            app.logger.debug(f"Sentences: {sentences}")
-                            app.logger.debug(f"Correct sentence: {sel_data['correct_sentence']}")
                             
                             sq = SelectionQuestion(
                                 question_text=sel_data['question_text'],  # FIXED: use the correct field name
@@ -819,6 +647,31 @@ def generate():
                             db.session.add(sq)
                             db.session.flush()  # Get the ID before commit
                             sentence_data['selection_question_id'] = sq.id  # Changed to match the frontend's expected property name
+                            
+                        # Labeling Question
+                        lab_data = sentence_data.get('labeling_question')
+                        if lab_data:
+                            if not all(key in lab_data for key in ['question_text', 'instruction', 'correct_labels']):
+                                app.logger.warning(f"Skipping invalid labeling_question for sentence: {sentence}")
+                                continue
+                                
+                            # Convert correct_labels to string if it's a dictionary/list
+                            correct_labels = lab_data['correct_labels']
+                            if isinstance(correct_labels, (dict, list)):
+                                import json
+                                correct_labels = json.dumps(correct_labels)
+                                
+                            lab = LabelingQuestion(
+                                question_text=lab_data['question_text'],
+                                instruction=lab_data['instruction'],
+                                correct_labels=correct_labels,
+                                level=sentence_data['level'],
+                                for_user=sentence_data['for_user'],
+                                ground_truth_id=gt.id
+                            )
+                            db.session.add(lab)
+                            db.session.flush()  # Get the ID before commit
+                            sentence_data['labeling_question_id'] = lab.id
 
                     except Exception as e:
                         app.logger.error(f"Database error for sentence '{sentence}': {str(e)}")
@@ -865,219 +718,11 @@ def generate():
             app.logger.error(f"Cloud API request failed: {str(e)}")
             return jsonify({"error": f"Failed to connect to cloud API: {str(e)}", "success": False}), 500
         except Exception as e:
-            # Get detailed traceback information
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            tb_list = traceback.format_exception(exc_type, exc_value, exc_traceback)
-            tb_string = "".join(tb_list)
-            
-            # Log the detailed error
             app.logger.error(f"Unexpected error in generate route: {str(e)}")
-            app.logger.error(f"Traceback:\n{tb_string}")
-            
-            # Log the sentences data that caused the error
-            sentences_debug = "No sentences data available"
-            try:
-                if 'sentences' in locals():
-                    if sentences:
-                        # Log first sentence (or more if needed) with limited detail to avoid massive logs
-                        sentences_debug = f"First sentence data: {sentences[0]}"
-                    else:
-                        sentences_debug = "Sentences list is empty"
-            except:
-                pass
-            app.logger.error(f"Debug data: {sentences_debug}")
-            
-            # Return error response
             return jsonify({"error": f"Server error: {str(e)}", "success": False}), 500
 
     else:
         return jsonify({"error": "Method not allowed", "success": False}), 405
-
-@app.route('/submit_answer', methods=['POST'])
-def submit_answer():
-    data = request.get_json()
-    question_id = data.get('question_id')
-    user_answer = data.get('user_answer')
-    question_type = data.get('question_type')
-    time_spent = data.get('time_spent', 0)
-
-    app.logger.info(f"submit_answer called with question_id={question_id}, question_type={question_type}")
-    
-    # Add debug call to help diagnose the issue
-    debug_question_type(question_type, question_id)
-
-    # Immediately reject labeling_question
-    if question_type == 'labeling_question':
-        app.logger.info("Ignoring labeling_question as requested")
-        return jsonify({'success': True, 'message': 'Labeling questions are disabled'}), 200
-
-    if not question_id:
-        app.logger.error("submit_answer: Missing question_id")
-        return jsonify({'success': False, 'error': 'Missing question_id'}), 400
-
-    user = db.session.get(User, session.get('user_id'))
-    if not user:
-        app.logger.error("submit_answer: User not found or not logged in")
-        return jsonify({'success': False, 'error': 'User not authenticated'}), 401
-
-    today = date.today()
-    if user.last_active_date == today - timedelta(days=1):
-        user.streak += 1
-    elif user.last_active_date != today:
-        user.streak = 1
-    user.last_active_date = today
-    if time_spent and int(time_spent) > 0:
-        user.study_time = (user.study_time or 0) + int(time_spent)
-    user.total_attempts = (user.total_attempts or 0) + 1
-    n = user.total_attempts - 1
-
-    is_correct = False
-
-    def normalize_answer(ans):
-        if not ans:
-            return ''
-        return ans.strip().lower()
-
-    question = None
-    try:
-        if question_type == 'make_a_sentence':
-            question = db.session.get(MakeASentence, question_id)
-            if question:
-                required_words = [w.strip().lower() for w in question.words.split(',')]
-                user_answer_lower = user_answer.lower()
-                is_correct = all(word in user_answer_lower for word in required_words)
-                question.user_answer = user_answer
-                question.score = 100 if is_correct else 0
-                question.is_seen = True
-                question.is_correct = is_correct
-
-        elif question_type == 'finish_the_sentence':
-            question = db.session.get(FinishTheSentence, question_id)
-            if question:
-                required_text = question.words or question.question.replace("Finish the sentence:", "").strip()
-                required_words = [w.strip().lower() for w in required_text.split(',')]
-                user_answer_lower = user_answer.lower()
-                is_correct = all(word in user_answer_lower for word in required_words)
-                question.user_answer = user_answer
-                question.score = 100 if is_correct else 0
-                question.is_seen = True
-                question.is_correct = is_correct
-                
-        elif question_type == 'fill_in_blank':
-            question = db.session.get(FillInTheBlank, question_id)
-            if question:
-                is_correct = normalize_answer(question.answer) == normalize_answer(user_answer)
-                question.user_answer = user_answer
-                question.is_correct = is_correct
-                
-        elif question_type == 'multiple_choice':
-            question = db.session.get(MultipleChoice, question_id)
-            if question:
-                is_correct = normalize_answer(question.correct_answer) == normalize_answer(user_answer)
-                question.user_answer = user_answer
-                question.is_correct = is_correct
-                
-        elif question_type == 'selection_question':
-            question = db.session.get(SelectionQuestion, question_id)
-            if question:
-                is_correct = normalize_answer(question.correct_sentence) == normalize_answer(user_answer)
-                question.user_answer = user_answer
-                question.is_correct = is_correct
-                
-        # Handle both 'arrange' and 'arrange_question' as the same
-        elif question_type in ['arrange', 'arrange_question']:
-            app.logger.info(f"Processing arrange question with id={question_id}")
-            question = db.session.get(ArrangeTheWord, question_id)
-            if question:
-                app.logger.info(f"Found arrange question. Comparing: '{question.correct_arrangement}' with '{user_answer}'")
-                
-                # Normalize both strings by removing punctuation, extra spaces, and converting to lowercase
-                def normalize_for_arrange(text):
-                    if not text:
-                        return ''
-                    # Remove punctuation, normalize spaces, and convert to lowercase
-                    normalized = re.sub(r'[.,!?;:]', '', text)
-                    normalized = re.sub(r'\s+', ' ', normalized)
-                    return normalized.strip().lower()
-                    
-                correct_normalized = normalize_for_arrange(question.correct_arrangement)
-                user_normalized = normalize_for_arrange(user_answer)
-                
-                app.logger.info(f"After normalization - Correct: '{correct_normalized}', User: '{user_normalized}'")
-                is_correct = (correct_normalized == user_normalized)
-                
-                question.user_answer = user_answer
-                question.is_correct = is_correct
-            else:
-                app.logger.error(f"ArrangeTheWord question with id={question_id} not found")
-        else:
-            app.logger.error(f"Unsupported question_type: {question_type}")
-            return jsonify({'success': False, 'error': 'Unsupported question type'}), 400
-
-        user.average_score = ((user.average_score * n) + (100 if is_correct else 0)) / (n + 1)
-        if is_correct:
-            user.correct_attempts = (user.correct_attempts or 0) + 1
-        db.session.commit()
-
-        concept = data.get('concept')
-        if concept:
-            concept = concept.strip().lower()
-        else:
-            concept = 'unknown'
-
-        perf = UserPerformance.query.filter_by(user_id=user.id, concept=concept).first()
-        if not perf:
-            perf = UserPerformance(user_id=user.id, concept=concept)
-            db.session.add(perf)
-        perf.total_attempts = (perf.total_attempts or 0) + 1
-        if is_correct:
-            perf.correct_attempts = (perf.correct_attempts or 0) + 1
-        perf.success_rate = 100.0 * (perf.correct_attempts or 0) / (perf.total_attempts or 1)
-        perf.error_rate = 100.0 - perf.success_rate
-        perf.timestamp = datetime.datetime.now()
-        db.session.commit()
-
-        return jsonify({
-            'success': True, 
-            'is_correct': is_correct,
-            'message': 'Correct!' if is_correct else 'Incorrect.'
-        })
-
-    except Exception as e:
-        app.logger.error(f"Exception in submit_answer: {str(e)}")
-        # Add more detailed error logging
-        app.logger.error(f"Exception details: {traceback.format_exc()}")
-        return jsonify({'success': False, 'error': 'Internal server error'}), 500
-
-# Add this debugging function above the submit_answer route
-def debug_question_type(question_type, question_id):
-    """Debug helper to check question type and ID validity"""
-    app.logger.info(f"Debug - Received question_type: '{question_type}', question_id: {question_id}")
-    
-    # Check different type variations
-    if question_type == 'arrange_question':
-        arrange = db.session.get(ArrangeTheWord, question_id)
-        app.logger.info(f"Debug - 'arrange_question' lookup result: {arrange is not None}")
-        
-    if question_type == 'arrange':
-        arrange = db.session.get(ArrangeTheWord, question_id)
-        app.logger.info(f"Debug - 'arrange' lookup result: {arrange is not None}")
-    
-    # Check if the question exists in any of the tables
-    tables = {
-        'fill_in_blank': FillInTheBlank,
-        'multiple_choice': MultipleChoice,
-        'selection_question': SelectionQuestion,
-        'labeling_question': LabelingQuestion,
-        'arrange': ArrangeTheWord,
-        'make_a_sentence': MakeASentence,
-        'finish_the_sentence': FinishTheSentence
-    }
-    
-    for type_name, model in tables.items():
-        question = db.session.get(model, question_id)
-        if question:
-            app.logger.info(f"Debug - Found question ID {question_id} in table: {type_name}")
 
 @app.route('/api/submit_placement_test', methods=['POST'])
 def submit_placement_test():
@@ -1110,10 +755,7 @@ def submit_placement_test():
             question = db.session.get(FillInTheBlank, question_id)
             if question:
                 level = question.level
-                # Normalize answers by removing trailing punctuation and lowercasing
-                def normalize_answer(ans):
-                    return ans.strip().lower().rstrip('.,!?;:')
-                correct = (normalize_answer(question.answer) == normalize_answer(user_answer))
+                correct = (question.answer.strip().lower() == user_answer.strip().lower())
                 question.is_seen = True
                 question.user_answer = user_answer
                 question.is_correct = correct
@@ -1151,11 +793,9 @@ def submit_placement_test():
             question = db.session.get(SelectionQuestion, question_id)
             if question:
                 level = question.level
-                # Normalize and compare user answer and correct answer
-                def normalize_answer(ans):
-                    return ans.strip().lower().rstrip('.,!?;:')
-                user_answer_clean = normalize_answer(user_answer)
-                correct_answer_clean = normalize_answer(question.correct_sentence)
+                # Clean and compare user answer and correct answer
+                user_answer_clean = user_answer.strip()
+                correct_answer_clean = question.correct_sentence.strip()
                 correct = (correct_answer_clean == user_answer_clean)
                 question.is_seen = True
                 question.user_answer = user_answer
@@ -1164,65 +804,48 @@ def submit_placement_test():
         elif question_type == 'labeling_question':
             question = db.session.get(LabelingQuestion, question_id)
             if question:
+                level = question.level
+                
+                # Parse user answer
                 user_labels = {}
                 try:
-                    # Parse user answer - handle both string and dict formats
-                    if isinstance(user_answer, str):
-                        if user_answer.startswith('{'):
-                            user_labels = json.loads(user_answer)
-                        else:
-                            # Handle "label:value; label2:value2" format
-                            pairs = [p.strip() for p in user_answer.split(';') if p.strip()]
-                            for pair in pairs:
-                                if ':' in pair:
-                                    label, value = pair.split(':', 1)
-                                    user_labels[label.strip().lower()] = value.strip().lower()
-                    elif isinstance(user_answer, dict):
-                        user_labels = {k.lower(): str(v).lower() for k, v in user_answer.items()}
-                except Exception as e:
-                    app.logger.error(f"Error parsing user answer: {str(e)}")
+                    user_labels = json.loads(user_answer)
+                except:
                     user_labels = {}
-
+                
                 # Get correct labels
                 correct_labels = {}
                 if isinstance(question.correct_labels, str):
                     try:
-                        if question.correct_labels.startswith('{'):
-                            correct_labels = json.loads(question.correct_labels)
-                        else:
-                            # Handle "label:value; label2:value2" format
-                            pairs = [p.strip() for p in question.correct_labels.split(';') if p.strip()]
-                            for pair in pairs:
-                                if ':' in pair:
-                                    label, value = pair.split(':', 1)
-                                    correct_labels[label.strip().lower()] = value.strip().lower()
-                    except json.JSONDecodeError:
+                        correct_labels = json.loads(question.correct_labels)
+                    except:
                         correct_labels = {}
                 else:
                     correct_labels = question.correct_labels
-
-            # Normalize and compare
-            def normalize_value(val):
-                return str(val).lower().replace("'", "").replace(".", "").strip()
-
-            # Add debug logging for user_labels and correct_labels
-            app.logger.debug(f"Labeling Question ID: {question_id}")
-            app.logger.debug(f"User Labels Parsed: {user_labels}")
-            app.logger.debug(f"Correct Labels Parsed: {correct_labels}")
-
-            # Compare ignoring order
-            user_normalized = {k: normalize_value(v) for k, v in user_labels.items()}
-            correct_normalized = {k: normalize_value(v) for k, v in correct_labels.items()}
-
-            app.logger.debug(f"User Normalized: {user_normalized}")
-            app.logger.debug(f"Correct Normalized: {correct_normalized}")
-
-            is_correct = (user_normalized == correct_normalized)
-            app.logger.debug(f"Labeling Question is_correct: {is_correct}")
-
-            question.is_seen = True
-            question.user_answer = str(user_answer)
-            question.is_correct = is_correct
+                
+                # Compare answers
+                all_matched = True
+                for label, expected_word in correct_labels.items():
+                    user_word = user_labels.get(label)
+                    if not user_word:
+                        all_matched = False
+                        break
+                        
+                    # Normalize for comparison
+                    expected_clean = expected_word.lower().replace('.', '').replace(',', '')
+                    user_clean = user_word.lower().replace('.', '').replace(',', '')
+                    
+                    if expected_clean != user_clean:
+                        all_matched = False
+                        break
+                
+                correct = all_matched
+                question.is_seen = True
+                question.user_answer = user_answer
+                question.is_correct = correct
+        
+        if level and level in level_results:
+            level_results[level].append(correct)
     
     # Save all question updates
     try:
@@ -1272,6 +895,75 @@ def submit_placement_test():
         'level': assigned_level,
         'message': level_messages.get(assigned_level, "Thank you for completing the placement test.")
     })
+
+@app.route('/submit_answer', methods=['POST'])
+def submit_answer():
+    data = request.get_json()
+    question_id = data.get('question_id')
+    user_answer = data.get('user_answer')
+    is_correct = data.get('is_correct')
+    question_type = data.get('question_type')
+    time_spent = data.get('time_spent', 0)  # sent from frontend
+
+    user = db.session.get(User, session['user_id'])
+    today = date.today()
+    if user.last_active_date == today - timedelta(days=1):
+        user.streak += 1
+    elif user.last_active_date != today:
+        user.streak = 1
+    user.last_active_date = today
+    if time_spent and int(time_spent) > 0:
+        user.study_time = (user.study_time or 0) + int(time_spent)
+    user.total_attempts = (user.total_attempts or 0) + 1
+    n = user.total_attempts - 1
+    user.average_score = ((user.average_score * n) + (100 if is_correct else 0)) / (n + 1)
+    db.session.commit()
+
+    concept = data.get('concept')
+    if concept:
+        concept = concept.strip().lower()
+    else:
+        concept = 'unknown'
+
+    perf = UserPerformance.query.filter_by(user_id=user.id, concept=concept).first()
+    if not perf:
+        perf = UserPerformance(user_id=user.id, concept=concept)
+        db.session.add(perf)
+    # Update stats (you may want to store total/correct/incorrect counts for accuracy)
+    perf.total_attempts = (perf.total_attempts or 0) + 1
+    if is_correct:
+        perf.correct_attempts = (perf.correct_attempts or 0) + 1
+    # Calculate rates
+    perf.success_rate = 100.0 * (perf.correct_attempts or 0) / (perf.total_attempts or 1)
+    perf.error_rate = 100.0 - perf.success_rate
+    perf.timestamp = datetime.datetime.now()
+    db.session.commit()
+
+    if question_type == 'fill_in_blank':
+        question = db.session.get(FillInTheBlank, question_id)
+    elif question_type == 'arrange_question':
+        question = db.session.get(ArrangeTheWord, question_id)
+    elif question_type == 'multiple_choice':
+        question = db.session.get(MultipleChoice, question_id)
+    elif question_type == 'selection_question' and question_id is not None:
+        question = db.session.get(SelectionQuestion, question_id)
+        if question:
+            question.user_answer = user_answer
+            question.is_correct = is_correct
+            db.session.commit()
+            return jsonify({'success': True})
+    elif question_type == 'labeling_question':
+        question = db.session.get(LabelingQuestion, question_id)
+    else:
+        question = None
+
+    if question:
+        question.user_answer = user_answer
+        question.is_correct = is_correct
+        db.session.commit()
+        return jsonify({'success': True})
+
+    return jsonify({'success': False, 'error': 'Question not found'}), 404
 
 @app.route('/api/placement_test_questions')
 def placement_test_questions():
@@ -1405,436 +1097,6 @@ def delete_account():
         app.logger.error(f"Error deleting account: {str(e)}")
         return jsonify({'success': False, 'error': 'Database error'}), 500
 
-@app.route('/generate_make_a_sentence', methods=['POST'])
-def generate_make_a_sentence():
-    if not session.get('logged_in'):
-        return jsonify({'success': False, 'error': 'Not logged in'}), 401
-
-    user_id = session.get('user_id')
-    level = request.json.get('level', 'A1')
-
-    # Ambil beberapa soal FillInTheBlank milik user & level terkait
-    fib_questions = FillInTheBlank.query.filter_by(for_user=user_id, level=level).all()
-    if not fib_questions:
-        return jsonify({'success': False, 'error': 'No FillInTheBlank questions found'}), 404
-
-    created_questions = []
-    for fib in fib_questions:
-        # Ambil kata unik dari kalimat (hilangkan tanda baca)
-        words = re.findall(r'\b\w+\b', fib.question)
-        if len(words) < 2:
-            continue
-        # Pilih 1 atau 2 kata acak
-        selected_words = random.sample(words, k=random.choice([1, 2]))
-        question_text = f"Make a sentence using these words: {', '.join(selected_words)}"
-
-        # Simpan ke database
-        mas = MakeASentence(
-            question=question_text,
-            words=",".join(selected_words),
-            level=level,
-            for_user=user_id
-        )
-        db.session.add(mas)
-        created_questions.append({
-            'id': mas.id,  # Tambahkan ID untuk referensi
-            'question': question_text,
-            'words': selected_words
-        })
-
-    # Commit semua soal ke database
-    db.session.commit()
-    return jsonify({'success': True, 'questions': created_questions})
-
-def fix_correction_format(correction):
-    """
-    Memperbaiki format string koreksi dengan menambahkan spasi yang diperlukan:
-    Dari: "Changed'schuool' to'school' - Replace spelling"
-    Menjadi: "Changed 'schuool' to 'school' - Replace spelling"
-    """
-    # Tambahkan spasi setelah 'Changed' dan sebelum/sesudah 'to'
-    correction = correction.replace("Changed'", "Changed '") \
-                          .replace("to'", "to '") \
-                          .replace("' -", "' - ")
-    return correction
-
-def generate_natural_explanation(correction):
-    """Generate natural-sounding grammar correction explanations from text format"""
-    if not correction:
-        return "No corrections needed"
-    
-    if "no operation" in correction.lower() or "no correction" in correction.lower():
-        return "No grammatical errors found"
-        
-    # Clean the correction string
-    correction = str(correction).strip()
-    
-    # Remove numbering if present (e.g., "1. Changed X to Y")
-    if correction.startswith(('1. ', '2. ', '3. ', '4. ')):
-        correction = correction[3:]
-    
-    # Define error type mappings
-    error_type_mappings = {
-        'other': 'grammar',
-        'orthographic': 'spelling',
-        'morphological': 'word form'
-    }
-    
-    # Common patterns to extract information
-    patterns = [
-        # Pattern for replacements: "Changed 'X' to 'Y' - Error type"
-        (r"Changed\s+'([^']*)'\s+to\s+'([^']*)'\s*-\s*(Replace|Missing|Unnecessary)\s*(.*)", 
-         lambda m: (
-             m[3].lower(),  # operation (replace/missing/unnecessary)
-             m[4].lower(),  # error type
-             m[1],         # before
-             m[2]          # after
-         )),
-         
-        # Alternative pattern without "Changed"
-        (r"(Replace|Missing|Unnecessary)\s+'([^']*)'(\s+to\s+'([^']*)')?\s*-\s*(.*)", 
-         lambda m: (
-             m[1].lower(),
-             m[5].lower(),
-             m[2] if m[1].lower() != 'missing' else '',
-             m[4] if m[1].lower() == 'replace' else m[2]
-         ))
-    ]
-    
-    # Try to extract components from the correction
-    operation, error_type, before, after = None, None, None, None
-    
-    for pattern, extractor in patterns:
-        match = re.match(pattern, correction)
-        if match:
-            operation, error_type, before, after = extractor(match)
-            break
-    
-    # If we couldn't parse, return the original with basic cleaning
-    if not operation:
-        return correction.replace("Changed'", "Changed '") \
-                       .replace("to'", "to '") \
-                       .replace("' -", "' - ") \
-                       .replace("  ", " ")
-    
-    # Clean and map the error type
-    error_type = error_type.strip().lower()
-    error_type = error_type_mappings.get(error_type, error_type)
-    
-    # Capitalize and add "error" if it's not already there
-    if not error_type.endswith(' error'):
-        error_type = error_type + ' error'
-    error_type = error_type.capitalize()
-    
-    # Generate the explanation based on operation type
-    if operation == 'replace':
-        explanation = f"{error_type}, replacing '{before}' with '{after}'"
-    elif operation == 'missing':
-        explanation = f"{error_type}, missing '{after}'"
-    elif operation == 'unnecessary':
-        explanation = f"{error_type}, '{before}' is unnecessary"
-    else:
-        explanation = correction
-    
-    return explanation
-
-@app.route('/submit_make_a_sentence', methods=['POST'])
-def submit_make_a_sentence():
-    if not session.get('logged_in'):
-        return jsonify({'success': False, 'error': 'Not logged in'}), 401
-
-    data = request.get_json()
-    user_id = session.get('user_id')
-    sentence = data.get('sentence', '').strip()
-    question_id = data.get('question_id')  # Pastikan frontend mengirimkan ID soal
-
-    if not sentence:
-        return jsonify({'success': False, 'error': 'No sentence provided'}), 400
-
-    # Kirim ke API grammar correction
-    grammar_url = f"{CLOUD_API_Grammar_URL}/grammar_correction"
-    payload = {
-        "user_id": user_id,
-        "sentence": sentence
-    }
-
-    try:
-        response = requests.post(grammar_url, json=payload, timeout=15)
-        response.raise_for_status()
-        
-        grammar_result = response.json()
-        app.logger.info(f"Raw API response: {grammar_result}")
-
-        # Validate response structure
-        if not isinstance(grammar_result, dict):
-            return jsonify({'success': False, 'error': 'Invalid API response format'}), 500
-
-        # Ensure we have the corrected text
-        if 'corrected' not in grammar_result:
-            grammar_result['corrected'] = sentence  # Fallback to original if no correction
-
-        # Process corrections to ensure consistent format
-        corrections = grammar_result.get('corrections', [])
-        if isinstance(corrections, str):
-            corrections = [corrections]
-        elif not isinstance(corrections, list):
-            corrections = []
-        
-        processed_corrections = []
-        for corr in corrections:
-            if not corr:
-                continue
-            if isinstance(corr, str) and '. ' in corr:
-                corr = corr.split('. ', 1)[1]
-
-            if "no operation" in corr.lower() or "no correction" in corr.lower():
-                processed_corrections.append("No grammatical errors found")
-            else:
-                # Apply formatting fixes
-                formatted_corr = fix_correction_format(str(corr))
-                # Generate natural language explanation
-                natural_explanation = generate_natural_explanation(formatted_corr)
-                processed_corrections.append(natural_explanation)
-
-        # Calculate score
-        if not processed_corrections or "No grammatical errors found" in processed_corrections:
-            score = 1
-        else:
-            score = max(0, 1 - (len(processed_corrections) * 0.1))
-        
-        # Simpan jawaban dan skor ke database
-        question = db.session.get(MakeASentence, question_id)
-        if question and question.for_user == user_id:
-            question.user_answer = sentence
-            question.score = score
-            db.session.commit()
-
-        return jsonify({
-            'success': True,
-            'result': {
-                'original': sentence,
-                'corrected': grammar_result.get('corrected', sentence),
-                'corrections': processed_corrections,
-                'score': score
-            }
-        })
-        
-    except requests.exceptions.Timeout:
-        app.logger.error("Grammar API timeout")
-        return jsonify({'success': False, 'error': 'Grammar check timed out'}), 504
-    except requests.exceptions.RequestException as e:
-        app.logger.error(f"Grammar API error: {str(e)}")
-        return jsonify({'success': False, 'error': f'Grammar API error: {str(e)}'}), 500
-    except Exception as e:
-        app.logger.error(f"Unexpected error: {str(e)}")
-        return jsonify({'success': False, 'error': 'Internal server error'}), 500
-
-@app.route('/generate_finish_the_sentence', methods=['POST'])
-def generate_finish_the_sentence():
-    if not session.get('logged_in'):
-        return jsonify({'success': False, 'error': 'Not logged in'}), 401
-
-    user_id = session.get('user_id')
-    level = request.json.get('level', 'A1')
-
-    # Ambil beberapa soal FillInTheBlank milik user & level terkait
-    fib_questions = FillInTheBlank.query.filter_by(for_user=user_id, level=level).all()
-    if not fib_questions:
-        return jsonify({'success': False, 'error': 'No FillInTheBlank questions found'}), 404
-
-    created_questions = []
-    for fib in fib_questions:
-        sentence_text = fib.question
-        if not sentence_text:
-            continue
-            
-        # Bagi kalimat menjadi dua bagian berdasarkan tanda baca atau konjungsi
-        splits = re.split(r'[,.;]\s+|\s+(?:and|but|or|because|so|while|when|if|unless)\s+', sentence_text)
-        
-        if len(splits) < 2:
-            # Jika tidak ada pemisah alami, bagi kalimat berdasarkan spasi
-            words = sentence_text.split()
-            mid = len(words) // 2
-            # Gabungkan kata-kata menjadi dua bagian
-            splits = [' '.join(words[:mid]), ' '.join(words[mid:])]
-        
-        # Pilih secara random apakah menggunakan bagian depan atau belakang sebagai soal
-        use_first_part = random.choice([True, False])
-        if use_first_part:
-            question_part = splits[0]
-            # Tambahkan ellipsis (...) di akhir untuk menunjukkan bahwa kalimat berlanjut
-            partial_sentence = f"{question_part}..."
-        else:
-            question_part = splits[-1]
-            # Tambahkan ellipsis (...) di awal untuk menunjukkan ada bagian sebelumnya
-            partial_sentence = f"...{question_part}"
-
-        # Format pertanyaan dengan "Finish the sentence:"
-        question_text = f"Finish the sentence: {partial_sentence}"
-
-        # Simpan ke database dengan format yang benar
-        fts = FinishTheSentence(
-            question=question_text,  # Pertanyaan lengkap dengan "Finish the sentence:"
-            words=partial_sentence,  # Bagian kalimat yang ditampilkan dengan ...
-            level=level,
-            for_user=user_id
-        )
-        db.session.add(fts)
-        created_questions.append({
-            'id': fts.id,
-            'question': question_text,  # Pertanyaan lengkap
-            'words': partial_sentence,  # Bagian kalimat yang ditampilkan
-            'original_sentence': sentence_text,  # Kalimat asli untuk referensi
-            '_chosenType': 'finish_the_sentence'
-        })
-
-    # Commit semua soal ke database
-    db.session.commit()
-    return jsonify({'success': True, 'questions': created_questions})
-
-@app.route('/submit_finish_the_sentence', methods=['POST'])
-def submit_finish_the_sentence():
-    if not session.get('logged_in'):
-        return jsonify({'success': False, 'error': 'Not logged in'}), 401
-
-    data = request.get_json()
-    user_id = session.get('user_id')
-    sentence = data.get('sentence', '').strip()
-    question_id = data.get('question_id')  # Pastikan frontend mengirimkan ID soal
-
-    if not sentence:
-        return jsonify({'success': False, 'error': 'No sentence provided'}), 400
-
-    # Kirim ke API grammar correction
-    grammar_url = f"{CLOUD_API_Grammar_URL}/grammar_correction"
-    payload = {
-        "user_id": user_id,
-        "sentence": sentence
-    }
-
-    try:
-        response = requests.post(grammar_url, json=payload, timeout=15)
-        response.raise_for_status()
-        
-        grammar_result = response.json()
-        app.logger.info(f"Raw API response: {grammar_result}")
-
-        # Validate response structure
-        if not isinstance(grammar_result, dict):
-            return jsonify({'success': False, 'error': 'Invalid API response format'}), 500
-
-        # Ensure we have the corrected text
-        if 'corrected' not in grammar_result:
-            grammar_result['corrected'] = sentence  # Fallback to original if no correction
-
-        # Process corrections to ensure consistent format
-        corrections = grammar_result.get('corrections', [])
-        if isinstance(corrections, str):
-            corrections = [corrections]
-        elif not isinstance(corrections, list):
-            corrections = []
-        
-        processed_corrections = []
-        for corr in corrections:
-            if not corr:
-                continue
-            if isinstance(corr, str) and '. ' in corr:
-                corr = corr.split('. ', 1)[1]
-
-            if "no operation" in corr.lower() or "no correction" in corr.lower():
-                processed_corrections.append("No grammatical errors found")
-            else:
-                # Apply formatting fixes
-                formatted_corr = fix_correction_format(str(corr))
-                # Generate natural language explanation
-                natural_explanation = generate_natural_explanation(formatted_corr)
-                processed_corrections.append(natural_explanation)
-
-        # Calculate score
-        if not processed_corrections or "No grammatical errors found" in processed_corrections:
-            score = 100
-        else:
-            score = max(0, 100 - (len(processed_corrections) * 10))
-        
-        # Simpan jawaban dan skor ke database
-        question = db.session.get(FinishTheSentence, question_id)
-        if question and question.for_user == user_id:
-            question.user_answer = sentence
-            question.score = score
-            db.session.commit()
-
-        return jsonify({
-            'success': True,
-            'result': {
-                'original': sentence,
-                'corrected': grammar_result.get('corrected', sentence),
-                'corrections': processed_corrections,
-                'score': score
-            }
-        })
-        
-    except requests.exceptions.Timeout:
-        app.logger.error("Grammar API timeout")
-        return jsonify({'success': False, 'error': 'Grammar check timed out'}), 504
-    except requests.exceptions.RequestException as e:
-        app.logger.error(f"Grammar API error: {str(e)}")
-        return jsonify({'success': False, 'error': f'Grammar API error: {str(e)}'}), 500
-    except Exception as e:
-        app.logger.error(f"Unexpected error: {str(e)}")
-        return jsonify({'success': False, 'error': 'Internal server error'}), 500
-
-@app.route('/admin/dashboard')
-def admin_dashboard():
-    if not session.get('logged_in') or not session.get('is_admin', False):
-        return redirect(url_for('login'))
-    
-    # Fetch all non-deleted users
-    users = User.query.filter_by(is_deleted=False).all()
-    
-    # Prepare user statistics
-    user_stats = []
-    for user in users:
-        # Format study time as hours and minutes
-        study_time_str = format_study_time(user.study_time or 0)
-        
-        # Get performance data
-        performance = UserPerformance.query.filter_by(user_id=user.id).order_by(UserPerformance.timestamp.desc()).all()
-        
-        # Count question types
-        fill_blanks_count = FillInTheBlank.query.filter_by(for_user=user.id).count()
-        multiple_choice_count = MultipleChoice.query.filter_by(for_user=user.id).count()
-        arrange_words_count = ArrangeTheWord.query.filter_by(for_user=user.id).count()
-        selection_count = SelectionQuestion.query.filter_by(for_user=user.id).count()
-        make_sentence_count = MakeASentence.query.filter_by(for_user=user.id).count()
-        finish_sentence_count = FinishTheSentence.query.filter_by(for_user=user.id).count()
-        
-        # Add user stats
-        user_stats.append({
-            'id': user.id,
-            'name': user.name,
-            'email': user.email,
-            'level': user.level,
-            'language': user.language,
-            'study_time': study_time_str,
-            'streak': user.streak,
-            'lessons_completed': user.lessons_completed,
-            'average_score': int(user.average_score) if user.average_score else 0,
-            'last_active': user.last_active_date,
-            'performance': performance,
-            'question_stats': {
-                'fill_blanks': fill_blanks_count,
-                'multiple_choice': multiple_choice_count,
-                'arrange_words': arrange_words_count,
-                'selection': selection_count,
-                'make_sentence': make_sentence_count,
-                'finish_sentence': finish_sentence_count,
-                'total': (fill_blanks_count + multiple_choice_count + arrange_words_count + 
-                         selection_count + make_sentence_count + finish_sentence_count)
-            }
-        })
-    
-    return render_template('admin_dashboard.html', users=user_stats)
-
 # # Create database tables
 with app.app_context():
     db.create_all()
@@ -1845,7 +1107,9 @@ with app.app_context():
         db.session.commit()
 
 if __name__ == '__main__':
-    app.run(port=5001)  # Change from default 5000 to 5001    
+    app.run()
+    
+    
     
 # flask shell
 
@@ -1853,4 +1117,3 @@ if __name__ == '__main__':
 # from app import db
 # db.drop_all()
 # db.create_all()
-# exit()

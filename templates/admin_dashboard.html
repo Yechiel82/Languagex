@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - User Statistics</title>
+    <style>
+        :root {
+            --background-color: #f7fafc;
+            --sidebar-color: #e3f6fd;
+            --text-color: #22223b;
+            --accent-color: #3ecf8e;
+            --accent-color-alt: #ffd600;
+            --border-color: #b2e0f7;
+            --level-a1-color: #7FD1B9;
+            --level-a2-color: #5DADE2;
+            --level-b1-color: #8E44AD;
+            --level-b2-color: #E74C3C;
+            --level-c1-color: #F39C12;
+            --level-c2-color: #27AE60;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            color: var(--text-color);
+        }
+
+        .btn {
+            display: inline-block;
+            background-color: var(--accent-color);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .btn:hover {
+            opacity: 0.9;
+        }
+        
+        .card {
+            background-color: var(--sidebar-color);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+
+        .stats-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background-color: white;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--accent-color);
+            margin: 10px 0;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .user-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            overflow-x: auto;
+            display: block;
+        }
+
+        .user-table th,
+        .user-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .user-table th {
+            background-color: var(--sidebar-color);
+            position: sticky;
+            top: 0;
+            font-weight: 600;
+        }
+
+        .user-table tr:nth-child(even) {
+            background-color: rgba(0, 0, 0, 0.02);
+        }
+
+        .user-table tr:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+        .badge {
+            color: white;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 14px;
+            display: inline-block;
+        }
+
+        .level-A1 { background-color: var(--level-a1-color); }
+        .level-A2 { background-color: var(--level-a2-color); }
+        .level-B1 { background-color: var(--level-b1-color); }
+        .level-B2 { background-color: var(--level-b2-color); }
+        .level-C1 { background-color: var(--level-c1-color); }
+        .level-C2 { background-color: var(--level-c2-color); }
+
+        .collapsible {
+            cursor: pointer;
+            background-color: transparent;
+            border: none;
+            width: 100%;
+            text-align: left;
+            outline: none;
+            padding: 10px 15px;
+        }
+
+        .active, .collapsible:hover {
+            background-color: #f1f1f1;
+        }
+
+        .content {
+            padding: 0 18px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.2s ease-out;
+            background-color: white;
+        }
+
+        .performance-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+
+        .performance-table th,
+        .performance-table td {
+            padding: 8px 10px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: var(--accent-color);
+        }
+
+        .error-fill {
+            height: 100%;
+            background-color: #e74c3c;
+        }
+
+        .view-details {
+            color: var(--accent-color);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .view-details:hover {
+            text-decoration: underline;
+        }
+
+        .filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .filter-select {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background-color: white;
+        }
+
+        .search-box {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            min-width: 250px;
+        }
+    </style>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Admin Dashboard - User Statistics</h1>
+            <div>
+                <a href="{{ url_for('generate') }}" class="btn">Back to Dashboard</a>
+                <a href="{{ url_for('logout') }}" class="btn" style="background-color: #e74c3c;">Logout</a>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="filters">
+                <input type="text" id="searchInput" class="search-box" placeholder="Search by name or email...">
+                <select id="levelFilter" class="filter-select">
+                    <option value="all">All Levels</option>
+                    <option value="A1">A1</option>
+                    <option value="A2">A2</option>
+                    <option value="B1">B1</option>
+                    <option value="B2">B2</option>
+                    <option value="C1">C1</option>
+                    <option value="C2">C2</option>
+                </select>
+                <select id="sortBy" class="filter-select">
+                    <option value="name">Sort by Name</option>
+                    <option value="level">Sort by Level</option>
+                    <option value="score">Sort by Score</option>
+                    <option value="activity">Sort by Last Activity</option>
+                    <option value="lessons">Sort by Lessons Completed</option>
+                </select>
+            </div>
+
+            <!-- Overall stats summary -->
+            <div class="stats-overview">
+                <div class="stat-card">
+                    <div class="stat-label">Total Users</div>
+                    <div class="stat-value">{{ users|length }}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Average Level</div>
+                    <div class="stat-value">
+                        {% set levels = {'A1': 1, 'A2': 2, 'B1': 3, 'B2': 4, 'C1': 5, 'C2': 6} %}
+                        {% set total_level = 0 %}
+                        {% for user in users %}
+                            {% set total_level = total_level + levels.get(user.level, 1) %}
+                        {% endfor %}
+                        {% set avg_level_num = (total_level / users|length)|round(1) if users else 0 %}
+                        {% set avg_level = 'A1' if avg_level_num <= 1.5 else 
+                                         'A2' if avg_level_num <= 2.5 else 
+                                         'B1' if avg_level_num <= 3.5 else 
+                                         'B2' if avg_level_num <= 4.5 else 
+                                         'C1' if avg_level_num <= 5.5 else 'C2' %}
+                        {{ avg_level }}
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Average Score</div>
+                    <div class="stat-value">
+                        {% set total_score = 0 %}
+                        {% for user in users %}
+                            {% set total_score = total_score + user.average_score %}
+                        {% endfor %}
+                        {{ (total_score / users|length)|round|int if users else 0 }}%
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Lessons</div>
+                    <div class="stat-value">
+                        {% set total_lessons = 0 %}
+                        {% for user in users %}
+                            {% set total_lessons = total_lessons + user.lessons_completed %}
+                        {% endfor %}
+                        {{ total_lessons }}
+                    </div>
+                </div>
+            </div>
+
+            <table class="user-table" id="userTable">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Level</th>
+                        <th>Study Time</th>
+                        <th>Streak</th>
+                        <th>Lessons</th>
+                        <th>Avg. Score</th>
+                        <th>Last Active</th>
+                        <th>Questions</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr data-level="{{ user.level }}" data-name="{{ user.name }}" data-email="{{ user.email }}">
+                        <td>{{ user.name }}</td>
+                        <td>{{ user.email }}</td>
+                        <td><span class="badge level-{{ user.level }}">{{ user.level }}</span></td>
+                        <td>{{ user.study_time }}</td>
+                        <td>{{ user.streak }}</td>
+                        <td>{{ user.lessons_completed }}</td>
+                        <td>{{ user.average_score }}%</td>
+                        <td>{{ user.last_active.strftime('%d %b %Y') if user.last_active else 'Never' }}</td>
+                        <td>{{ user.question_stats.total }}</td>
+                        <td>
+                            <button class="collapsible">Details</button>
+                            <div class="content">
+                                <h4 style="margin-top: 15px;">Question Distribution</h4>
+                                <div style="margin: 10px 0;">
+                                    <div><strong>Fill in the Blank:</strong> {{ user.question_stats.fill_blanks }}</div>
+                                    <div><strong>Multiple Choice:</strong> {{ user.question_stats.multiple_choice }}</div>
+                                    <div><strong>Arrange Words:</strong> {{ user.question_stats.arrange_words }}</div>
+                                    <div><strong>Sentence Selection:</strong> {{ user.question_stats.selection }}</div>
+                                    <div><strong>Labeling:</strong> {{ user.question_stats.labeling }}</div>
+                                    <div><strong>Make a Sentence:</strong> {{ user.question_stats.make_sentence }}</div>
+                                    <div><strong>Finish the Sentence:</strong> {{ user.question_stats.finish_sentence }}</div>
+                                </div>
+                                
+                                {% if user.performance %}
+                                <h4 style="margin-top: 15px;">Performance Breakdown</h4>
+                                <table class="performance-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Concept</th>
+                                            <th>Success Rate</th>
+                                            <th>Error Rate</th>
+                                            <th>Attempts</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for perf in user.performance %}
+                                        <tr>
+                                            <td>{{ perf.concept }}</td>
+                                            <td>
+                                                {{ perf.success_rate }}%
+                                                <div class="progress-bar">
+                                                    <div class="progress-fill" style="width: {{ perf.success_rate }}%;"></div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                {{ perf.error_rate }}%
+                                                <div class="progress-bar">
+                                                    <div class="error-fill" style="width: {{ perf.error_rate }}%;"></div>
+                                                </div>
+                                            </td>
+                                            <td>{{ perf.total_attempts }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                                {% else %}
+                                <p style="margin-top: 15px; color: #666;">No performance data available for this user.</p>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            // Collapsible details
+            var coll = document.getElementsByClassName("collapsible");
+            for (var i = 0; i < coll.length; i++) {
+                coll[i].addEventListener("click", function() {
+                    this.classList.toggle("active");
+                    var content = this.nextElementSibling;
+                    if (content.style.maxHeight) {
+                        content.style.maxHeight = null;
+                    } else {
+                        content.style.maxHeight = content.scrollHeight + "px";
+                    }
+                });
+            }
+
+            // Search functionality
+            $("#searchInput").on("keyup", function() {
+                var value = $(this).val().toLowerCase();
+                filterTable();
+            });
+
+            // Level filter
+            $("#levelFilter").on("change", function() {
+                filterTable();
+            });
+
+            // Sorting
+            $("#sortBy").on("change", function() {
+                sortTable();
+            });
+
+            function filterTable() {
+                var searchValue = $("#searchInput").val().toLowerCase();
+                var levelFilter = $("#levelFilter").val();
+                
+                $("#userTable tbody tr").filter(function() {
+                    var nameMatch = $(this).data('name').toLowerCase().indexOf(searchValue) > -1;
+                    var emailMatch = $(this).data('email').toLowerCase().indexOf(searchValue) > -1;
+                    var levelMatch = levelFilter === 'all' || $(this).data('level') === levelFilter;
+                    
+                    $(this).toggle((nameMatch || emailMatch) && levelMatch);
+                });
+            }
+
+            function sortTable() {
+                var sortBy = $("#sortBy").val();
+                var rows = $("#userTable tbody tr").toArray();
+                
+                rows.sort(function(a, b) {
+                    var aVal, bVal;
+                    
+                    if (sortBy === 'name') {
+                        aVal = $(a).data('name').toLowerCase();
+                        bVal = $(b).data('name').toLowerCase();
+                        return aVal.localeCompare(bVal);
+                    } else if (sortBy === 'level') {
+                        var levelOrder = {'A1': 1, 'A2': 2, 'B1': 3, 'B2': 4, 'C1': 5, 'C2': 6};
+                        aVal = levelOrder[$(a).data('level')] || 0;
+                        bVal = levelOrder[$(b).data('level')] || 0;
+                        return bVal - aVal; // Show higher levels first
+                    } else if (sortBy === 'score') {
+                        aVal = parseInt($(a).find('td:eq(6)').text());
+                        bVal = parseInt($(b).find('td:eq(6)').text());
+                        return bVal - aVal; // Sort by highest score
+                    } else if (sortBy === 'activity') {
+                        aVal = $(a).find('td:eq(7)').text();
+                        bVal = $(b).find('td:eq(7)').text();
+                        return aVal === 'Never' ? 1 : bVal === 'Never' ? -1 : aVal.localeCompare(bVal);
+                    } else if (sortBy === 'lessons') {
+                        aVal = parseInt($(a).find('td:eq(5)').text());
+                        bVal = parseInt($(b).find('td:eq(5)').text());
+                        return bVal - aVal; // Sort by most lessons
+                    }
+                    
+                    return 0;
+                });
+                
+                $.each(rows, function(index, row) {
+                    $("#userTable tbody").append(row);
+                });
+            }
+        });
+    </script>
+</body>
+</html>

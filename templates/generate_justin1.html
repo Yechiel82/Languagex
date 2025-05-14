@@ -686,7 +686,7 @@
 
                 const types = [];
                 if (sentence.fill_in_blank || sentence.fill_in_blank_question) types.push('fill_in_blank');
-                if (sentence.arrange_question || sentence.arrange_words) types.push('arrange_question'); // Make sure we always use 'arrange_question'
+                if (sentence.arrange_question || sentence.arrange_words) types.push('arrange_question');
                 if (sentence.multiple_choice || sentence.multiple_choice_question) types.push('multiple_choice');
                 if (sentence.selection_question) types.push('selection_question');
                 if (sentence.words && Array.isArray(sentence.words)) types.push('make_a_sentence');
@@ -893,13 +893,6 @@
                     output += `<input type="text" name="answer" required value="${cleanQuestion}" 
                         style="width:100%;padding:10px;border:1px solid var(--border-color);">`;
                     
-                    // Debug information about the finish_the_sentence question
-                    console.log('Finish the sentence question:', {
-                        id: sentence.id,
-                        finish_the_sentence_id: sentence.finish_the_sentence_id,
-                        question: sentence.question
-                    });
-                    
                     if (index === questions.length - 1) {
                         output += `<button type="button" id="submit-answer" class="submit-btn">Finish</button>`;
                     } else {
@@ -935,14 +928,7 @@
                         $('#answer-box .word-chip').each(function() {
                             arranged.push($(this).data('word'));
                         });
-                        
-                        // Join with a single space and trim any extra spaces
-                        const arrangedAnswer = arranged.join(' ').trim();
-                        
-                        // Log for debugging
-                        console.log('Arrange answer updated:', arrangedAnswer);
-                        
-                        $('#arrange-answer').val(arrangedAnswer);
+                        $('#arrange-answer').val(arranged.join(' '));
                     }
                 }
 
@@ -1263,21 +1249,6 @@
                 const questionType = sentence._chosenType;
                 const questionId = getQuestionId(sentence, questionType);
                 
-                // Debug information
-                console.log('Submitting answer:', {
-                    question_id: questionId,
-                    question_type: questionType,
-                    user_answer: userAnswer,
-                    sentence: sentence // Log the entire sentence object for debugging
-                });
-                
-                // Validate that we have a question ID before submitting
-                if (!questionId) {
-                    console.error('Missing question ID for', questionType, 'question:', sentence);
-                    alert('Error: Could not find question ID. Please try again or choose a different question type.');
-                    return;
-                }
-                
                 $.ajax({
                     url: '/submit_answer',
                     type: 'POST',
@@ -1313,18 +1284,15 @@
                 if (questionType === 'fill_in_blank') {
                     return sentence.fill_in_blank_id;
                 } else if (questionType === 'arrange_question') {
-                    // Try multiple possible ID properties for arrange questions
-                    return sentence.arrange_id || sentence.id || sentence.arrange_question_id;
+                    return sentence.arrange_id;
                 } else if (questionType === 'multiple_choice') {
                     return sentence.multiple_choice_id;
                 } else if (questionType === 'selection_question') {
-                    // Try all possible locations for selection_question_id
-                    return sentence.selection_question_id || sentence.id || null;
+                    return sentence.selection_question_id;
                 } else if (questionType === 'make_a_sentence') {
-                    return sentence.make_a_sentence_id || sentence.id;
+                    return sentence.make_a_sentence_id;
                 } else if (questionType === 'finish_the_sentence') {
-                    // Try all possible locations for finish_the_sentence_id
-                    return sentence.finish_the_sentence_id || sentence.id || null;
+                    return sentence.finish_the_sentence_id;
                 }
                 return null;
             }

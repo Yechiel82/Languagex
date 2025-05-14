@@ -382,6 +382,13 @@
                 <div class="profile-info">
                     <h1>{{ user.name }} <button class="edit-button" id="editProfileBtn">Edit Profile</button></h1>
                     <p>Learning {{ user.language }} • <span class="badge level-{{ user.level }}" id="levelBadge">Level {{ user.level }}</span></p>
+                    {% if session.get('is_admin', False) %}
+                    <div class="admin-panel" style="margin-top: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 8px;">
+                        <h3 style="margin-bottom: 10px;">Admin Controls</h3>
+                        <p>You are logged in with administrator privileges.</p>
+                        <a href="{{ url_for('admin_dashboard') }}" class="btn" style="display: inline-block; background-color: var(--accent-color); color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none; margin-top: 10px; font-weight: 500;">View User Statistics</a>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
             <div class="stats-grid">
