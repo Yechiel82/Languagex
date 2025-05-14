@@ -1412,8 +1412,30 @@ def generate_make_a_sentence():
 
     user_id = session.get('user_id')
     level = request.json.get('level', 'A1')
+    
+    # Check if specific words were provided (for recreating a question)
+    provided_words = request.json.get('words')
 
-    # Ambil beberapa soal FillInTheBlank milik user & level terkait
+    # If specific words were provided, create just one question with those words
+    if provided_words and isinstance(provided_words, list) and len(provided_words) > 0:
+        question_text = f"Make a sentence using these words: {', '.join(provided_words)}"
+        mas = MakeASentence(
+            question=question_text,
+            words=",".join(provided_words),
+            level=level,
+            for_user=user_id
+        )
+        db.session.add(mas)
+        db.session.commit()  # Commit immediately to get the ID
+        
+        return jsonify({'success': True, 'questions': [{
+            'id': mas.id,
+            'make_a_sentence_id': mas.id,  # Include both ID formats for consistency
+            'question': question_text,
+            'words': provided_words
+        }]})
+
+    # Otherwise, generate questions from FillInTheBlank as before
     fib_questions = FillInTheBlank.query.filter_by(for_user=user_id, level=level).all()
     if not fib_questions:
         return jsonify({'success': False, 'error': 'No FillInTheBlank questions found'}), 404
@@ -1436,8 +1458,11 @@ def generate_make_a_sentence():
             for_user=user_id
         )
         db.session.add(mas)
+        db.session.flush()  # Get the ID without committing yet
+        
         created_questions.append({
-            'id': mas.id,  # Tambahkan ID untuk referensi
+            'id': mas.id,
+            'make_a_sentence_id': mas.id,  # Include both ID formats for consistency
             'question': question_text,
             'words': selected_words
         })

@@ -421,252 +421,6 @@
                 return (text || '').replace(/\s*### Output:.*$/g, '').trim();
             }
             
-            // Modifikasi displayResultsSummary untuk menangani grammar check
-            function displayResultsSummary() {
-                let totalQuestions = questions.length;
-                let correctCount = 0;
-                let wrongCount = 0;
-                
-                // Count correct/incorrect answers
-                Object.values(savedAnswers).forEach(answer => {
-                    if (answer.isCorrect) {
-                        correctCount++;
-                    } else {
-                        wrongCount++;
-                    }
-                });
-                
-                const needsGrammarCheck = Object.values(savedAnswers).some(answer => answer.needsGrammarCheck);
-                
-                if (needsGrammarCheck) {
-                    let output = `<div class="results-summary" style="text-align:center;padding:20px;">
-                        <h3>Please wait...</h3>
-                        <p>The model is checking your sentences for grammar and accuracy.</p>
-                    </div>`;
-                    $('#output').html(output);
-
-                    const promises = Object.entries(savedAnswers)
-                        .filter(([_, answer]) => answer.needsGrammarCheck)
-                        .map(([index, answer]) => {
-                            const url = questions[index]._chosenType === 'make_a_sentence' ? 
-                                '/submit_make_a_sentence' : '/submit_finish_the_sentence';
-                            
-                            return fetch(url, {
-                                method: 'POST',
-                                headers: {'Content-Type': 'application/json'},
-                                body: JSON.stringify({sentence: answer.userAnswer})
-                            }).then(res => res.json());
-                        });
-
-                    Promise.all(promises)
-                        .then(results => {
-                            let i = 0;
-                            Object.entries(savedAnswers)
-                                .filter(([_, answer]) => answer.needsGrammarCheck)
-                                .forEach(([index, answer]) => {
-                                    const result = results[i++];
-                                    if (result.success) {
-                                        savedAnswers[index].grammarFeedback = result.result;
-                                        savedAnswers[index].isCorrect = result.result.score >= 0.7;
-                                    }
-                                    delete savedAnswers[index].needsGrammarCheck;
-                                });
-
-                            displayResultsSummary();
-                        })
-                        .catch(error => {
-                            console.error('Error checking grammar:', error);
-                            $('#output').html('<div style="color:red;">Error checking grammar. Please try again.</div>');
-                        });
-                    return;
-                }
-                
-                let output = `
-                    <div class="results-summary" style="background-color: #fff; border-radius: 10px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                        <h3 style="color: var(--accent-color); text-align: center; margin-bottom: 20px;">Lesson Complete!</h3>
-                        
-                        <div style="display: flex; justify-content: space-around; margin-bottom: 25px;">
-                            <div style="text-align: center; padding: 15px; background: #e9f7ef; border-radius: 8px; min-width: 120px;">
-                                <div style="font-size: 32px; font-weight: bold; color: var(--accent-color);">${correctCount}</div>
-                                <div>Correct</div>
-                            </div>
-                            <div style="text-align: center; padding: 15px; background: #feeeed; border-radius: 8px; min-width: 120px;">
-                                <div style="font-size: 32px; font-weight: bold; color: #e74c3c;">${wrongCount}</div>
-                                <div>Incorrect</div>
-                            </div>
-                            <div style="text-align: center; padding: 15px; background: #f0f3f7; border-radius: 8px; min-width: 120px;">
-                                <div style="font-size: 32px; font-weight: bold; color: #34495e;">${totalQuestions}</div>
-                                <div>Total</div>
-                            </div>
-                        </div>
-                        
-                        <h4 style="margin-top: 30px; margin-bottom: 15px;">Question Summary:</h4>
-                `;
-                
-                // Show each question with correct/incorrect status and the right answer
-                    questions.forEach((question, idx) => {
-                    const savedAnswer = savedAnswers[idx] || { isCorrect: false, userAnswer: 'No answer' };
-                    const isCorrect = savedAnswer.isCorrect;
-                    const statusColor = isCorrect ? '#27ae60' : '#e74c3c';
-                    const statusIcon = isCorrect ? '✓' : '✗';
-                    const statusText = isCorrect ? 'Correct' : 'Incorrect';
-                    
-                    let correctAnswerText = '';
-                    let chosenType = question._chosenType;
-                    let userAnswerText = savedAnswer.userAnswer;
-                    let scoreText = '';
-
-                    // Get the question text based on question type
-                    let questionText = '';
-                    if (chosenType === 'make_a_sentence') {
-                        questionText = 'Make a sentence using these words: ' + (question.words || []).join(', ');
-                        // Corrected answer
-                        if (savedAnswer.grammarFeedback && savedAnswer.grammarFeedback.corrected) {
-                            correctAnswerText = savedAnswer.grammarFeedback.corrected;
-                        } else {
-                            correctAnswerText = '';
-                        }
-                        // Tambahkan Corrections jika ada
-                        if (savedAnswer.grammarFeedback && Array.isArray(savedAnswer.grammarFeedback.corrections) && savedAnswer.grammarFeedback.corrections.length > 0) {
-                            correctAnswerText += `<br><b>Corrections:</b><br>${
-                                savedAnswer.grammarFeedback.corrections.map(c => c).join('<br>')
-                            }`;
-                        }
-                        // Show score if available
-                        if (savedAnswer.grammarFeedback && typeof savedAnswer.grammarFeedback.score === 'number') {
-                            scoreText = `<div><strong>Score:</strong> ${(savedAnswer.grammarFeedback.score * 100).toFixed(1)}%</div>`;
-                        }
-                    }
-
-                    if (chosenType === 'finish_the_sentence') {
-                        questionText = 'Finish the sentence: ' + (question.question || '');
-                        // Corrected answer
-                        if (savedAnswer.grammarFeedback && savedAnswer.grammarFeedback.corrected) {
-                            correctAnswerText = savedAnswer.grammarFeedback.corrected;
-                        } else {
-                            correctAnswerText = '';
-                        }
-                        // Tambahkan Corrections jika ada
-                        if (savedAnswer.grammarFeedback && Array.isArray(savedAnswer.grammarFeedback.corrections) && savedAnswer.grammarFeedback.corrections.length > 0) {
-                            correctAnswerText += `<br><b>Corrections:</b><br>${
-                                savedAnswer.grammarFeedback.corrections.map(c => c).join('<br>')
-                            }`;
-                        }
-                        // Show score if available
-                        if (savedAnswer.grammarFeedback && typeof savedAnswer.grammarFeedback.score === 'number') {
-                            scoreText = `<div><strong>Score:</strong> ${(savedAnswer.grammarFeedback.score * 100).toFixed(1)}%</div>`;
-                        }
-                    }
-
-                    if (chosenType === 'fill_in_blank') {
-                        if (question.fill_in_blank_question && question.fill_in_blank_question.question_text) {
-                            questionText = question.fill_in_blank_question.question_text;
-                        } else if (question.fill_in_blank) {
-                            questionText = question.fill_in_blank;
-                        }
-                        
-                        // Get correct answer from the right location
-                        if (question.fill_in_blank_question && question.fill_in_blank_question.correct_answer) {
-                            correctAnswerText = question.fill_in_blank_question.correct_answer;
-                        } else if (question.verb) {
-                            correctAnswerText = question.verb;
-                        } else if (question.fill_in_blank_answer) {
-                            correctAnswerText = question.fill_in_blank_answer;
-                        } else {
-                            correctAnswerText = '';
-                        }
-
-                    } else if (chosenType === 'arrange_question') {
-                        questionText = 'Arrange the words in the correct order.';
-                        correctAnswerText = question.sentence || question.correct_arrangement || '';
-                        // Format user answer for readability
-                        if (typeof userAnswerText === 'string') {
-                            userAnswerText = userAnswerText.replace(/\s+/g, ' ').trim();
-                        }
-                        // Remove trailing punctuation from correctAnswerText for display to avoid confusion
-                        if (typeof correctAnswerText === 'string') {
-                            correctAnswerText = correctAnswerText.replace(/[.,!?;:]+$/, '');
-                        }
-
-                    } else if (chosenType === 'multiple_choice') {
-                        // Try all possible locations for the question text
-                        if (question.multiple_choice && question.multiple_choice.question_text) {
-                            questionText = question.multiple_choice.question_text;
-                        } else if (question.multiple_choice_question && question.multiple_choice_question.question_text) {
-                            questionText = question.multiple_choice_question.question_text;
-                        } else {
-                            questionText = 'Multiple choice question';
-                        }
-                        
-                        // Try all possible locations for the correct answer
-                        if (question.multiple_choice && question.multiple_choice.correct_answer) {
-                            correctAnswerText = question.multiple_choice.correct_answer;
-                        } else if (question.multiple_choice_question && question.multiple_choice_question.correct_answer) {
-                            correctAnswerText = question.multiple_choice_question.correct_answer;
-                        } else if (question.correct_answer) {
-                            correctAnswerText = question.correct_answer;
-                        } else {
-                            correctAnswerText = 'No correct answer provided';
-                        }
-
-                    } else if (chosenType === 'selection_question') {
-                        questionText = question.selection_question?.question_text || '';
-                        correctAnswerText = question.selection_question?.correct_sentence || '';
-
-                    }
-                    
-                    output += `
-                        <div style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #eee;">
-                            <div style="display: flex; align-items: center; margin-bottom: 8px;">
-                                <span style="display: inline-block; width: 24px; height: 24px; background: ${statusColor}; 
-                                    color: white; text-align: center; border-radius: 50%; margin-right: 10px;">${statusIcon}</span>
-                                <h5 style="margin: 0; color: ${statusColor};">Question ${idx + 1}: ${statusText}</h5>
-                            </div>
-                            
-                            <div style="margin-top: 10px; margin-left: 34px;">
-                                <div style="margin-bottom: 8px;"><strong>Question:</strong> ${cleanQuestionText(questionText)}</div>
-                                <div style="margin-bottom: 5px;"><strong>Type:</strong> ${formatQuestionType(chosenType)}</div>
-                                <div style="margin-bottom: 5px;"><strong>Your Answer:</strong> ${userAnswerText}</div>
-                                <div><strong>Correct Answer:</strong> ${correctAnswerText}</div>
-                                ${scoreText}
-                            </div>
-                        </div>
-                    `;
-                });
-                
-                output += `
-                    <div style="text-align: center; margin-top: 30px;">
-                        <button id="new-lesson-btn" style="padding: 12px 24px; background-color: var(--accent-color); color: white; 
-                                border: none; border-radius: 8px; font-size: 16px; cursor: pointer;">Start New Lesson</button>
-                    </div>
-                </div>
-                `;
-                
-                $('#output').html(output);
-                
-                // Handle new lesson button click
-                $('#new-lesson-btn').on('click', function() {
-                    $('#welcomeMessage').show();
-                    $('#output').html('');
-                    savedAnswers = {};
-                    currentIndex = 0;
-                    questions = [];
-                });
-            }
-
-            // Helper function to format question type for display
-            function formatQuestionType(type) {
-                switch(type) {
-                    case 'fill_in_blank': return 'Fill in the Blank';
-                    case 'arrange_question': return 'Arrange the Words';
-                    case 'multiple_choice': return 'Multiple Choice';
-                    case 'selection_question': return 'Selection Question';
-                    case 'make_a_sentence': return 'Make a Sentence';
-                    case 'finish_the_sentence': return 'Finish the Sentence';
-                    default: return type.charAt(0).toUpperCase() + type.slice(1).replace('_', ' ');
-                }
-            }
-
             function displayQuestion(index) {
                 if (index >= questions.length) {
                     $('#output').html('<h3>All questions completed!</h3>');
@@ -878,6 +632,13 @@
                     output += `<input type="text" name="answer" required placeholder="Write your sentence here..."
                         style="width:100%;padding:10px;border:1px solid var(--border-color);">`;
                     
+                    // Debug information about the make_a_sentence question
+                    console.log('Make a sentence question:', {
+                        id: sentence.id,
+                        make_a_sentence_id: sentence.make_a_sentence_id,
+                        words: sentence.words
+                    });
+                    
                     if (index === questions.length - 1) {
                         output += `<button type="button" id="submit-answer" class="submit-btn">Finish</button>`;
                     } else {
@@ -1039,7 +800,171 @@
                 }
             }
 
-            // Update the sentence-form submit handler to clear previous session data
+            function getQuestionId(sentence, questionType) {
+                // Get the correct question ID based on question type
+                if (questionType === 'fill_in_blank') {
+                    return sentence.fill_in_blank_id;
+                } else if (questionType === 'arrange_question') {
+                    // Try multiple possible ID properties for arrange questions
+                    return sentence.arrange_id || sentence.id || sentence.arrange_question_id;
+                } else if (questionType === 'multiple_choice') {
+                    return sentence.multiple_choice_id;
+                } else if (questionType === 'selection_question') {
+                    // Try all possible locations for selection_question_id
+                    return sentence.selection_question_id || sentence.id || null;
+                } else if (questionType === 'make_a_sentence') {
+                    // Check all possible locations for make_a_sentence_id
+                    if (sentence.make_a_sentence_id) return sentence.make_a_sentence_id;
+                    if (sentence.id) return sentence.id;
+                    
+                    // If we still don't have an ID, log detailed information for debugging
+                    console.error('Missing make_a_sentence ID. Full sentence object:', JSON.stringify(sentence));
+                    return null;
+                } else if (questionType === 'finish_the_sentence') {
+                    // Try all possible locations for finish_the_sentence_id
+                    return sentence.finish_the_sentence_id || sentence.id || null;
+                }
+                return null;
+            }
+
+            $(document).on('click', '#make-a-sentence-btn', function() {
+                $.ajax({
+                    url: '/generate_make_a_sentence',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        level: $('#level').val()
+                    }),
+                    success: function(response) {
+                        if (response.success) {
+                            // Make sure each question has the correct ID field
+                            response.questions.forEach(q => {
+                                // Set both id and make_a_sentence_id to ensure compatibility
+                                if (q.id) {
+                                    q.make_a_sentence_id = q.id;
+                                }
+                            });
+                            
+                            questions = response.questions;
+                            questions.forEach(q => q._chosenType = 'make_a_sentence');
+                            
+                            currentIndex = 0;
+                            startLessonTimer();
+                            displayQuestion(currentIndex);
+                        } else {
+                            alert('Error: ' + response.error);
+                        }
+                    }
+                });
+            });
+
+            $(document).on('click', '#submit-answer', function() {
+                const sentence = questions[currentIndex];
+                const questionType = sentence._chosenType;
+                const questionId = getQuestionId(sentence, questionType);
+                let userAnswer = '';
+
+                if (questionType === 'fill_in_blank') {
+                    userAnswer = $('input[name="answer"]').val().trim();
+                } else if (questionType === 'arrange_question') {
+                    userAnswer = $('#arrange-answer').val().trim();
+                } else if (questionType === 'multiple_choice') {
+                    const checked = $('input[name="answer"]:checked');
+                    userAnswer = checked.length ? checked.val() : '';
+                } else if (questionType === 'selection_question') {
+                    const checked = $('input[name="selection_answer"]:checked');
+                    userAnswer = checked.length ? checked.val() : '';
+                } else if (questionType === 'make_a_sentence' || questionType === 'finish_the_sentence') {
+                    userAnswer = $('input[name="answer"]').val().trim();
+                }
+
+                // Debug information
+                console.log('Submitting answer:', {
+                    question_id: questionId,
+                    question_type: questionType,
+                    user_answer: userAnswer,
+                    sentence: sentence // Log the entire sentence object for debugging
+                });
+
+                if (questionType === 'make_a_sentence') {
+                    console.log('Make a sentence details:', {
+                        id: sentence.id,
+                        make_a_sentence_id: sentence.make_a_sentence_id,
+                        words: sentence.words,
+                        full_object: JSON.stringify(sentence)
+                    });
+                }
+
+                // Validate that we have a question ID before submitting
+                if (!questionId) {
+                    console.error('Missing question ID for', questionType, 'question:', sentence);
+                    
+                    // For make_a_sentence questions, attempt to create a new question if ID is missing
+                    if (questionType === 'make_a_sentence' && Array.isArray(sentence.words) && sentence.words.length > 0) {
+                        console.log('Attempting to create new make_a_sentence question...');
+                        $.ajax({
+                            url: '/generate_make_a_sentence',
+                            type: 'POST',
+                            contentType: 'application/json',
+                            data: JSON.stringify({
+                                level: $('#level').val(),
+                                words: sentence.words
+                            }),
+                            success: function(response) {
+                                if (response.success && response.questions && response.questions.length > 0) {
+                                    // Update our question with the newly created ID
+                                    sentence.id = response.questions[0].id;
+                                    sentence.make_a_sentence_id = response.questions[0].id;
+                                    
+                                    // Try submitting again now that we have an ID
+                                    submitAnswer(currentIndex, userAnswer);
+                                } else {
+                                    alert('Error: Could not create question. Please try again.');
+                                }
+                            },
+                            error: function() {
+                                alert('Error connecting to server. Please try again.');
+                            }
+                        });
+                        return;
+                    }
+                    
+                    alert('Error: Could not find question ID. Please try again or choose a different question type.');
+                    return;
+                }
+
+                $.ajax({
+                    url: '/submit_answer',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        question_id: questionId,
+                        question_type: questionType,
+                        user_answer: userAnswer,
+                        time_spent: Math.round((Date.now() - lessonStartTime) / 1000),
+                        concept: currentTopic
+                    }),
+                    success: function(response) {
+                        if (response.success) {
+                            savedAnswers[currentIndex] = {
+                                userAnswer: userAnswer,
+                                isCorrect: response.is_correct
+                            };
+                            
+                            currentIndex += 1;
+                            displayQuestion(currentIndex);
+                        } else {
+                            console.error('Error submitting answer:', response.error);
+                            alert('Error submitting answer: ' + response.error);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('AJAX Error:', xhr.responseText);
+                        alert('Error connecting to the server. Please try again.');
+                    }
+                });
+            });
+
             $('#sentence-form').submit(function(e) {
                 e.preventDefault();
                 $('#welcomeMessage').hide();
@@ -1256,85 +1181,6 @@
                 
                 // Submit the answer
                 submitAnswer(currentIndex, userAnswer);
-            });
-
-            function submitAnswer(index, userAnswer) {
-                const sentence = questions[index];
-                const questionType = sentence._chosenType;
-                const questionId = getQuestionId(sentence, questionType);
-                
-                // Debug information
-                console.log('Submitting answer:', {
-                    question_id: questionId,
-                    question_type: questionType,
-                    user_answer: userAnswer,
-                    sentence: sentence // Log the entire sentence object for debugging
-                });
-                
-                // Validate that we have a question ID before submitting
-                if (!questionId) {
-                    console.error('Missing question ID for', questionType, 'question:', sentence);
-                    alert('Error: Could not find question ID. Please try again or choose a different question type.');
-                    return;
-                }
-                
-                $.ajax({
-                    url: '/submit_answer',
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify({
-                        question_id: questionId,
-                        question_type: questionType,
-                        user_answer: userAnswer,
-                        time_spent: Math.round((Date.now() - lessonStartTime) / 1000),
-                        concept: currentTopic
-                    }),
-                    success: function(response) {
-                        if (response.success) {
-                            savedAnswers[index].isCorrect = response.is_correct;
-                            
-                            // Move to next question or show results
-                            currentIndex += 1;
-                            displayQuestion(currentIndex);
-                        } else {
-                            console.error('Error submitting answer:', response.error);
-                            alert('Error submitting answer: ' + response.error);
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        console.error('AJAX Error:', xhr.responseText);
-                        alert('Error connecting to the server. Please try again.');
-                    }
-                });
-            }
-
-            function getQuestionId(sentence, questionType) {
-                // Get the correct question ID based on question type
-                if (questionType === 'fill_in_blank') {
-                    return sentence.fill_in_blank_id;
-                } else if (questionType === 'arrange_question') {
-                    // Try multiple possible ID properties for arrange questions
-                    return sentence.arrange_id || sentence.id || sentence.arrange_question_id;
-                } else if (questionType === 'multiple_choice') {
-                    return sentence.multiple_choice_id;
-                } else if (questionType === 'selection_question') {
-                    // Try all possible locations for selection_question_id
-                    return sentence.selection_question_id || sentence.id || null;
-                } else if (questionType === 'make_a_sentence') {
-                    return sentence.make_a_sentence_id || sentence.id;
-                } else if (questionType === 'finish_the_sentence') {
-                    // Try all possible locations for finish_the_sentence_id
-                    return sentence.finish_the_sentence_id || sentence.id || null;
-                }
-                return null;
-            }
-            
-            // Fix next button functionality
-            $(document).on('click', '.next-btn', function() {
-                if (typeof window.currentIndex !== 'undefined' && typeof window.questions !== 'undefined') {
-                    window.currentIndex += 1;
-                    window.displayQuestion(window.currentIndex);
-                }
             });
         });
     </script>
