@@ -1,52 +1,59 @@
-2025-05-15 16:59:23,962 - app - INFO - Profile access for user_id: 1
-2025-05-15 16:59:23,989 - app - INFO - Admin user confirmed, setting is_admin flag
-2025-05-15 17:03:00,878 - app - INFO - Flask app is starting up
-2025-05-15 17:03:46,648 - app - INFO - Received generate request: level=A2, topic=seed, num_sentences=2, user_id=2
-2025-05-15 17:03:46,650 - app - INFO - Sending request to https://51ce-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A2', 'num_sentences': 2, 'user_id': 2, 'topic': 'seed', 'question_types': ['fill_in_blank']}
-2025-05-15 17:03:51,536 - app - INFO - API response status: 200
-2025-05-15 17:03:51,537 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'Seed is used for growing plants.', 'verb': 'used', 'level': 'A2', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'Seed is __ for growing plants  (use).', 'correct_answer': 'used'}}, {'sentence': 'After planting a seed, water it daily for better growth.', 'verb': 'water', 'level': 'A2', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'After planting a seed , __ it daily for better growth  (water).', 'correct_answer': 'water'}}], 'message': "Generated 2 sentences for level A2 on topic 'seed' with question types ['fill_in_blank']", 'processing_time': 3.484179973602295, 'timestamp': '2025-05-15T17:03:51.460379'}
-2025-05-15 17:04:30,244 - app - INFO - Received submit_answer data: {'question_id': 8, 'user_answer': 'for after', 'is_correct': False, 'question_type': 'make_a_sentence', 'concept': 'seed', 'time_spent': 1}
-2025-05-15 17:04:30,246 - app - INFO - Received submit_answer data: {'question_id': None, 'user_answer': 'for after', 'is_correct': False, 'question_type': 'make_a_sentence', 'concept': 'seed', 'time_spent': 1}
-2025-05-15 17:04:30,247 - app - INFO - submit_answer called with question_id=8, question_type=make_a_sentence
-2025-05-15 17:04:30,248 - app - INFO - submit_answer called with question_id=None, question_type=make_a_sentence
-2025-05-15 17:04:30,253 - app - ERROR - submit_answer: Missing question_id
-2025-05-15 17:04:30,280 - app - INFO - Required words: ['for', 'after']
-2025-05-15 17:04:30,280 - app - INFO - Words in answer: ['for', 'after']
-2025-05-15 17:04:36,663 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'my toy is being used by my sister', 'corrected': 'My toy is being used by my sister .', 'corrections': ["1. Changed 'my' to 'My' - Replace orthographic", "2. Changed '' to '.' - Missing punctuation"]}
-2025-05-15 17:04:39,018 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'for after', 'corrected': 'After', 'corrections': ["1. Changed 'for after' to 'After' - Unnecessary preposition"]}
-2025-05-15 17:04:42,597 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'my toy is being used by my sister', 'corrected': 'My toy is being used by my sister .', 'corrections': ["1. Changed 'my' to 'My' - Replace orthographic", "2. Changed '' to '.' - Missing punctuation"]}
-2025-05-15 17:04:44,996 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'for after', 'corrected': 'After', 'corrections': ["1. Changed 'for after' to 'After' - Unnecessary preposition"]}
-2025-05-15 17:06:38,130 - app - INFO - Received generate request: level=A2, topic=seed, num_sentences=2, user_id=2
-2025-05-15 17:06:38,132 - app - INFO - Sending request to https://51ce-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A2', 'num_sentences': 2, 'user_id': 2, 'topic': 'seed', 'question_types': ['fill_in_blank']}
-2025-05-15 17:06:44,971 - app - INFO - API response status: 200
-2025-05-15 17:06:44,974 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'The seeds need some water to grow.', 'verb': 'need', 'level': 'A2', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'The seeds __ some water to grow  (need).', 'correct_answer': 'need'}}, {'sentence': 'The seed grows very quickly in warm weather.', 'verb': 'grows', 'level': 'A2', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'The seed __ very quickly in warm weather  (grow).', 'correct_answer': 'grows'}}], 'message': "Generated 2 sentences for level A2 on topic 'seed' with question types ['fill_in_blank']", 'processing_time': 5.483049392700195, 'timestamp': '2025-05-15T17:06:44.940235'}
-2025-05-15 17:06:45,030 - app - INFO - Stored 2 valid sentences for user 2
-2025-05-15 17:06:45,030 - app - INFO - Returning 2 sentences to client
-2025-05-15 17:06:51,653 - app - INFO - Received submit_answer data: {'question_id': 10, 'user_answer': 'grow', 'is_correct': False, 'question_type': 'fill_in_blank', 'concept': 'seed', 'time_spent': 0}
-2025-05-15 17:06:51,654 - app - INFO - Received submit_answer data: {'question_id': 10, 'user_answer': 'grow', 'is_correct': False, 'question_type': 'fill_in_blank', 'concept': 'seed', 'time_spent': 0}
-2025-05-15 17:06:51,655 - app - INFO - submit_answer called with question_id=10, question_type=fill_in_blank
-2025-05-15 17:06:51,655 - app - INFO - submit_answer called with question_id=10, question_type=fill_in_blank
-2025-05-15 17:06:56,178 - app - INFO - Received generate request: level=A2, topic=seed, num_sentences=2, user_id=2
-2025-05-15 17:06:56,179 - app - INFO - Sending request to https://51ce-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A2', 'num_sentences': 2, 'user_id': 2, 'topic': 'seed', 'question_types': ['arrange']}
-2025-05-15 17:07:04,323 - app - INFO - API response status: 200
-2025-05-15 17:07:04,324 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'The seed has been planted in the ground.', 'verb': 'has', 'level': 'A2', 'for_user': 2, 'arrange_question': {'question_text': 'Arrange the words to form the correct sentence.', 'words': ['has', 'ground', 'planted', 'the', 'been', 'in', 'seed', 'The'], 'correct_sentence': 'The seed has been planted in the ground.'}}, {'sentence': 'The farmer sowed the seeds in the ground in spring.', 'verb': 'sowed', 'level': 'A2', 'for_user': 2, 'arrange_question': {'question_text': 'Arrange the words to form the correct sentence.', 'words': ['sowed', 'the', 'The', 'in', 'ground', 'seeds', 'in', 'farmer', 'the', 'spring'], 'correct_sentence': 'The farmer sowed the seeds in the ground in spring.'}}], 'message': "Generated 2 sentences for level A2 on topic 'seed' with question types ['arrange']", 'processing_time': 6.693413734436035, 'timestamp': '2025-05-15T17:07:04.052425'}
-2025-05-15 17:07:04,356 - app - INFO - Stored 2 valid sentences for user 2
-2025-05-15 17:07:04,356 - app - INFO - Returning 2 sentences to client
-2025-05-15 17:07:29,664 - app - INFO - Received submit_answer data: {'question_id': 2, 'user_answer': 'The farmer sowed the seeds in the ground in spring', 'is_correct': True, 'question_type': 'arrange_question', 'concept': 'seed', 'time_spent': 0}
-2025-05-15 17:07:29,665 - app - INFO - Received submit_answer data: {'question_id': 2, 'user_answer': 'The farmer sowed the seeds in the ground in spring', 'is_correct': True, 'question_type': 'arrange_question', 'concept': 'seed', 'time_spent': 0}
-2025-05-15 17:07:29,666 - app - INFO - submit_answer called with question_id=2, question_type=arrange_question
-2025-05-15 17:07:29,666 - app - INFO - submit_answer called with question_id=2, question_type=arrange_question
-2025-05-15 17:07:36,036 - app - INFO - Received generate request: level=A2, topic=seed, num_sentences=2, user_id=2
-2025-05-15 17:07:36,037 - app - INFO - Sending request to https://51ce-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A2', 'num_sentences': 2, 'user_id': 2, 'topic': 'seed', 'question_types': ['multiple_choice']}
-2025-05-15 17:07:47,573 - app - INFO - API response status: 200
-2025-05-15 17:07:47,574 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'The seeds from the big tree were planted in small pots.', 'verb': 'planted', 'level': 'A2', 'for_user': 2, 'multiple_choice_question': {'question_text': 'The seeds from the big tree were __ in small pots .', 'options': ['planted', 'sown', 'scattered', 'buried'], 'correct_answer': 'planted'}}, {'sentence': 'The seed is in the ground.', 'verb': 'is', 'level': 'A2', 'for_user': 2, 'multiple_choice_question': {'question_text': 'The seed __ in the ground .', 'options': ['is', 'cover', 'spread', 'grow'], 'correct_answer': 'is'}}], 'message': "Generated 2 sentences for level A2 on topic 'seed' with question types ['multiple_choice']", 'processing_time': 9.949025392532349, 'timestamp': '2025-05-15T17:07:47.412715'}
-2025-05-15 17:07:47,587 - app - INFO - Stored 2 valid sentences for user 2
-2025-05-15 17:07:47,588 - app - INFO - Returning 2 sentences to client
-2025-05-15 17:08:00,959 - app - INFO - Received submit_answer data: {'question_id': 18, 'user_answer': 'is', 'is_correct': True, 'question_type': 'multiple_choice', 'concept': 'seed', 'time_spent': 0}
-2025-05-15 17:08:00,960 - app - INFO - Received submit_answer data: {'question_id': 18, 'user_answer': 'is', 'is_correct': True, 'question_type': 'multiple_choice', 'concept': 'seed', 'time_spent': 0}
-2025-05-15 17:08:00,962 - app - INFO - submit_answer called with question_id=18, question_type=multiple_choice
-2025-05-15 17:08:00,962 - app - INFO - submit_answer called with question_id=18, question_type=multiple_choice
-2025-05-15 17:13:51,368 - app - INFO - Flask app is starting up
-2025-05-15 17:14:01,148 - app - INFO - Received generate request: level=A2, topic=food, num_sentences=2, user_id=2
-2025-05-15 17:14:01,150 - app - INFO - Sending request to https://a657-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A2', 'num_sentences': 2, 'user_id': 2, 'topic': 'food', 'question_types': ['multiple_choice']}
-2025-05-15 17:14:22,105 - app - INFO - API response status: 200
+2025-05-15 17:59:16,757 - app - ERROR - Exception on /generate [GET]
+Traceback (most recent call last):
+  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/flask/app.py", line 1473, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/flask/app.py", line 882, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/flask/app.py", line 880, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/flask/app.py", line 865, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Yechiel/Project/Languagex/app.py", line 432, in generate
+    return render_template('generate.html')
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/flask/templating.py", line 149, in render_template
+    template = app.jinja_env.get_or_select_template(template_name_or_list)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/jinja2/environment.py", line 1084, in get_or_select_template
+    return self.get_template(template_name_or_list, parent, globals)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/jinja2/environment.py", line 1013, in get_template
+    return self._load_template(name, globals)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/jinja2/environment.py", line 972, in _load_template
+    template = self.loader.load(self, name, self.make_globals(globals))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/jinja2/loaders.py", line 138, in load
+    code = environment.compile(source, name, filename)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/jinja2/environment.py", line 768, in compile
+    self.handle_exception(source=source_hint)
+  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/jinja2/environment.py", line 939, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/Volumes/Yechiel/Project/Languagex/templates/generate.html", line 330, in template
+    {% comment %} <option value="labeling">Labeling Question</option> {% endcomment %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.TemplateSyntaxError: Encountered unknown tag 'comment'.
+2025-05-15 17:59:30,763 - app - INFO - Flask app is starting up
+2025-05-15 17:59:39,629 - app - INFO - Received generate request: level=A2, topic=food, num_sentences=2, user_id=2
+2025-05-15 17:59:39,631 - app - INFO - Sending request to https://a657-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A2', 'num_sentences': 2, 'user_id': 2, 'topic': 'food', 'question_types': ['fill_in_blank']}
+2025-05-15 17:59:47,577 - app - INFO - API response status: 200
+2025-05-15 17:59:47,577 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'I am eating an apple.', 'verb': 'am', 'level': 'A2', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'I am __ an apple  (eat).', 'correct_answer': 'eating'}}, {'sentence': 'The pizza is made with tomato sauce and cheese.', 'verb': 'made', 'level': 'A2', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'The pizza is __ with tomato sauce and cheese  (make).', 'correct_answer': 'made'}}], 'message': "Generated 2 sentences for level A2 on topic 'food' with question types ['fill_in_blank']", 'processing_time': 6.502865552902222, 'timestamp': '2025-05-15T17:59:47.519870'}
+2025-05-15 17:59:47,623 - app - INFO - Stored 2 valid sentences for user 2
+2025-05-15 17:59:47,623 - app - INFO - Returning 2 sentences to client
+2025-05-15 17:59:51,871 - app - INFO - Received submit_answer data: {'question_id': 29, 'user_answer': 'eating', 'is_correct': True, 'question_type': 'fill_in_blank', 'concept': 'food', 'time_spent': 0}
+2025-05-15 17:59:51,872 - app - INFO - submit_answer called with question_id=29, question_type=fill_in_blank
+2025-05-15 17:59:56,412 - app - INFO - Received submit_answer data: {'question_id': 30, 'user_answer': 'made', 'is_correct': True, 'question_type': 'fill_in_blank', 'concept': 'food', 'time_spent': 0}
+2025-05-15 17:59:56,414 - app - INFO - submit_answer called with question_id=30, question_type=fill_in_blank
+2025-05-15 17:59:59,884 - app - INFO - Received generate request: level=A2, topic=food, num_sentences=2, user_id=2
+2025-05-15 17:59:59,886 - app - INFO - Sending request to https://a657-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A2', 'num_sentences': 2, 'user_id': 2, 'topic': 'food'}
+2025-05-15 18:00:17,401 - app - INFO - API response status: 200
+2025-05-15 18:00:17,402 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'In 1983 the company started to sell beef.', 'verb': 'started', 'level': 'A2', 'for_user': 2, 'selection_question': {'question_text': 'Choose the correct sentence.', 'sentences': 'In 1983 the an company started to sell beef .|In 1983 the compaan started to sell beef .|In 1983 the company started to sell beef.', 'correct_sentence': 'In 1983 the company started to sell beef.'}, 'labeling_question': {'question_text': 'In 1983 the company started to sell beef.', 'instruction': 'Assign subject, verb, object, prepositional phrase to the correct words or phrases.', 'correct_labels': {'subject': 'the company', 'verb': 'started', 'object': 'beef', 'prepositional phrase': 'In 1983'}}, 'fill_in_blank_question': {'question_text': 'In 1983 the company __ to sell beef  (start).', 'correct_answer': 'started'}, 'multiple_choice_question': {'question_text': 'In 1983 the company __ to sell beef .', 'options': ['offered', 'started', 'introduced', 'launched'], 'correct_answer': 'started'}, 'arrange_question': {'question_text': 'Arrange the words to form the correct sentence.', 'words': ['started', 'beef', 'sell', 'In', 'the', 'to', '1983', 'company'], 'correct_sentence': 'In 1983 the company started to sell beef.'}}, {'sentence': 'I ate an apple for breakfast.', 'verb': 'ate', 'level': 'A2', 'for_user': 2, 'selection_question': {'question_text': 'Choose the correct sentence.', 'sentences': 'I ate an apple for breakfast.|a I ate an apple for breakfast .|I eated an apple for breakfast .', 'correct_sentence': 'I ate an apple for breakfast.'}, 'labeling_question': {'question_text': 'I ate an apple for breakfast.', 'instruction': 'Assign subject, verb, object, prepositional phrase to the correct words or phrases.', 'correct_labels': {'subject': 'I', 'verb': 'ate', 'object': 'an apple', 'prepositional phrase': 'for breakfast'}}, 'fill_in_blank_question': {'question_text': 'I __ an apple for breakfast  (eat).', 'correct_answer': 'ate'}, 'multiple_choice_question': {'question_text': 'I __ an apple for breakfast .', 'options': ['chewed', 'peeled', 'sliced', 'ate'], 'correct_answer': 'ate'}, 'arrange_question': {'question_text': 'Arrange the words to form the correct sentence.', 'words': ['an', 'for', 'I', 'ate', 'apple', 'breakfast'], 'correct_sentence': 'I ate an apple for breakfast.'}}], 'message': "Generated 2 sentences for level A2 on topic 'food' with question types ['selection', 'labeling', 'fill_in_blank', 'multiple_choice', 'arrange']", 'processing_time': 16.547797679901123, 'timestamp': '2025-05-15T18:00:17.274612'}
+2025-05-15 18:00:17,403 - app - ERROR - Unexpected error in generate route: argument of type 'NoneType' is not iterable
+2025-05-15 18:00:19,647 - app - INFO - Received generate request: level=A2, topic=food, num_sentences=2, user_id=2
+2025-05-15 18:00:19,648 - app - INFO - Sending request to https://a657-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A2', 'num_sentences': 2, 'user_id': 2, 'topic': 'food'}
+2025-05-15 18:00:34,856 - app - INFO - API response status: 200

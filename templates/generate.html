@@ -327,7 +327,6 @@
                 <option value="arrange">Arrange the Words</option>
                 <option value="multiple_choice">Multiple Choice</option>
                 <option value="selection">Selection Question</option>
-                <option value="labeling">Labeling Question</option>
                 <option value="make_a_sentence">Make a Sentence</option>
                 <option value="finish_the_sentence">Finish the Sentence</option>
             </select>
@@ -357,6 +356,7 @@
             let lessonStartTime = null;
             let lessonEndTime = null;
             let savedAnswers = {};
+            let isSubmitting = false; // Add this to debug duplicate form submissions
 
             // Clear previous session data
             savedAnswers = {};
@@ -607,27 +607,6 @@
                         questionText = question.selection_question?.question_text || '';
                         correctAnswerText = question.selection_question?.correct_sentence || '';
 
-                    } else if (chosenType === 'labeling_question') {
-                        questionText = question.labeling_question?.question_text || '';
-                        try {
-                            let correctLabels = question.labeling_question.correct_labels;
-                            if (typeof correctLabels === 'string') {
-                                correctLabels = JSON.parse(correctLabels);
-                            }
-                            correctAnswerText = Object.entries(correctLabels)
-                                .map(([label, word]) => `${label}: ${word}`)
-                                .join('; ');
-                                
-                            // Format user answer for readability
-                            if (typeof userAnswerText === 'string' && userAnswerText.startsWith('{')) {
-                                let userLabels = JSON.parse(userAnswerText);
-                                userAnswerText = Object.entries(userLabels)
-                                    .map(([label, word]) => `${label}: ${word}`)
-                                    .join('; ');
-                            }
-                        } catch (e) {
-                            correctAnswerText = 'Error parsing labels';
-                        }
                     }
                     
                     output += `
@@ -676,7 +655,6 @@
                     case 'arrange_question': return 'Arrange the Words';
                     case 'multiple_choice': return 'Multiple Choice';
                     case 'selection_question': return 'Selection Question';
-                    case 'labeling_question': return 'Labeling Question';
                     case 'make_a_sentence': return 'Make a Sentence';
                     case 'finish_the_sentence': return 'Finish the Sentence';
                     default: return type.charAt(0).toUpperCase() + type.slice(1).replace('_', ' ');
@@ -697,7 +675,7 @@
                 if (sentence.arrange_question || sentence.arrange_words) types.push('arrange_question');
                 if (sentence.multiple_choice || sentence.multiple_choice_question) types.push('multiple_choice');
                 if (sentence.selection_question) types.push('selection_question');
-                if (sentence.labeling_question) types.push('labeling_question');
+                if (sentence.labeling_question && typeof sentence.labeling_question === 'object') types.push('labeling_question');
                 if (sentence.words && Array.isArray(sentence.words)) types.push('make_a_sentence');
                 if (sentence.question && !sentence.words) types.push('finish_the_sentence');
 
@@ -874,8 +852,8 @@
                     }
 
                 } else if (chosenType === 'labeling_question') {
-                    let questionText = sentence.labeling_question.question_text || '';
-                    let instruction = sentence.labeling_question.instruction || '';
+                    let questionText = sentence.labeling_question?.question_text || '';
+                    let instruction = sentence.labeling_question?.instruction || '';
                     
                     // Extract the actual sentence from the question text
                     const questionMatch = questionText.match(/Label the constituents in the sentence:\s*(.*?)(?:$|\s*###)/i);
@@ -885,7 +863,7 @@
                     output += `<div style="margin-bottom:12px;">${questionText}</div>`;
                     output += `<div style="margin-bottom:16px;font-style:italic;">${instruction}</div>`;
                     
-                    let correctLabels = sentence.labeling_question.correct_labels || {};
+                    let correctLabels = sentence.labeling_question?.correct_labels || {};
                     if (typeof correctLabels === 'string') {
                         try {
                             correctLabels = JSON.parse(correctLabels);
@@ -894,14 +872,16 @@
                         }
                     }
                     
+                    // Check if correctLabels is actually an object before proceeding
+                    if (!correctLabels || typeof correctLabels !== 'object') {
+                        correctLabels = {};
+                    }
+                    
                     // Create mapping for reverse lookup: from words to labels
                     const textToLabelMap = {};
                     Object.entries(correctLabels).forEach(([label, text]) => {
-                        textToLabelMap[text.toLowerCase()] = label;
+                        if (text) textToLabelMap[text.toLowerCase()] = label;
                     });
-                    
-                    // Split the sentence into words
-                    const sentenceWords = sentenceToLabel.split(/\s+/).filter(word => word.trim() !== '');
                     
                     // Process the words to identify phrases that match exactly with the label values
                     const displayItems = [];
@@ -913,12 +893,12 @@
                         cleanedPhrases[phrase.toLowerCase().replace(/[.,!?;:"'()]/g, '')] = phrase;
                     });
                     
-                    while (i < sentenceWords.length) {
+                    while (i < sentenceToLabel.split(/\s+/).length) {
                         let foundMatch = false;
                         
                         // Try phrases of different lengths, starting from longest possible
-                        for (let phraseLength = Math.min(8, sentenceWords.length - i); phraseLength > 0; phraseLength--) {
-                            const potentialPhrase = sentenceWords.slice(i, i + phraseLength).join(' ');
+                        for (let phraseLength = Math.min(8, sentenceToLabel.split(/\s+/).length - i); phraseLength > 0; phraseLength--) {
+                            const potentialPhrase = sentenceToLabel.split(/\s+/).slice(i, i + phraseLength).join(' ');
                             const cleanPotentialPhrase = potentialPhrase.toLowerCase().replace(/[.,!?;:"'()]/g, '');
                             
                             // Check if this matches any of the label values
@@ -942,8 +922,8 @@
                         if (!foundMatch) {
                             // No phrase match found, add single word
                             displayItems.push({
-                                text: sentenceWords[i],
-                                original: sentenceWords[i],
+                                text: sentenceToLabel.split(/\s+/)[i],
+                                original: sentenceToLabel.split(/\s+/)[i],
                                 isPhrase: false
                             });
                             i++;
@@ -1115,304 +1095,6 @@
                     }
                 });
 
-$('#question-form').on('submit', function(e) {
-    e.preventDefault();
-
-    const sentence = questions[currentIndex];
-    let userAnswer = '';
-    let isCorrect = false;
-
-    // Clear previous error message
-    $('#validation-error').remove();
-
-    // Get the user's current input based on question type
-    if (sentence._chosenType === 'fill_in_blank') {
-        userAnswer = $(this).find('input[name="answer"]').val().trim();
-    } else if (sentence._chosenType === 'arrange_question') {
-        userAnswer = $(this).find('input[name="answer"]').val().trim();
-    } else if (sentence._chosenType === 'multiple_choice') {
-        userAnswer = $(this).find('input[name="answer"]:checked').val() || '';
-    } else if (sentence._chosenType === 'selection_question') {
-        userAnswer = $(this).find('input[name="selection_answer"]:checked').val();
-    } else if (sentence._chosenType === 'labeling_question') {
-        userAnswer = $(this).find('#labeling-answer').val();
-    } else if (sentence._chosenType === 'make_a_sentence' || sentence._chosenType === 'finish_the_sentence') {
-        userAnswer = $(this).find('input[name="answer"]').val().trim();
-    }
-
-    // Remove trailing punctuation from correct answer for comparison
-    let correctAnswer = '';
-    if (sentence._chosenType === 'fill_in_blank') {
-        if (sentence.fill_in_blank_question && sentence.fill_in_blank_question.correct_answer) {
-            correctAnswer = sentence.fill_in_blank_question.correct_answer;
-        } else if (sentence.verb) {
-            correctAnswer = sentence.verb;
-        } else if (sentence.fill_in_blank_answer) {
-            correctAnswer = sentence.fill_in_blank_answer;
-        }
-    } else if (sentence._chosenType === 'multiple_choice') {
-        if (sentence.multiple_choice_question && sentence.multiple_choice_question.correct_answer) {
-            correctAnswer = sentence.multiple_choice_question.correct_answer;
-        } else if (sentence.multiple_choice && sentence.multiple_choice.correct_answer) {
-            correctAnswer = sentence.multiple_choice.correct_answer;
-        } else if (sentence.correct_answer) {
-            correctAnswer = sentence.correct_answer;
-        }
-    } else if (sentence._chosenType === 'selection_question') {
-        correctAnswer = sentence.selection_question && sentence.selection_question.correct_sentence;
-    } else if (sentence._chosenType === 'arrange_question') {
-        correctAnswer = sentence.sentence || sentence.correct_arrangement || '';
-    } else if (sentence._chosenType === 'labeling_question') {
-        try {
-            let correctLabels = sentence.labeling_question.correct_labels;
-            if (typeof correctLabels === 'string') {
-                correctLabels = JSON.parse(correctLabels);
-            }
-            correctAnswer = Object.entries(correctLabels)
-                .map(([label, word]) => `${label}: ${word}`)
-                .join('; ');
-        } catch (e) {
-            correctAnswer = '';
-        }
-    }
-
-    // Keep original user answer with punctuation for saving
-    let originalUserAnswer = userAnswer;
-
-    // Remove trailing punctuation and normalize answers for comparison
-    correctAnswer = correctAnswer.replace(/[.,!?;:]+$/, '');
-    let normalizedUserAnswer = userAnswer.replace(/[.,!?;:]+$/, '');
-
-    // Normalize answers
-    const normalizedCorrectAnswer = normalizeAnswer(correctAnswer);
-
-    // Determine correctness
-    isCorrect = normalizeAnswer(normalizedUserAnswer) === normalizedCorrectAnswer;
-
-                // Save current answer state
-                if (originalUserAnswer) {
-                    savedAnswers[currentIndex] = {
-                        userAnswer: originalUserAnswer,
-                        isCorrect: isCorrect
-                    };
-                    // Mark answers that need grammar check for make_a_sentence and finish_the_sentence
-                    if (sentence._chosenType === 'make_a_sentence' || sentence._chosenType === 'finish_the_sentence') {
-                        savedAnswers[currentIndex].needsGrammarCheck = true;
-                    }
-                }
-
-    // Update the questionId section to handle make_a_sentence and finish_the_sentence types:
-    let questionId = null;
-    if (sentence._chosenType === 'fill_in_blank') {
-        questionId = sentence.fill_in_blank_id;
-    } else if (sentence._chosenType === 'arrange_question') {
-        questionId = sentence.arrange_id;
-    } else if (sentence._chosenType === 'multiple_choice') {
-        questionId = sentence.multiple_choice_id || sentence.multiple_choice_question_id;
-    } else if (sentence._chosenType === 'selection_question') {
-        questionId = sentence.selection_question_id;
-    } else if (sentence._chosenType === 'labeling_question') {
-        questionId = sentence.labeling_question_id;
-    } else if (sentence._chosenType === 'make_a_sentence') {
-        // For make_a_sentence questions, use the id field directly or make_a_sentence_id if available
-        questionId = sentence.id || sentence.make_a_sentence_id;
-    } else if (sentence._chosenType === 'finish_the_sentence') {
-        // For finish_the_sentence questions, use the id field directly or finish_the_sentence_id if available
-        questionId = sentence.id || sentence.finish_the_sentence_id;
-    }
-
-    // Add debugging to check the question ID
-    console.log(`Submitting ${sentence._chosenType} with ID: ${questionId}`);
-
-    // Check if we have a valid question ID, and if not warn the user but allow them to continue
-    if (!questionId) {
-        console.warn(`No question ID found for ${sentence._chosenType}`);
-        
-        // For make_a_sentence and finish_the_sentence, we can still proceed without an ID
-        // because these are evaluated client-side with the grammar API
-        if (sentence._chosenType === 'make_a_sentence' || sentence._chosenType === 'finish_the_sentence') {
-            // Just save the answer locally and move on
-            savedAnswers[currentIndex] = {
-                userAnswer: userAnswer,
-                isCorrect: false,  // Will be evaluated by grammar check later
-                needsGrammarCheck: true
-            };
-            
-            // Skip the AJAX call and just move to next question
-            currentIndex += 1;
-            displayQuestion(currentIndex);
-            return;
-        }
-    }
-
-    // If last question, submit all answers to backend
-    if (currentIndex === questions.length - 1) {
-        const timeSpent = endLessonTimer();
-        $.ajax({
-            url: '/submit_answer',
-            type: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify({
-                question_id: questionId,
-                user_answer: userAnswer,
-                is_correct: isCorrect,
-                question_type: sentence._chosenType,
-                concept: currentTopic,
-                time_spent: timeSpent
-            }),
-            success: function(response) {
-                currentIndex += 1;
-                displayQuestion(currentIndex);
-            },
-            error: function(xhr, status, error) {
-                console.error('Error submitting answer:', error);
-                alert('Error saving answer!');
-                currentIndex += 1;
-                displayQuestion(currentIndex);
-            }
-        });
-    } else {
-        // For intermediate questions, just move to next question
-        currentIndex += 1;
-        displayQuestion(currentIndex);
-    }
-});
-
-$('#submit-answer').on('click', function(e) {
-    e.preventDefault();
-
-    // Clear previous validation warnings
-    $('.validation-warning').remove();
-    
-    console.log('Starting validation for submission...');
-
-    // On submit (Finish), ONLY validate the CURRENT question
-    const currentQuestion = questions[currentIndex];
-    const chosenType = currentQuestion._chosenType;
-    
-    // Only validate make_a_sentence and finish_the_sentence questions
-    if (chosenType === 'make_a_sentence' || chosenType === 'finish_the_sentence') {
-        const answer = $('input[name="answer"]').val() || '';
-        let requiredWords = [];
-        
-        console.log(`Validating current question, type: ${chosenType}`);
-        console.log('Answer:', answer);
-
-        if (chosenType === 'make_a_sentence') {
-            requiredWords = (currentQuestion.words || []).map(w => w.trim().toLowerCase()).filter(Boolean);
-            console.log('Required words for make_a_sentence:', requiredWords);
-        } else if (chosenType === 'finish_the_sentence') {
-            let requiredText = currentQuestion.question.replace(/^Finish the sentence:/i, '').trim();
-            requiredWords = requiredText.split(/\s+/).map(w => w.trim().toLowerCase()).filter(Boolean);
-            console.log('Required words:', requiredWords);
-        }
-
-        const answerWords = getWords(answer);
-        console.log('Words in answer:', answerWords);
-
-        let allWordsPresent = requiredWords.every(word => {
-            const isPresent = answerWords.includes(word);
-            if (!isPresent) {
-                console.log(`Missing required word: "${word}"`);
-            }
-            return isPresent;
-        });
-
-        if (!allWordsPresent) {
-            console.log('Validation failed: Not all required words are present');
-            if ($('#validation-warning').length === 0) {
-                // Show which words are missing
-                const missingWords = requiredWords.filter(word => !answerWords.includes(word));
-                $('input[name="answer"]').after(`<div id="validation-warning" class="validation-warning" style="color:red; margin-top:5px;">Please include the following required words in your answer: <strong>${missingWords.join(', ')}</strong></div>`);
-            }
-            return; // Stop submission if validation fails
-        }
-    }
-
-    console.log('Validation passed! Submitting form...');
-    // If validation passes, submit the form
-    $('#question-form').submit();
-});
-
-$('#next-answer').on('click', function(e) {
-    e.preventDefault();
-    
-    // Clear previous validation warnings
-    $('.validation-warning').remove();
-    
-    // Get the current question
-    const sentence = questions[currentIndex];
-    const chosenType = sentence._chosenType;
-    
-    // Get the current answer
-    const answer = $('input[name="answer"]').val() || '';
-    
-    // This will store all our debugging information for console output
-    const debugInfo = {
-        questionIndex: currentIndex + 1,
-        questionType: chosenType,
-        answer: answer,
-        requiredWords: []
-    };
-    
-    // Only validate if this is a question type that requires specific words
-    // AND the answer is not empty
-    if ((chosenType === 'make_a_sentence' || chosenType === 'finish_the_sentence') && answer.trim() !== '') {
-        let requiredWords = [];
-        
-        // Get required words for current question
-        if (chosenType === 'make_a_sentence') {
-            requiredWords = Array.isArray(sentence.words) 
-                ? sentence.words.map(w => w.trim().toLowerCase()).filter(Boolean)
-                : [];
-            debugInfo.requiredWords = requiredWords;
-        } else if (chosenType === 'finish_the_sentence') {
-            let requiredText = sentence.question.replace(/^Finish the sentence:/i, '').trim();
-            requiredWords = requiredText.split(/\s+/).map(w => w.trim().toLowerCase()).filter(Boolean);
-            debugInfo.requiredWords = requiredWords;
-        }
-
-        // Extract words from current answer - use a more reliable word extraction method
-        const answerWords = answer.toLowerCase()
-            .replace(/[.,!?;:'"()[\]{}]/g, ' ')
-            .replace(/\s+/g, ' ')
-            .trim()
-            .split(' ')
-            .filter(w => w.length > 0);
-        
-        debugInfo.answerWords = answerWords;
-        console.log('Question validation:', debugInfo);
-        
-        // Check if all required words are in the answer
-        const missingWords = requiredWords.filter(word => !answerWords.includes(word));
-        debugInfo.missingWords = missingWords;
-        
-        if (missingWords.length > 0) {
-            console.log('Missing words:', missingWords);
-            // Show validation warning
-            $('input[name="answer"]').after(
-                `<div id="validation-warning" class="validation-warning" style="color:red; margin-top:5px;">
-                    Please include the following required words in your answer: 
-                    <strong>${missingWords.join(', ')}</strong>
-                </div>`
-            );
-            return; // Stop submission if validation fails
-        }
-    } else if ((chosenType === 'make_a_sentence' || chosenType === 'finish_the_sentence') && answer.trim() === '') {
-        // If the answer is empty, show a different warning
-        $('input[name="answer"]').after(
-            `<div id="validation-warning" class="validation-warning" style="color:red; margin-top:5px;">
-                Please write a sentence before continuing.
-            </div>`
-        );
-        return; // Stop submission if answer is empty
-    }
-    
-    // If validation passes, submit the form
-    console.log('Validation passed for current question');
-    $('#question-form').submit();
-});
-
                 // Restore saved answer if available
                 if (savedAnswers[index]) {
                     setTimeout(function() {
@@ -1574,17 +1256,28 @@ $('#next-answer').on('click', function(e) {
                 });
             });
 
+            // Replace the existing question-form submit handler
             $('#output').on('submit', '#question-form', function(e) {
                 e.preventDefault();
+                
+                // Prevent duplicate submissions
+                if (isSubmitting) {
+                    console.log('Already submitting, preventing duplicate submission');
+                    return false;
+                }
+                
+                isSubmitting = true;
+                console.log(`Processing form submission for question ${currentIndex + 1}`);
 
                 const sentence = questions[currentIndex];
                 let userAnswer = '';
                 let isCorrect = false;
 
+                // Get the user's answer based on question type
                 if (sentence._chosenType === 'fill_in_blank') {
                     userAnswer = $(this).find('input[name="answer"]').val().trim();
                     
-                    // Look for the correct answer in the proper locations
+                    // Get correct answer from appropriate location
                     let correctAnswer = '';
                     if (sentence.fill_in_blank_question && sentence.fill_in_blank_question.correct_answer) {
                         correctAnswer = sentence.fill_in_blank_question.correct_answer;
@@ -1594,24 +1287,22 @@ $('#next-answer').on('click', function(e) {
                         correctAnswer = sentence.fill_in_blank_answer;
                     }
                     
-                    // Remove trailing punctuation from correctAnswer for comparison
-                    correctAnswer = correctAnswer.replace(/[.,!?;:]+$/, '');
-                    userAnswer = userAnswer.replace(/[.,!?;:]+$/, '');
-                    
                     // Normalize answers for comparison
-                    isCorrect = normalizeAnswer(userAnswer) === normalizeAnswer(correctAnswer);
+                    correctAnswer = correctAnswer.replace(/[.,!?;:]+$/, '');
+                    let normalizedUserAnswer = userAnswer.replace(/[.,!?;:]+$/, '');
+                    isCorrect = normalizeAnswer(normalizedUserAnswer) === normalizeAnswer(correctAnswer);
                     
-                    console.log('Fill in blank answer:', userAnswer, 'Correct:', correctAnswer, 'Match:', isCorrect);
                 } else if (sentence._chosenType === 'arrange_question') {
-                    userAnswer = $(this).find('input[name="answer"]').val().trim();
-                    // Remove trailing punctuation from both answers
-                    const normalizedUserAnswer = normalizeAnswer(userAnswer.replace(/[.,!?;:]+$/, ''));
-                    const normalizedCorrectAnswer = normalizeAnswer((sentence.sentence || '').replace(/[.,!?;:]+$/, ''));
-                    isCorrect = normalizedUserAnswer === normalizedCorrectAnswer;
+                    userAnswer = $(this).find('#arrange-answer').val().trim();
+                    let correctAnswer = sentence.sentence || sentence.correct_arrangement || '';
+                    correctAnswer = correctAnswer.replace(/[.,!?;:]+$/, '');
+                    let normalizedUserAnswer = userAnswer.replace(/[.,!?;:]+$/, '');
+                    isCorrect = normalizeAnswer(normalizedUserAnswer) === normalizeAnswer(correctAnswer);
+                    
                 } else if (sentence._chosenType === 'multiple_choice') {
                     userAnswer = $(this).find('input[name="answer"]:checked').val() || '';
                     
-                    // Get the correct answer from all possible locations
+                    // Get correct answer from appropriate location
                     let correctAnswer = '';
                     if (sentence.multiple_choice_question && sentence.multiple_choice_question.correct_answer) {
                         correctAnswer = sentence.multiple_choice_question.correct_answer;
@@ -1622,47 +1313,33 @@ $('#next-answer').on('click', function(e) {
                     }
                     
                     isCorrect = normalizeAnswer(userAnswer) === normalizeAnswer(correctAnswer);
+                    
                 } else if (sentence._chosenType === 'selection_question') {
-                    userAnswer = $(this).find('input[name="selection_answer"]:checked').val();
+                    userAnswer = $(this).find('input[name="selection_answer"]:checked').val() || '';
                     let correctAnswer = sentence.selection_question && sentence.selection_question.correct_sentence;
                     isCorrect = normalizeAnswer(userAnswer) === normalizeAnswer(correctAnswer);
+                    
                 } else if (sentence._chosenType === 'labeling_question') {
-                    // Get the answers from the hidden input
                     userAnswer = $(this).find('#labeling-answer').val();
                     
-                    try {
-                        // Parse the answer into an object
-                        let answerObj = {};
-                        if (userAnswer.startsWith('{')) {
-                            answerObj = JSON.parse(userAnswer);
-                        } else {
-                            // Handle "label:value; label2:value2" format
-                            const pairs = userAnswer.split(';').filter(p => p.trim());
-                            pairs.forEach(pair => {
-                                const [label, value] = pair.split(':').map(s => s.trim());
-                                if (label && value) {
-                                    answerObj[label.toLowerCase()] = value.toLowerCase();
-                                }
-                            });
-                        }
-                        
-                        // Reformat to consistent string format
-                        userAnswer = Object.entries(answerObj)
-                            .map(([label, value]) => `${label}: ${value}`)
-                            .join('; ');
-                    } catch(e) {
-                        console.error('Error formatting labeling answer:', e);
-                        userAnswer = '';
-                    }
-                questionType = 'labeling_question';
-                
-            } else if (sentence._chosenType === 'make_a_sentence' || sentence._chosenType === 'finish_the_sentence') {
+                } else if (sentence._chosenType === 'make_a_sentence' || sentence._chosenType === 'finish_the_sentence') {
                     userAnswer = $(this).find('input[name="answer"]').val().trim();
-                    // Remove trailing punctuation for comparison
-                    userAnswer = userAnswer.replace(/[.,!?;:]+$/, '');
-                    isCorrect = normalizeAnswer(userAnswer) === normalizeAnswer(sentence.correct_answer);
+                    // These will be checked by the grammar API later
+                    isCorrect = false;
                 }
 
+                // Save the current answer for results summary
+                savedAnswers[currentIndex] = {
+                    userAnswer: userAnswer,
+                    isCorrect: isCorrect
+                };
+                
+                // Mark answers that need grammar check
+                if (sentence._chosenType === 'make_a_sentence' || sentence._chosenType === 'finish_the_sentence') {
+                    savedAnswers[currentIndex].needsGrammarCheck = true;
+                }
+                
+                // Get question ID for database submission
                 let questionId = null;
                 if (sentence._chosenType === 'fill_in_blank') {
                     questionId = sentence.fill_in_blank_id;
@@ -1674,76 +1351,124 @@ $('#next-answer').on('click', function(e) {
                     questionId = sentence.selection_question_id;
                 } else if (sentence._chosenType === 'labeling_question') {
                     questionId = sentence.labeling_question_id;
+                } else if (sentence._chosenType === 'make_a_sentence') {
+                    questionId = sentence.id || sentence.make_a_sentence_id;
+                } else if (sentence._chosenType === 'finish_the_sentence') {
+                    questionId = sentence.id || sentence.finish_the_sentence_id;
                 }
-
-                // Save the current answer
-                if (!savedAnswers[currentIndex]) {
-                    savedAnswers[currentIndex] = {
-                        userAnswer: userAnswer,
-                        isCorrect: isCorrect
-                    };
-                }
-
-                if (currentIndex === questions.length - 1) {
-                    const timeSpent = endLessonTimer();
-                    $.ajax({
-                        url: '/submit_answer',  // Make sure this is exactly as defined in your route
-                        type: 'POST',
-                        contentType: 'application/json',
-                        data: JSON.stringify({
-                            question_id: questionId,
-                            user_answer: userAnswer,
-                            is_correct: isCorrect,
-                            question_type: sentence._chosenType,
-                            concept: currentTopic,
-                            time_spent: timeSpent
-                        }),
-                        success: function(response) {
-                            currentIndex += 1;
-                            displayQuestion(currentIndex);
-                        },
+                
+                // Calculate time spent if this is the last question
+                const isLastQuestion = currentIndex === questions.length - 1;
+                const timeSpent = isLastQuestion ? endLessonTimer() : 0;
+                
+                console.log(`Submitting answer to database: Question ${currentIndex + 1}, ID: ${questionId}, Type: ${sentence._chosenType}`);
+                
+                // Save the answer to the database first, then proceed to next question
+                $.ajax({
+                    url: '/submit_answer',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        question_id: questionId,
+                        user_answer: userAnswer,
+                        is_correct: isCorrect,
+                        question_type: sentence._chosenType,
+                        concept: currentTopic,
+                        time_spent: timeSpent
+                    }),
+                    success: function(response) {
+                        console.log(`Successfully saved answer for question ${currentIndex + 1} to database`);
+                        
+                        // Increment index ONLY after successful save
+                        currentIndex++;
+                        
+                        // Reset submission flag
+                        isSubmitting = false;
+                        
+                        // Display next question or results
+                        displayQuestion(currentIndex);
+                    },
                     error: function(xhr, status, error) {
-                        console.error('URL requested:', '/submit_answer');  // Add this for debugging
-                        console.error('Error status:', xhr.status);
-                        console.error('Error response:', xhr.responseText);
-                        console.error('Error object:', error);
-                        // Only alert if status is not 200 (sometimes error callback triggers on 200)
-                        if (xhr.status !== 200) {
-                            alert('Error saving answer!');
-                        }
-                        currentIndex += 1;
+                        console.error('Error saving answer:', error);
+                        console.error('Response:', xhr.responseText);
+                        
+                        // Alert the user but continue anyway
+                        alert('There was an error saving your answer to the database, but you can continue.');
+                        
+                        // Increment index even on error to allow user to continue
+                        currentIndex++;
+                        
+                        // Reset submission flag
+                        isSubmitting = false;
+                        
+                        // Move to next question
                         displayQuestion(currentIndex);
                     }
-                    });
-                } else {
-                    $.ajax({
-                        url: '/submit_answer',  // Make sure this is exactly as defined in your route
-                        type: 'POST',
-                        contentType: 'application/json',
-                        data: JSON.stringify({
-                            question_id: questionId,
-                            user_answer: userAnswer,
-                            is_correct: isCorrect,
-                            question_type: sentence._chosenType,
-                            concept: currentTopic
-                        }),
-                        success: function(response) {
-                            currentIndex += 1;
-                            displayQuestion(currentIndex);
-                        },
-                        error: function(xhr, status, error) {
-                            console.error('URL requested:', '/submit_answer');  // Add this for debugging
-                            console.error('Error status:', xhr.status);
-                            console.error('Error response:', xhr.responseText);
-                            console.error('Error object:', error);
-                            // Only alert if status is not 200 (sometimes error callback triggers on 200)
-                            if (xhr.status !== 200) {
-                                alert('Error saving answer!');
-                            }
-                            currentIndex += 1;
-                            displayQuestion(currentIndex);
+                });
+                
+                return false; // Prevent form from submitting normally
+            });
+
+            // Update button click handlers to properly trigger form submission
+            $('#output').on('click', '#submit-answer, #next-answer', function(e) {
+                e.preventDefault();
+                
+                if (isSubmitting) {
+                    console.log('Already submitting, ignoring button click');
+                    return false;
+                }
+                
+                console.log(`Button clicked: ${this.id}`);
+                
+                // For make_a_sentence and finish_the_sentence, validate first
+                const currentQuestion = questions[currentIndex];
+                const chosenType = currentQuestion._chosenType;
+                
+                // Clear previous validation warnings
+                $('.validation-warning').remove();
+                
+                let isValid = true;
+                
+                if (chosenType === 'make_a_sentence' || chosenType === 'finish_the_sentence') {
+                    const answer = $('input[name="answer"]').val() || '';
+                    
+                    // First check if answer is empty
+                    if (answer.trim() === '') {
+                        $('input[name="answer"]').after(
+                            `<div class="validation-warning" style="color:red; margin-top:5px;">
+                                Please write a sentence before continuing.
+                            </div>`
+                        );
+                        isValid = false;
+                    } else {
+                        // Then check if required words are included
+                        let requiredWords = [];
+                        
+                        if (chosenType === 'make_a_sentence') {
+                            requiredWords = (currentQuestion.words || []).map(w => w.trim().toLowerCase()).filter(Boolean);
+                        } else if (chosenType === 'finish_the_sentence') {
+                            let requiredText = currentQuestion.question.replace(/^Finish the sentence:/i, '').trim();
+                            requiredWords = requiredText.split(/\s+/).map(w => w.trim().toLowerCase()).filter(Boolean);
                         }
-                    });
+                        
+                        const answerWords = getWords(answer);
+                        const missingWords = requiredWords.filter(word => !answerWords.includes(word));
+                        
+                        if (missingWords.length > 0) {
+                            $('input[name="answer"]').after(
+                                `<div class="validation-warning" style="color:red; margin-top:5px;">
+                                    Please include all required words in your answer: 
+                                    <strong>${missingWords.join(', ')}</strong>
+                                </div>`
+                            );
+                            isValid = false;
+                        }
+                    }
+                }
+                
+                // If validation passes, submit the form
+                if (isValid) {
+                    $('#question-form').submit();
                 }
             });
 
