@@ -1181,6 +1181,8 @@
             }
 
             // Update the sentence-form submit handler to clear previous session data
+            // Update the sentence-form submit handler to handle "random" question type
+
             $('#sentence-form').submit(function(e) {
                 e.preventDefault();
                 $('#welcomeMessage').hide();
@@ -1200,11 +1202,12 @@
                 
                 // Add question type selection
                 const questionType = $('#question_type').val();
-                if (questionType !== 'random') {
-                    formData.question_types = [questionType];
+                if (questionType === 'random') {
+                    // For random, include all standard question types
+                    formData.question_types = ['fill_in_blank', 'multiple_choice', 'arrange', 'selection'];
                 } else {
-                    // To ensure all question types are included, explicitly request them
-                    formData.include_all_types = true;
+                    // For specific question types, use just that type
+                    formData.question_types = [questionType];
                 }
                 
                 currentTopic = $('#topic').val();
@@ -1239,9 +1242,9 @@
                                         questionTypes['selection'] = (questionTypes['selection'] || 0) + 1;
                                     } else if (key.includes('labeling')) {
                                         questionTypes['labeling'] = (questionTypes['labeling'] || 0) + 1;
-                                    } else if (key.includes('make_a_sentence')) {  // Tambahkan ini
+                                    } else if (key.includes('make_a_sentence')) { 
                                         questionTypes['make_a_sentence'] = (questionTypes['make_a_sentence'] || 0) + 1;
-                                    } else if (key.includes('finish_the_sentence')) {  // Tambahkan ini
+                                    } else if (key.includes('finish_the_sentence')) {
                                         questionTypes['finish_the_sentence'] = (questionTypes['finish_the_sentence'] || 0) + 1;
                                     }
                                 });
@@ -1262,7 +1265,6 @@
                     }
                 });
             });
-
             // Replace the existing question-form submit handler
             $('#output').on('submit', '#question-form', function(e) {
                 e.preventDefault();
