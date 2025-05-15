@@ -1,48 +1,50 @@
-2025-05-15 19:51:42,337 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'The students have a big lunch at school every Friday.', 'verb': 'have', 'level': 'A2', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'The students __ a big lunch at school every Friday  (have).', 'correct_answer': 'have'}}, {'sentence': 'The school canteen serves different types of food.', 'verb': 'serves', 'level': 'A2', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'The school canteen __ different types of food  (serve).', 'correct_answer': 'serves'}}], 'message': "Generated 2 sentences for level A2 on topic 'food' with question types ['fill_in_blank']", 'processing_time': 5.5410590171813965, 'timestamp': '2025-05-15T19:51:42.050161'}
-2025-05-15 19:51:50,890 - app - INFO - Received submit_answer data: {'question_id': 2873, 'user_answer': 'she had lunch school every Friday.', 'is_correct': False, 'question_type': 'finish_the_sentence', 'concept': 'food', 'time_spent': 0}
-2025-05-15 19:51:50,891 - app - INFO - submit_answer called with question_id=2873, question_type=finish_the_sentence
-2025-05-15 19:51:50,900 - app - ERROR - Question not found: id=2873, type=finish_the_sentence
-2025-05-15 19:51:58,321 - app - INFO - Received submit_answer data: {'question_id': 2873, 'user_answer': 'she had lunch at school every Friday.', 'is_correct': False, 'question_type': 'finish_the_sentence', 'concept': 'food', 'time_spent': 0}
-2025-05-15 19:51:58,322 - app - INFO - submit_answer called with question_id=2873, question_type=finish_the_sentence
-2025-05-15 19:51:58,329 - app - ERROR - Question not found: id=2873, type=finish_the_sentence
-2025-05-15 19:52:05,733 - app - INFO - Received submit_answer data: {'question_id': 2433, 'user_answer': 'he had a different types of food.', 'is_correct': False, 'question_type': 'finish_the_sentence', 'concept': 'food', 'time_spent': 0}
-2025-05-15 19:52:05,733 - app - INFO - submit_answer called with question_id=2433, question_type=finish_the_sentence
-2025-05-15 19:52:05,740 - app - ERROR - Question not found: id=2433, type=finish_the_sentence
-2025-05-15 19:52:12,506 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'he had a different types of food.', 'corrected': 'He had a different types of food.', 'corrections': ["1. Changed 'he' to 'He' - Replace orthographic"]}
-2025-05-15 19:52:15,695 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'she had lunch at school every Friday.', 'corrected': 'She had lunch at school every Friday.', 'corrections': ["1. Changed 'she' to 'She' - Replace orthographic"]}
-2025-05-15 19:52:21,858 - app - INFO - Received generate request: level=A2, topic=food, num_sentences=2, user_id=2
-2025-05-15 19:52:21,859 - app - INFO - Sending request to https://a657-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A2', 'num_sentences': 2, 'user_id': 2, 'topic': 'food', 'question_types': ['fill_in_blank']}
-2025-05-15 19:52:29,444 - app - INFO - API response status: 200
-2025-05-15 19:52:29,446 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'I have an apple for breakfast.', 'verb': 'have', 'level': 'A2', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'I __ an apple for breakfast  (have).', 'correct_answer': 'have'}}, {'sentence': 'I have a delicious sandwich for lunch today.', 'verb': 'have', 'level': 'A2', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'I __ a delicious sandwich for lunch today  (have).', 'correct_answer': 'have'}}], 'message': "Generated 2 sentences for level A2 on topic 'food' with question types ['fill_in_blank']", 'processing_time': 6.16184401512146, 'timestamp': '2025-05-15T19:52:29.386334'}
-2025-05-15 19:52:40,588 - app - INFO - Received generate request: level=A2, topic=food, num_sentences=2, user_id=2
-2025-05-15 19:52:40,590 - app - INFO - Sending request to https://a657-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A2', 'num_sentences': 2, 'user_id': 2, 'topic': 'food', 'question_types': ['fill_in_blank']}
-2025-05-15 19:52:46,865 - app - INFO - API response status: 200
-2025-05-15 19:52:46,867 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'The restaurant serves delicious pizza and spaghetti.', 'verb': 'serves', 'level': 'A2', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'The restaurant __ delicious pizza and spaghetti  (serve).', 'correct_answer': 'serves'}}, {'sentence': 'The chef ate a sandwich in the kitchen.', 'verb': 'ate', 'level': 'A2', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'The chef __ a sandwich in the kitchen  (eat).', 'correct_answer': 'ate'}}], 'message': "Generated 2 sentences for level A2 on topic 'food' with question types ['fill_in_blank']", 'processing_time': 5.245295286178589, 'timestamp': '2025-05-15T19:52:46.727249'}
-2025-05-15 19:52:53,375 - app - INFO - Received submit_answer data: {'question_id': 1153, 'user_answer': 'i eat a spaghetti.', 'is_correct': False, 'question_type': 'finish_the_sentence', 'concept': 'food', 'time_spent': 0}
-2025-05-15 19:52:53,376 - app - INFO - submit_answer called with question_id=1153, question_type=finish_the_sentence
-2025-05-15 19:52:53,395 - app - ERROR - Question not found: id=1153, type=finish_the_sentence
-2025-05-15 19:53:04,088 - app - INFO - Received submit_answer data: {'question_id': 2407, 'user_answer': 'there is a sandwich in the kitchen.', 'is_correct': False, 'question_type': 'finish_the_sentence', 'concept': 'food', 'time_spent': 0}
-2025-05-15 19:53:04,090 - app - INFO - submit_answer called with question_id=2407, question_type=finish_the_sentence
-2025-05-15 19:53:04,097 - app - ERROR - Question not found: id=2407, type=finish_the_sentence
-2025-05-15 19:53:12,041 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'i eat a spaghetti.', 'corrected': 'I eat spaghetti.', 'corrections': ["1. Changed 'a' to '' - Unnecessary determiner", "2. Changed 'i' to 'I' - Replace orthographic"]}
-2025-05-15 19:53:15,055 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'there is a sandwich in the kitchen.', 'corrected': 'There is a sandwich in the kitchen.', 'corrections': ["1. Changed 'there' to 'There' - Replace orthographic"]}
-2025-05-15 20:27:07,963 - app - INFO - Flask app is starting up
-2025-05-15 20:27:50,834 - app - INFO - Received generate request: level=A2, topic=travel, num_sentences=2, user_id=2
-2025-05-15 20:27:50,836 - app - INFO - Sending request to https://a657-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A2', 'num_sentences': 2, 'user_id': 2, 'topic': 'travel', 'question_types': ['fill_in_blank']}
-2025-05-15 20:28:46,830 - app - ERROR - Cloud API request failed: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-2025-05-15 20:28:56,631 - app - INFO - Received generate request: level=A2, topic=travel, num_sentences=2, user_id=2
-2025-05-15 20:28:56,633 - app - INFO - Sending request to https://a657-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A2', 'num_sentences': 2, 'user_id': 2, 'topic': 'travel', 'question_types': ['fill_in_blank']}
-2025-05-15 20:29:43,150 - app - ERROR - Cloud API request failed: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
-2025-05-15 20:30:19,948 - app - INFO - Flask app is starting up
-2025-05-15 20:30:47,191 - app - INFO - Received generate request: level=A2, topic=food, num_sentences=2, user_id=2
-2025-05-15 20:30:47,193 - app - INFO - Sending request to https://a657-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A2', 'num_sentences': 2, 'user_id': 2, 'topic': 'food', 'question_types': ['fill_in_blank']}
-2025-05-15 20:30:53,974 - app - INFO - API response status: 200
-2025-05-15 20:30:53,977 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'She eats an apple every morning.', 'verb': 'eats', 'level': 'A2', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'She __ an apple every morning  (eat).', 'correct_answer': 'eats'}}, {'sentence': 'I like eating sandwiches for lunch.', 'verb': 'like', 'level': 'A2', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'I __ eating sandwiches for lunch  (like).', 'correct_answer': 'like'}}], 'message': "Generated 2 sentences for level A2 on topic 'food' with question types ['fill_in_blank']", 'processing_time': 5.688955783843994, 'timestamp': '2025-05-15T20:30:53.846721'}
-2025-05-15 20:31:15,917 - app - INFO - Received submit_answer data: {'question_id': 1126, 'user_answer': 'She eats an apple', 'is_correct': False, 'question_type': 'finish_the_sentence', 'concept': 'food', 'time_spent': 0}
-2025-05-15 20:31:15,919 - app - INFO - submit_answer called with question_id=1126, question_type=finish_the_sentence
-2025-05-15 20:31:15,951 - app - ERROR - Question not found: id=1126, type=finish_the_sentence
-2025-05-15 20:31:26,811 - app - INFO - Received submit_answer data: {'question_id': 2178, 'user_answer': 'I had sandwiches for lunch.', 'is_correct': False, 'question_type': 'finish_the_sentence', 'concept': 'food', 'time_spent': 1}
-2025-05-15 20:31:26,820 - app - INFO - submit_answer called with question_id=2178, question_type=finish_the_sentence
-2025-05-15 20:31:26,902 - app - ERROR - Question not found: id=2178, type=finish_the_sentence
-2025-05-15 20:31:31,441 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'I had sandwiches for lunch.', 'corrected': 'I had sandwiches for lunch.', 'corrections': ['1. No operation - No correction']}
-2025-05-15 20:31:33,242 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'She eats an apple', 'corrected': 'She eats an apple', 'corrections': ['1. No operation - No correction']}
+2025-05-16 01:23:26,162 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'The cat plays with a ball.', 'verb': 'plays', 'level': 'A1', 'for_user': 2, 'multiple_choice_question': {'question_text': 'The cat __ with a ball .', 'options': ['look', 'talk', 'plays', 'walk'], 'correct_answer': 'plays'}}, {'sentence': 'I play with my friends every day.', 'verb': 'play', 'level': 'A1', 'for_user': 2, 'multiple_choice_question': {'question_text': 'I __ with my friends every day .', 'options': ['laugh', 'play', 'meet', 'walk'], 'correct_answer': 'play'}}], 'message': "Generated 2 sentences for level A1 on topic 'games' with question types ['multiple_choice']", 'processing_time': 13.659933805465698, 'timestamp': '2025-05-16T01:23:26.085611'}
+2025-05-16 01:23:26,255 - app - INFO - Stored 2 valid sentences for user 2
+2025-05-16 01:23:26,255 - app - INFO - Returning 2 sentences to client
+2025-05-16 01:23:31,222 - app - INFO - Received submit_answer data: {'question_id': 45, 'user_answer': 'talk', 'is_correct': False, 'question_type': 'multiple_choice', 'concept': 'games', 'time_spent': 0}
+2025-05-16 01:23:31,223 - app - INFO - submit_answer called with question_id=45, question_type=multiple_choice
+2025-05-16 01:23:38,124 - app - INFO - Received submit_answer data: {'question_id': 46, 'user_answer': 'laugh', 'is_correct': False, 'question_type': 'multiple_choice', 'concept': 'games', 'time_spent': 0}
+2025-05-16 01:23:38,126 - app - INFO - submit_answer called with question_id=46, question_type=multiple_choice
+2025-05-16 01:29:19,891 - app - INFO - Flask app is starting up
+2025-05-16 01:29:47,613 - app - INFO - Received generate request: level=A1, topic=games, num_sentences=2, user_id=2
+2025-05-16 01:29:47,615 - app - INFO - Sending request to https://a657-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A1', 'num_sentences': 2, 'user_id': 2, 'topic': 'games', 'question_types': ['multiple_choice']}
+2025-05-16 01:29:59,922 - app - INFO - API response status: 200
+2025-05-16 01:29:59,924 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'The game is fun.', 'verb': 'is', 'level': 'A1', 'for_user': 2, 'multiple_choice_question': {'question_text': 'The game __ fun .', 'options': ['have', 'is', 'do', 'enjoy'], 'correct_answer': 'is'}}, {'sentence': 'I like playing soccer on Sundays.', 'verb': 'like', 'level': 'A1', 'for_user': 2, 'multiple_choice_question': {'question_text': 'I __ playing soccer on Sundays .', 'options': ['watch', 'run', 'like', 'kick'], 'correct_answer': 'like'}}], 'message': "Generated 2 sentences for level A1 on topic 'games' with question types ['multiple_choice']", 'processing_time': 11.1997971534729, 'timestamp': '2025-05-16T01:29:59.761691'}
+2025-05-16 01:29:59,969 - app - INFO - Stored 2 valid sentences for user 2
+2025-05-16 01:29:59,969 - app - INFO - Returning 2 sentences to client
+2025-05-16 01:47:02,124 - app - INFO - Flask app is starting up
+2025-05-16 01:47:12,932 - app - INFO - Received generate request: level=A1, topic=eat, num_sentences=2, user_id=2
+2025-05-16 01:47:12,935 - app - INFO - Sending request to https://a657-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A1', 'num_sentences': 2, 'user_id': 2, 'topic': 'eat', 'question_types': ['multiple_choice']}
+2025-05-16 01:47:25,455 - app - INFO - API response status: 200
+2025-05-16 01:47:25,459 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'I like eating an apple.', 'verb': 'like', 'level': 'A1', 'for_user': 2, 'multiple_choice_question': {'question_text': 'I __ eating an apple .', 'options': ['like', 'talk', 'walk', 'chew'], 'correct_answer': 'like'}}, {'sentence': 'I have a sandwich for lunch.', 'verb': 'have', 'level': 'A1', 'for_user': 2, 'multiple_choice_question': {'question_text': 'I __ a sandwich for lunch .', 'options': ['buy', 'eat', 'have', 'take'], 'correct_answer': 'have'}}], 'message': "Generated 2 sentences for level A1 on topic 'eat' with question types ['multiple_choice']", 'processing_time': 11.4193696975708, 'timestamp': '2025-05-16T01:47:25.335268'}
+2025-05-16 01:47:25,656 - app - INFO - Stored 2 valid sentences for user 2
+2025-05-16 01:47:25,656 - app - INFO - Returning 2 sentences to client
+2025-05-16 01:47:39,361 - app - INFO - Received submit_answer data: {'question_id': 49, 'user_answer': 'like', 'is_correct': True, 'question_type': 'multiple_choice', 'concept': 'eat', 'time_spent': 0}
+2025-05-16 01:47:39,364 - app - INFO - submit_answer called with question_id=49, question_type=multiple_choice
+2025-05-16 01:47:47,810 - app - INFO - Received submit_answer data: {'question_id': 50, 'user_answer': 'buy', 'is_correct': False, 'question_type': 'multiple_choice', 'concept': 'eat', 'time_spent': 0}
+2025-05-16 01:47:47,813 - app - INFO - submit_answer called with question_id=50, question_type=multiple_choice
+2025-05-16 01:48:39,441 - app - INFO - Flask app is starting up
+2025-05-16 01:48:48,231 - app - INFO - Received generate request: level=A1, topic=food, num_sentences=2, user_id=2
+2025-05-16 01:48:48,233 - app - INFO - Sending request to https://a657-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A1', 'num_sentences': 2, 'user_id': 2, 'topic': 'food', 'question_types': ['multiple_choice']}
+2025-05-16 01:49:00,364 - app - INFO - API response status: 200
+2025-05-16 01:49:00,371 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'The man eats a sandwich.', 'verb': 'eats', 'level': 'A1', 'for_user': 2, 'multiple_choice_question': {'question_text': 'The man __ a sandwich .', 'options': ['walk', 'takes', 'makes', 'eats'], 'correct_answer': 'eats'}}, {'sentence': 'My mom makes me a sandwich for lunch.', 'verb': 'makes', 'level': 'A1', 'for_user': 2, 'multiple_choice_question': {'question_text': 'My mom __ me a sandwich for lunch .', 'options': ['walk', 'makes', 'bakes', 'talk'], 'correct_answer': 'makes'}}], 'message': "Generated 2 sentences for level A1 on topic 'food' with question types ['multiple_choice']", 'processing_time': 10.92164921760559, 'timestamp': '2025-05-16T01:49:00.198532'}
+2025-05-16 01:49:00,494 - app - INFO - Stored 2 valid sentences for user 2
+2025-05-16 01:49:00,494 - app - INFO - Returning 2 sentences to client
+2025-05-16 01:49:07,151 - app - INFO - Received submit_answer data: {'question_id': 51, 'user_answer': 'makes', 'is_correct': False, 'question_type': 'multiple_choice', 'concept': 'food', 'time_spent': 0}
+2025-05-16 01:49:07,153 - app - INFO - submit_answer called with question_id=51, question_type=multiple_choice
+2025-05-16 01:49:12,763 - app - INFO - Received submit_answer data: {'question_id': 52, 'user_answer': 'makes', 'is_correct': True, 'question_type': 'multiple_choice', 'concept': 'food', 'time_spent': 0}
+2025-05-16 01:49:12,765 - app - INFO - submit_answer called with question_id=52, question_type=multiple_choice
+2025-05-16 01:49:48,547 - app - INFO - Flask app is starting up
+2025-05-16 01:49:55,314 - app - INFO - Received generate request: level=A1, topic=past, num_sentences=2, user_id=2
+2025-05-16 01:49:55,315 - app - INFO - Sending request to https://a657-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A1', 'num_sentences': 2, 'user_id': 2, 'topic': 'past', 'question_types': ['multiple_choice']}
+2025-05-16 01:50:07,809 - app - INFO - API response status: 200
+2025-05-16 01:50:07,811 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'The dog played with a ball yesterday.', 'verb': 'played', 'level': 'A1', 'for_user': 2, 'multiple_choice_question': {'question_text': 'The dog __ with a ball yesterday .', 'options': ['ran', 'played', 'fetched', 'kicked'], 'correct_answer': 'played'}}, {'sentence': 'Yesterday, I went to the park.', 'verb': 'went', 'level': 'A1', 'for_user': 2, 'multiple_choice_question': {'question_text': 'Yesterday , I __ to the park .', 'options': ['see', 'play', 'walk', 'went'], 'correct_answer': 'went'}}], 'message': "Generated 2 sentences for level A1 on topic 'past' with question types ['multiple_choice']", 'processing_time': 11.556725978851318, 'timestamp': '2025-05-16T01:50:07.660387'}
+2025-05-16 01:50:07,907 - app - INFO - Stored 2 valid sentences for user 2
+2025-05-16 01:50:07,908 - app - INFO - Returning 2 sentences to client
+2025-05-16 01:50:15,212 - app - INFO - Received submit_answer data: {'question_id': 53, 'user_answer': 'played', 'is_correct': True, 'question_type': 'multiple_choice', 'concept': 'past', 'time_spent': 0}
+2025-05-16 01:50:15,214 - app - INFO - submit_answer called with question_id=53, question_type=multiple_choice
+2025-05-16 01:50:21,322 - app - INFO - Received submit_answer data: {'question_id': 54, 'user_answer': 'went', 'is_correct': True, 'question_type': 'multiple_choice', 'concept': 'past', 'time_spent': 0}
+2025-05-16 01:50:21,324 - app - INFO - submit_answer called with question_id=54, question_type=multiple_choice
+2025-05-16 01:50:23,365 - app - INFO - Received generate request: level=A1, topic=past, num_sentences=2, user_id=2
+2025-05-16 01:50:23,366 - app - INFO - Sending request to https://a657-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A1', 'num_sentences': 2, 'user_id': 2, 'topic': 'past', 'question_types': ['multiple_choice']}
+2025-05-16 01:50:33,752 - app - INFO - API response status: 200

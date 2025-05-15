@@ -1,50 +1,51 @@
-2025-05-15 19:10:20,547 - app - INFO - Received submit_answer data: {'question_id': 'temp_finish_2668', 'user_answer': 'i can sing but I am not very good at it.', 'is_correct': False, 'question_type': 'finish_the_sentence', 'concept': 'game', 'time_spent': 0}
-2025-05-15 19:10:20,556 - app - INFO - submit_answer called with question_id=temp_finish_2668, question_type=finish_the_sentence
-2025-05-15 19:10:20,556 - app - ERROR - submit_answer: Invalid question_id format: temp_finish_2668
-2025-05-15 19:10:29,992 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'I play soccer with his friends.', 'corrected': 'I play soccer with my friends.', 'corrections': ["1. Changed 'his' to 'my' - Replace determiner"]}
-2025-05-15 19:10:31,374 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'i can sing but I am not very good at it.', 'corrected': 'I can sing, but I am not very good at it.', 'corrections': ["1. Changed 'sing' to 'sing,' - Replace other", "2. Changed 'i' to 'I' - Replace orthographic"]}
-2025-05-15 19:10:44,370 - app - INFO - Received generate request: level=A2, topic=game, num_sentences=2, user_id=2
-2025-05-15 19:10:44,372 - app - INFO - Sending request to https://a657-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A2', 'num_sentences': 2, 'user_id': 2, 'topic': 'game', 'question_types': ['fill_in_blank']}
-2025-05-15 19:10:53,007 - app - INFO - API response status: 200
-2025-05-15 19:10:53,008 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'I like playing chess with my friend.', 'verb': 'like', 'level': 'A2', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'I __ playing chess with my friend  (like).', 'correct_answer': 'like'}}, {'sentence': 'Football players have shin guards on to protect their legs.', 'verb': 'have', 'level': 'A2', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'Football players __ shin guards on to protect their legs  (have).', 'correct_answer': 'have'}}], 'message': "Generated 2 sentences for level A2 on topic 'game' with question types ['fill_in_blank']", 'processing_time': 7.29757285118103, 'timestamp': '2025-05-15T19:10:52.621357'}
-2025-05-15 19:11:01,078 - app - INFO - Received submit_answer data: {'question_id': 13, 'user_answer': 'I play with my friend', 'is_correct': False, 'question_type': 'make_a_sentence', 'concept': 'game', 'time_spent': 0}
-2025-05-15 19:11:01,080 - app - INFO - submit_answer called with question_id=13, question_type=make_a_sentence
-2025-05-15 19:11:01,093 - app - INFO - Required words: ['friend', 'with']
-2025-05-15 19:11:01,094 - app - INFO - Words in answer: ['i', 'play', 'with', 'my', 'friend']
-2025-05-15 19:11:10,586 - app - INFO - Received submit_answer data: {'question_id': 14, 'user_answer': 'I need to protect my shin', 'is_correct': False, 'question_type': 'make_a_sentence', 'concept': 'game', 'time_spent': 0}
-2025-05-15 19:11:10,587 - app - INFO - submit_answer called with question_id=14, question_type=make_a_sentence
-2025-05-15 19:11:10,594 - app - INFO - Required words: ['protect', 'shin']
-2025-05-15 19:11:10,594 - app - INFO - Words in answer: ['i', 'need', 'to', 'protect', 'my', 'shin']
-2025-05-15 19:11:14,410 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'I play with my friend', 'corrected': 'I play with my friend', 'corrections': ['1. No operation - No correction']}
-2025-05-15 19:11:16,418 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'I need to protect my shin', 'corrected': 'I need to protect my shin', 'corrections': ['1. No operation - No correction']}
-2025-05-15 19:11:40,832 - app - INFO - Received generate request: level=A2, topic=food, num_sentences=2, user_id=2
-2025-05-15 19:11:40,833 - app - INFO - Sending request to https://a657-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A2', 'num_sentences': 2, 'user_id': 2, 'topic': 'food', 'question_types': ['fill_in_blank']}
-2025-05-15 19:11:47,362 - app - INFO - API response status: 200
-2025-05-15 19:11:47,363 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'The man in the café ate a sandwich and a fruit salad.', 'verb': 'ate', 'level': 'A2', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'The man in the café __ a sandwich and a fruit salad  (eat).', 'correct_answer': 'ate'}}, {'sentence': 'Cakes are my favorite dessert.', 'verb': 'are', 'level': 'A2', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'Cakes __ my favorite dessert  (be).', 'correct_answer': 'are'}}], 'message': "Generated 2 sentences for level A2 on topic 'food' with question types ['fill_in_blank']", 'processing_time': 5.70491099357605, 'timestamp': '2025-05-15T19:11:47.315340'}
-2025-05-15 19:11:55,622 - app - INFO - Received submit_answer data: {'question_id': 'temp_finish_3294', 'user_answer': 'The man in the café ate a sandwich with his bare hand', 'is_correct': False, 'question_type': 'finish_the_sentence', 'concept': 'food', 'time_spent': 0}
-2025-05-15 19:11:55,624 - app - INFO - submit_answer called with question_id=temp_finish_3294, question_type=finish_the_sentence
-2025-05-15 19:11:55,624 - app - ERROR - submit_answer: Invalid question_id format: temp_finish_3294
-2025-05-15 19:42:05,650 - app - INFO - Flask app is starting up
-2025-05-15 19:43:19,409 - app - INFO - Flask app is starting up
-2025-05-15 19:45:16,703 - app - INFO - Flask app is starting up
-2025-05-15 19:45:25,006 - app - INFO - Received generate request: level=A2, topic=conclave, num_sentences=2, user_id=2
-2025-05-15 19:45:25,011 - app - INFO - Sending request to https://a657-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A2', 'num_sentences': 2, 'user_id': 2, 'topic': 'conclave', 'question_types': ['fill_in_blank']}
-2025-05-15 19:45:31,581 - app - INFO - API response status: 200
-2025-05-15 19:45:31,583 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'The cardinals chose the new pope after only one ballot.', 'verb': 'chose', 'level': 'A2', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'The cardinals __ the new pope after only one ballot  (choose).', 'correct_answer': 'chose'}}, {'sentence': 'The cardinals choose a new pope in a secret meeting.', 'verb': 'choose', 'level': 'A2', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'The cardinals __ a new pope in a secret meeting  (choose).', 'correct_answer': 'choose'}}], 'message': "Generated 2 sentences for level A2 on topic 'conclave' with question types ['fill_in_blank']", 'processing_time': 5.365394592285156, 'timestamp': '2025-05-15T19:45:31.484531'}
-2025-05-15 19:45:36,534 - app - INFO - Received submit_answer data: {'question_id': 2681, 'user_answer': 'The cardinals chose the new pope', 'is_correct': False, 'question_type': 'finish_the_sentence', 'concept': 'conclave', 'time_spent': 0}
-2025-05-15 19:45:36,534 - app - INFO - submit_answer called with question_id=2681, question_type=finish_the_sentence
-2025-05-15 19:45:36,556 - app - ERROR - Question not found: id=2681, type=finish_the_sentence
-2025-05-15 19:45:57,884 - app - INFO - Flask app is starting up
-2025-05-15 19:46:08,617 - app - INFO - Received generate request: level=A2, topic=sad, num_sentences=2, user_id=2
-2025-05-15 19:46:08,619 - app - INFO - Sending request to https://a657-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A2', 'num_sentences': 2, 'user_id': 2, 'topic': 'sad', 'question_types': ['fill_in_blank']}
-2025-05-15 19:46:17,143 - app - INFO - API response status: 200
-2025-05-15 19:46:17,148 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'The movie made me cry because my dog died recently.', 'verb': 'made', 'level': 'A2', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'The movie __ me cry because my dog died recently  (make).', 'correct_answer': 'made'}}, {'sentence': 'The girl was very sad when her mother died.', 'verb': 'died', 'level': 'A2', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'The girl __ very sad when her mother died  (be).', 'correct_answer': 'was'}}], 'message': "Generated 2 sentences for level A2 on topic 'sad' with question types ['fill_in_blank']", 'processing_time': 5.660586357116699, 'timestamp': '2025-05-15T19:46:16.262139'}
-2025-05-15 19:46:24,042 - app - INFO - Received submit_answer data: {'question_id': 2050, 'user_answer': 'The movie made me cry a lot', 'is_correct': False, 'question_type': 'finish_the_sentence', 'concept': 'sad', 'time_spent': 0}
-2025-05-15 19:46:24,044 - app - INFO - submit_answer called with question_id=2050, question_type=finish_the_sentence
-2025-05-15 19:46:24,069 - app - ERROR - Question not found: id=2050, type=finish_the_sentence
-2025-05-15 19:46:49,832 - app - INFO - Received submit_answer data: {'question_id': 1628, 'user_answer': 'somehow her mother died.', 'is_correct': False, 'question_type': 'finish_the_sentence', 'concept': 'sad', 'time_spent': 1}
-2025-05-15 19:46:49,835 - app - INFO - submit_answer called with question_id=1628, question_type=finish_the_sentence
-2025-05-15 19:46:49,853 - app - ERROR - Question not found: id=1628, type=finish_the_sentence
-2025-05-15 19:46:54,728 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'The movie made me cry a lot', 'corrected': 'The movie made me cry a lot .', 'corrections': ["1. Changed '' to '.' - Missing punctuation"]}
-2025-05-15 19:46:58,013 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'somehow her mother died.', 'corrected': 'Somehow, somehow her mother died.', 'corrections': ["1. Changed '' to 'Somehow,' - Missing noun", "2. Changed 'somehow' to 'Somehow,' - Replace other"]}
-2025-05-15 19:49:08,001 - app - INFO - Received generate request: level=A2, topic=food, num_sentences=2, user_id=2
+2025-05-16 00:56:04,613 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'I like eating cow', 'corrected': 'I like eating cow', 'corrections': ['1. No operation - No correction']}
+2025-05-16 00:56:08,632 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'I like you but i lied', 'corrected': 'I like you but I lied .', 'corrections': ["1. Changed 'i' to 'I' - Replace orthographic", "2. Changed '' to '.' - Missing punctuation"]}
+2025-05-16 00:56:44,367 - app - INFO - Received generate request: level=A1, topic=food, num_sentences=2, user_id=2
+2025-05-16 00:56:44,369 - app - INFO - Sending request to https://a657-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A1', 'num_sentences': 2, 'user_id': 2, 'topic': 'food', 'question_types': ['fill_in_blank']}
+2025-05-16 00:56:49,780 - app - INFO - API response status: 200
+2025-05-16 00:56:49,782 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'I eat an apple.', 'verb': 'eat', 'level': 'A1', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'I __ an apple  (eat).', 'correct_answer': 'eat'}}, {'sentence': 'I have an apple.', 'verb': 'have', 'level': 'A1', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'I __ an apple  (have).', 'correct_answer': 'have'}}], 'message': "Generated 2 sentences for level A1 on topic 'food' with question types ['fill_in_blank']", 'processing_time': 4.375461101531982, 'timestamp': '2025-05-16T00:56:49.667573'}
+2025-05-16 00:56:56,638 - app - INFO - Received submit_answer data: {'question_id': 7, 'user_answer': 'I like eating an apple', 'is_correct': False, 'question_type': 'make_a_sentence', 'concept': 'food', 'time_spent': 0}
+2025-05-16 00:56:56,639 - app - INFO - submit_answer called with question_id=7, question_type=make_a_sentence
+2025-05-16 00:56:56,656 - app - INFO - Required words: ['i', 'apple']
+2025-05-16 00:56:56,656 - app - INFO - Words in answer: ['i', 'like', 'eating', 'an', 'apple']
+2025-05-16 00:57:03,805 - app - INFO - Received submit_answer data: {'question_id': 8, 'user_answer': 'I hate eating an apple', 'is_correct': False, 'question_type': 'make_a_sentence', 'concept': 'food', 'time_spent': 0}
+2025-05-16 00:57:03,807 - app - INFO - submit_answer called with question_id=8, question_type=make_a_sentence
+2025-05-16 00:57:03,819 - app - INFO - Required words: ['i', 'apple']
+2025-05-16 00:57:03,819 - app - INFO - Words in answer: ['i', 'hate', 'eating', 'an', 'apple']
+2025-05-16 00:57:07,061 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'I hate eating an apple', 'corrected': 'I hate eating an apple', 'corrections': ['1. No operation - No correction']}
+2025-05-16 00:57:09,094 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'I like eating an apple', 'corrected': 'I like eating an apple', 'corrections': ['1. No operation - No correction']}
+2025-05-16 00:57:18,208 - app - INFO - Received generate request: level=A1, topic=kids, num_sentences=2, user_id=2
+2025-05-16 00:57:18,209 - app - INFO - Sending request to https://a657-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A1', 'num_sentences': 2, 'user_id': 2, 'topic': 'kids', 'question_types': ['fill_in_blank']}
+2025-05-16 00:57:23,772 - app - INFO - API response status: 200
+2025-05-16 00:57:23,775 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'The kids eat breakfast at 7:00 am.', 'verb': 'eat', 'level': 'A1', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'The kids __ breakfast at 7:00 am  (eat).', 'correct_answer': 'eat'}}, {'sentence': 'Tommy and Emma play soccer.', 'verb': 'play', 'level': 'A1', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'Tommy and Emma __ soccer  (play).', 'correct_answer': 'play'}}], 'message': "Generated 2 sentences for level A1 on topic 'kids' with question types ['fill_in_blank']", 'processing_time': 4.3744611740112305, 'timestamp': '2025-05-16T00:57:23.517234'}
+2025-05-16 00:57:31,272 - app - INFO - Received submit_answer data: {'question_id': 9, 'user_answer': 'I have 7 kids', 'is_correct': False, 'question_type': 'make_a_sentence', 'concept': 'kids', 'time_spent': 0}
+2025-05-16 00:57:31,274 - app - INFO - submit_answer called with question_id=9, question_type=make_a_sentence
+2025-05-16 00:57:31,288 - app - INFO - Required words: ['7', 'kids']
+2025-05-16 00:57:31,289 - app - INFO - Words in answer: ['i', 'have', '7', 'kids']
+2025-05-16 00:57:38,959 - app - INFO - Received submit_answer data: {'question_id': 10, 'user_answer': 'emma eat a soccer ball', 'is_correct': False, 'question_type': 'make_a_sentence', 'concept': 'kids', 'time_spent': 0}
+2025-05-16 00:57:38,961 - app - INFO - submit_answer called with question_id=10, question_type=make_a_sentence
+2025-05-16 00:57:38,966 - app - INFO - Required words: ['soccer', 'emma']
+2025-05-16 00:57:38,966 - app - INFO - Words in answer: ['emma', 'eat', 'a', 'soccer', 'ball']
+2025-05-16 00:57:45,109 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'emma eat a soccer ball', 'corrected': 'Emma eats a soccer ball', 'corrections': ["1. Changed 'emma' to 'Emma' - Replace orthographic", "2. Changed 'eat' to 'eats' - Replace subject verb agreement"]}
+2025-05-16 00:57:45,972 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'I have 7 kids', 'corrected': 'I have 7 kids', 'corrections': ['1. No operation - No correction']}
+2025-05-16 00:57:56,606 - app - INFO - Received generate request: level=A1, topic=kids, num_sentences=2, user_id=2
+2025-05-16 00:57:56,608 - app - INFO - Sending request to https://a657-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A1', 'num_sentences': 2, 'user_id': 2, 'topic': 'kids', 'question_types': ['fill_in_blank']}
+2025-05-16 00:58:01,960 - app - INFO - API response status: 200
+2025-05-16 00:58:01,963 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'The dog plays with my sister every day.', 'verb': 'plays', 'level': 'A1', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'The dog __ with my sister every day  (play).', 'correct_answer': 'plays'}}, {'sentence': 'My brother has a new bicycle.', 'verb': 'has', 'level': 'A1', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'My brother __ a new bicycle  (have).', 'correct_answer': 'has'}}], 'message': "Generated 2 sentences for level A1 on topic 'kids' with question types ['fill_in_blank']", 'processing_time': 4.269718885421753, 'timestamp': '2025-05-16T00:58:01.747042'}
+2025-05-16 00:58:35,516 - app - INFO - create_finish_sentence called with data: {'question': '...my sister every day.', 'words': '', 'level': 'A1', 'for_user': None}
+2025-05-16 00:58:35,560 - app - INFO - Created FinishTheSentence with ID: 7
+2025-05-16 00:58:35,572 - app - INFO - Received submit_answer data: {'question_id': 7, 'user_answer': 'she give my sister a dog every day.', 'is_correct': False, 'question_type': 'finish_the_sentence', 'concept': 'kids', 'time_spent': 0}
+2025-05-16 00:58:35,573 - app - INFO - submit_answer called with question_id=7, question_type=finish_the_sentence
+2025-05-16 00:58:35,581 - app - INFO - Required words: ['my', 'sister', 'every', 'day']
+2025-05-16 00:58:35,581 - app - INFO - Words in answer: ['she', 'give', 'my', 'sister', 'a', 'dog', 'every', 'day']
+2025-05-16 00:58:43,553 - app - INFO - create_finish_sentence called with data: {'question': 'My brother has...', 'words': '', 'level': 'A1', 'for_user': None}
+2025-05-16 00:58:43,559 - app - INFO - Created FinishTheSentence with ID: 8
+2025-05-16 00:58:43,572 - app - INFO - Received submit_answer data: {'question_id': 8, 'user_answer': 'My brother has a dogs', 'is_correct': False, 'question_type': 'finish_the_sentence', 'concept': 'kids', 'time_spent': 1}
+2025-05-16 00:58:43,572 - app - INFO - submit_answer called with question_id=8, question_type=finish_the_sentence
+2025-05-16 00:58:43,577 - app - INFO - Required words: ['my', 'brother', 'has']
+2025-05-16 00:58:43,578 - app - INFO - Words in answer: ['my', 'brother', 'has', 'a', 'dogs']
+2025-05-16 00:58:49,440 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'she give my sister a dog every day.', 'corrected': 'She gave my sister a dog every day.', 'corrections': ["1. Changed 'give' to 'gave' - Replace verb tense", "2. Changed 'she' to 'She' - Replace orthographic"]}
+2025-05-16 00:58:51,679 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'My brother has a dogs', 'corrected': 'My brother has a dog .', 'corrections': ["1. Changed 'dogs' to 'dog .' - Replace other"]}
+2025-05-16 00:59:43,811 - app - INFO - Received generate request: level=A1, topic=kids, num_sentences=2, user_id=2
+2025-05-16 00:59:43,814 - app - INFO - Sending request to https://a657-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A1', 'num_sentences': 2, 'user_id': 2, 'topic': 'kids', 'question_types': ['selection']}
+2025-05-16 00:59:50,106 - app - INFO - API response status: 200

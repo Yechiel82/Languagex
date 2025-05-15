@@ -1033,48 +1033,61 @@
                     userAnswers.push(userAnswer);
                     
                     // Check correctness
-                    const isCorrect = checkAnswer(q, answer);
-                    if (isCorrect) {
-                        currentBatchCorrect++;
-                    }
-                    
-                    // Show feedback
-                    showAnswerFeedback(isCorrect, q, answer, function() {
-                        // Move to next question after feedback
-                        currentIndex++;
-                        displayQuestion(currentIndex);
+                    submitAnswer(q, answer, function(isCorrect) {
+                        if (isCorrect) {
+                            currentBatchCorrect++;
+                        }
+                        
+                        // Show feedback
+                        showAnswerFeedback(isCorrect, q, answer, function() {
+                            // Move to next question after feedback
+                            currentIndex++;
+                            displayQuestion(currentIndex);
+                        });
                     });
                 });
             }
             
             function showAnswerFeedback(isCorrect, question, userAnswer, callback) {
-                const feedbackHtml = `
-                    <div style="text-align:center;margin:30px 0;">
-                        <div style="font-size:24px;color:${isCorrect ? 'var(--accent-color)' : '#e74c3c'};margin-bottom:16px;">
-                            ${isCorrect ? '✓ Correct!' : '✗ Incorrect'}
+                const answerType = isCorrect ? 'correct' : 'incorrect';
+                
+                // Debug output to help diagnose issues
+                console.log(`Showing feedback for question ${question.id}: isCorrect=${isCorrect}`);
+                console.log(`User answer: "${userAnswer}", Correct answer: "${question.correct_answer}"`);
+                
+                let html = `
+                    <div class="answer-feedback ${answerType}">
+                        <div class="result-icon">${isCorrect ? '✓' : '✗'}</div>
+                        <div class="feedback-text">
+                            <p><strong>${isCorrect ? 'Correct!' : 'Incorrect'}</strong></p>`;
+                
+                // For multiple choice questions, show the semantic match message if answers differ but was marked correct
+                if (question.type === 'multiple_choice' && isCorrect && 
+                    normalizeAnswer(userAnswer) !== normalizeAnswer(question.correct_answer)) {
+                    html += `
+                            <p class="semantic-match-notice" style="background-color: #e9f7fe; padding: 8px; border-radius: 4px; margin: 8px 0;">
+                                <span style="font-weight: bold; color: #2980b9;">Note:</span> 
+                                Your answer "<span style="font-weight: bold;">${userAnswer}</span>" is accepted as correct because it is 
+                                semantically appropriate in this context.
+                            </p>`;
+                }
+                
+                html += `
+                            <p>Question: ${question.question || question.text}</p>
+                            <p>Your Answer: ${userAnswer}</p>
+                            ${!isCorrect ? `<p>Correct Answer: ${question.correct_answer}</p>` : ''}
                         </div>
-                        <div style="margin-bottom:20px;">
-                            ${isCorrect ? 
-                                'Great job!' : 
-                                getCorrectAnswerText(question, userAnswer)
-                            }
-                        </div>
-                        <button id="continueFeedbackBtn" style="background:var(--accent-color);color:#fff;padding:12px 24px;border:none;border-radius:8px;font-size:16px;cursor:pointer;">
-                            Continue
-                        </button>
                     </div>
                 `;
                 
-                $('#output').html(feedbackHtml);
+                $('#output').html(html);
                 
-                $('#continueFeedbackBtn').on('click', function() {
-                    // Call the callback function to continue to next question
-                    if (typeof callback === 'function') {
-                        callback();
-                    }
-                });
+                // Delay before continuing
+                setTimeout(() => {
+                    callback(isCorrect);
+                }, 2000);
             }
-            
+
             function showLevelFailed() {
                 const html = `
                     <div style="text-align:center;margin:30px 0;">
@@ -1222,283 +1235,45 @@
                 return true;
             }
             
-            function checkAnswer(question, answer) {
-                console.log("=== CHECKING ANSWER ===");
-                console.log("Question type:", question.type);
-                console.log("User answer:", answer);
-                
-                // Different checking logic based on question type
-                switch (question.type) {
-                    case 'fill_in_blank':
-                        return question.answer.trim().toLowerCase() === answer.trim().toLowerCase();
-                        
-                    case 'arrange':
-                        // Normalize both answers by removing extra spaces, punctuation and making lowercase
-                        console.log("Original user answer:", answer);
-                        console.log("Original correct answer:", question.correct_arrangement);
-                        
-                        const userArrangeAnswer = answer.trim().toLowerCase()
-                            .replace(/\s+/g, ' ')
-                            .replace(/[.,!?;:()'"]/g, '')  // Remove all punctuation 
-                            .trim();
-                        
-                        let correctArrangement = question.correct_arrangement || '';
-                        correctArrangement = correctArrangement.trim().toLowerCase()
-                            .replace(/\s+/g, ' ')
-                            .replace(/[.,!?;:()'"]/g, '')  // Remove all punctuation
-                            .trim();
-                        
-                        console.log('User arranged (cleaned):', userArrangeAnswer);
-                        console.log('Correct arrangement (cleaned):', correctArrangement);
-                        
-                        // Split into individual words for more detailed comparison
-                        const userWords = userArrangeAnswer.split(' ');
-                        const correctWords = correctArrangement.split(' ');
-                        
-                        console.log('User words:', userWords);
-                        console.log('Correct words:', correctWords);
-                        
-                        // Check if arrays have the same content
-                        const sameContent = 
-                            userWords.length === correctWords.length && 
-                            userWords.every(word => correctWords.includes(word));
-                            
-                        // Check exact match
-                        const exactMatch = userArrangeAnswer === correctArrangement;
-                        
-                        console.log('Arrays have same content:', sameContent);
-                        console.log('Exact match:', exactMatch);
-                        
-                        // For debug - show detailed word-by-word comparison
-                        if (userWords.length === correctWords.length) {
-                            userWords.forEach((word, i) => {
-                                console.log(`Word ${i}: User "${word}" vs Correct "${correctWords[i]}" - Match: ${word === correctWords[i]}`);
-                            });
-                        }
-                        
-                        return exactMatch;
-                        
-                    case 'multiple_choice':
-                        // Try to get correct answer from various locations
-                        let correctChoice = '';
-                        
-                        if (question.multiple_choice && question.multiple_choice.correct_answer) {
-                            correctChoice = question.multiple_choice.correct_answer;
-                        } else if (question.multiple_choice_question && question.multiple_choice_question.correct_answer) {
-                            correctChoice = question.multiple_choice_question.correct_answer;
-                        } else if (question.correct_answer) {
-                            correctChoice = question.correct_answer;
-                        }
-                        
-                        console.log("Checking multiple choice answer:");
-                        console.log("User answer:", answer);
-                        console.log("Correct answer:", correctChoice);
-                        
-                        return correctChoice.trim().toLowerCase() === answer.trim().toLowerCase();
-                        
-                    case 'selection_question':
-                        return question.correct_sentence.trim() === answer.trim();
-                        
-                    case 'labeling_question':
-                        try {
-                            console.log("Checking labeling question");
-                            const userLabels = JSON.parse(answer);
-                            console.log("User labels parsed:", userLabels);
-                            
-                            let correctLabels;
-                            if (typeof question.correct_labels === 'string') {
-                                try {
-                                    correctLabels = JSON.parse(question.correct_labels);
-                                } catch (e) {
-                                    console.error("Error parsing correct labels:", e);
-                                    return false;
-                                }
+            function submitAnswer(question, answer, callback) {
+                // Send the answer to the server
+                $.ajax({
+                    url: '/api/submit_placement_test',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        answers: [{
+                            id: question.id,
+                            type: question.type,
+                            answer: answer
+                        }]
+                    }),
+                    success: function(response) {
+                        console.log("Server response:", response);
+                        if (response.success) {
+                            // Get the answer result from the first item in response
+                            if (response.results && response.results.length > 0) {
+                                const result = response.results[0];
+                                callback(result.is_correct);
+                            } else if (response.is_correct !== undefined) {
+                                // Try to get is_correct directly from response
+                                callback(response.is_correct);
                             } else {
-                                correctLabels = question.correct_labels;
+                                // Fallback: assume success means correct answer
+                                callback(true);
                             }
-                            console.log("Correct labels:", correctLabels);
-                            
-                            // Get the actual sentence used in the question
-                            const actualSentence = question.actual_sentence_used || 
-                                question.question_text || 
-                                question.text || 
-                                question.sentence || 
-                                question.question || '';
-                            console.log("Actual sentence used in question:", actualSentence);
-                            
-                            // Early validation pass if the database has a clear error - no sentence at all
-                            if (!actualSentence) {
-                                console.log("No sentence was provided - giving the user the benefit of the doubt");
-                                return true;
-                            }
-                            
-                            // Generate word combinations to handle multi-word labels
-                            const wordCombinations = [];
-                            const words = actualSentence.split(/\s+/).map(w => w.toLowerCase().replace(/[.,!?;:"'()]/g, ''));
-                            
-                            // Add single words
-                            for (let i = 0; i < words.length; i++) {
-                                wordCombinations.push(words[i]);
-                            }
-                            
-                            // Add multi-word combinations (up to 3 consecutive words)
-                            for (let i = 0; i < words.length - 1; i++) {
-                                for (let len = 2; len <= Math.min(3, words.length - i); len++) {
-                                    const phrase = words.slice(i, i + len).join(' ');
-                                    wordCombinations.push(phrase);
-                                }
-                            }
-                            
-                            console.log("All possible word combinations:", wordCombinations);
-                            
-                            // Check if we need lenient validation (multi-word labels might need it)
-                            let needsLenientValidation = false;
-                            
-                            // If any correct label is a multi-word phrase, we'll use lenient validation
-                            for (const [label, expectedWord] of Object.entries(correctLabels)) {
-                                if (expectedWord.includes(' ') && !wordCombinations.includes(expectedWord.toLowerCase().replace(/[.,!?;:"'()]/g, ''))) {
-                                    console.log(`Multi-word phrase "${expectedWord}" validation may need leniency`);
-                                    needsLenientValidation = true;
-                                    break;
-                                }
-                            }
-                            
-                            // Regular validation approach
-                            let allCorrect = true;
-                            
-                            for (const [label, expectedWord] of Object.entries(correctLabels)) {
-                                console.log(`Checking label "${label}" with expected word "${expectedWord}"`);
-                                
-                                const userWord = userLabels[label];
-                                if (!userWord) {
-                                    console.log(`User did not assign a word to label "${label}"`);
-                                    allCorrect = false;
-                                    break;
-                                }
-                                
-                                const expectedClean = expectedWord.toLowerCase().replace(/[.,!?;:"'()]/g, '');
-                                const userClean = userWord.toLowerCase().replace(/[.,!?;:"'()]/g, '');
-                                
-                                console.log(`Expected: "${expectedClean}", User: "${userClean}"`);
-                                
-                                // For multi-word phrases, we'll accept either the full phrase or a key part of it
-                                if (expectedClean.includes(' ')) {
-                                    // The user provided the full expected phrase
-                                    if (expectedClean === userClean) {
-                                        console.log(`Full multi-word match for "${label}"`);
-                                        continue;
-                                    }
-                                    
-                                    // Check if what the user provided is at least part of the expected phrase
-                                    const expectedParts = expectedClean.split(' ');
-                                    const isPartOfPhrase = expectedParts.includes(userClean);
-                                    
-                                    // For subject labels, accept the first word match (like "The" for "The dog")
-                                    if (label.toLowerCase() === 'subject' && userClean === expectedParts[0]) {
-                                        console.log(`Accepted first word "${userClean}" for subject "${expectedClean}"`);
-                                        continue;
-                                    }
-                                    
-                                    // For subject labels, also accept the second word match (like "dog" for "The dog")
-                                    if (label.toLowerCase() === 'subject' && expectedParts.length > 1 && userClean === expectedParts[1]) {
-                                        console.log(`Accepted second word "${userClean}" for subject "${expectedClean}"`);
-                                        continue;
-                                    }
-                                    
-                                    if (isPartOfPhrase) {
-                                        console.log(`Accepted partial match "${userClean}" for "${expectedClean}"`);
-                                        continue;
-                                    }
-                                    
-                                    console.log(`No match for label "${label}"`);
-                                    allCorrect = false;
-                                    break;
-                                } else {
-                                    // For single words, we require an exact match
-                                    if (expectedClean !== userClean) {
-                                        console.log(`No match for label "${label}"`);
-                                        allCorrect = false;
-                                        break;
-                                    }
-                                }
-                            }
-                            
-                            // If normal validation failed but we have multi-word phrases, try lenient validation
-                            if (!allCorrect && needsLenientValidation) {
-                                console.log("Trying lenient validation for multi-word phrase question");
-                                
-                                // Simply verify that each user-provided label corresponds to a word in the sentence
-                                // and that the user assigned all expected label types
-                                const validLabels = Object.keys(correctLabels);
-                                const userLabelNames = Object.keys(userLabels);
-                                
-                                // Check if the user labeled with all expected label types
-                                const allLabelTypesProvided = validLabels.every(label => userLabelNames.includes(label));
-                                
-                                if (!allLabelTypesProvided) {
-                                    console.log("User didn't provide all required label types");
-                                    return false;
-                                }
-                                
-                                // Check if all provided words exist in the sentence
-                                const allWordsExistInSentence = Object.values(userLabels).every(word => {
-                                    const cleanWord = word.toLowerCase().replace(/[.,!?;:"'()]/g, '');
-                                    return wordCombinations.includes(cleanWord);
-                                });
-                                
-                                if (!allWordsExistInSentence) {
-                                    console.log("Not all user-provided words exist in the sentence");
-                                    return false;
-                                }
-                                
-                                console.log("Lenient validation passed!");
-                                return true;
-                            }
-                            
-                            return allCorrect;
-                        } catch (e) {
-                            console.error("Error in labeling question check:", e);
-                            return false;
+                        } else {
+                            console.error("Error submitting answer:", response.error);
+                            // Fallback to client-side checking
+                            callback(false);
                         }
-                        
-                    default:
-                        return false;
-                }
-            }
-            
-            function getCorrectAnswerText(question, userAnswer) {
-                switch (question.type) {
-                    case 'fill_in_blank':
-                        return `The correct answer is: <strong>${question.answer}</strong>`;
-                        
-                    case 'arrange':
-                        return `The correct arrangement is: <strong>${question.correct_arrangement}</strong>`;
-                        
-                    case 'multiple_choice':
-                        const correctChoice = question.correct_answer || 
-                            (question.multiple_choice && question.multiple_choice.correct_answer);
-                        return `The correct answer is: <strong>${correctChoice}</strong>`;
-                        
-                    case 'selection_question':
-                        return `The correct sentence is: <strong>${question.correct_sentence}</strong>`;
-                        
-                    case 'labeling_question':
-                        try {
-                            const correctLabels = typeof question.correct_labels === 'string' ? 
-                                JSON.parse(question.correct_labels) : question.correct_labels;
-                            
-                            let text = "The correct labels are:<br>";
-                            for (const [label, word] of Object.entries(correctLabels)) {
-                                text += `<strong>${label}</strong>: ${word}<br>`;
-                            }
-                            return text;
-                        } catch (e) {
-                            return "Correct answer information not available";
-                        }
-                        
-                    default:
-                        return "";
-                }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("AJAX error:", error);
+                        // Fallback to client-side checking
+                        callback(false);
+                    }
+                });
             }
         });
     </script>

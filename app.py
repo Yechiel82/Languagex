@@ -22,9 +22,9 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 # Cloud API configuration
-CLOUD_API_URL = os.getenv('CLOUD_API_URL', 'https://a657-103-119-147-234.ngrok-free.app')
+CLOUD_API_URL = os.getenv('CLOUD_API_URL', 'https://837f-103-119-147-234.ngrok-free.app')
 # Grammar API configuration
-CLOUD_API_Grammar_URL = os.getenv('CLOUD_API_Grammar_URL', 'https://a657-103-119-147-234.ngrok-free.app')
+CLOUD_API_Grammar_URL = os.getenv('CLOUD_API_Grammar_URL', 'https://837f-103-119-147-234.ngrok-free.app')
 
 # Add these configurations for file uploads
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static/uploads')
@@ -1888,6 +1888,58 @@ def create_finish_sentence():
             'error': str(e)
         }), 500
     
+@app.route('/check_semantic_similarity', methods=['POST'])
+def check_semantic_similarity():
+    try:
+        data = request.json
+        text1 = data.get('text1', '')  # User's selected answer (e.g., "play")
+        text2 = data.get('text2', '')  # Correct answer (e.g., "play")
+        full_sentence = data.get('full_sentence', '')  # Complete sentence (e.g., "Kids play outside with friends")
+        
+        # If no full sentence is provided, we can't do proper semantic comparison
+        if not full_sentence:
+            app.logger.warning("No full sentence provided for semantic comparison")
+            # Fall back to direct word comparison
+            import spacy
+            nlp = spacy.load('en_core_web_md')
+            doc1 = nlp(text1)
+            doc2 = nlp(text2)
+            similarity_score = doc1.similarity(doc2)
+            app.logger.info(f"Word-to-word similarity between '{text1}' and '{text2}': {similarity_score}")
+        else:
+            # Create two versions of the full sentence - one with user's choice, one with correct answer
+            import spacy
+            nlp = spacy.load('en_core_web_md')
+            
+            # For multiple choice, we need to make the entire sentence
+            # Let's assume the sentence has a placeholder like "__" for the word
+            user_sentence = full_sentence.replace("__", text1)
+            correct_sentence = full_sentence.replace("__", text2)
+            
+            doc1 = nlp(user_sentence)
+            doc2 = nlp(correct_sentence)
+            
+            similarity_score = doc1.similarity(doc2)
+            app.logger.info(f"Sentence similarity between '{user_sentence}' and '{correct_sentence}': {similarity_score}")
+            app.logger.info(f"User word: '{text1}', Correct word: '{text2}', Score: {similarity_score}")
+        
+        return jsonify({
+            'success': True,
+            'similarity_score': float(similarity_score),
+            'text1': text1,
+            'text2': text2,
+            'user_sentence': user_sentence if 'user_sentence' in locals() else None,
+            'correct_sentence': correct_sentence if 'correct_sentence' in locals() else None
+        })
+    except Exception as e:
+        app.logger.error(f"Error in semantic similarity check: {str(e)}")
+        import traceback
+        app.logger.error(traceback.format_exc())
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
+
 # # Create database tables
 with app.app_context():
     db.create_all()
@@ -1905,6 +1957,6 @@ if __name__ == '__main__':
 
 # # In the Flask shell, run:
 # from app import db
-db.drop_all()
-db.create_all()
-exit()
+# db.drop_all()
+# db.create_all()
+# exit()

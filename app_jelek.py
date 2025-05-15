@@ -3,35 +3,28 @@ import os
 import logging
 import requests
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for, send_file
+from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 import datetime
+from sqlalchemy.sql import func
 from logging.handlers import RotatingFileHandler
 from datetime import date, timedelta
 import random
 import json
 import re
-from flask_sqlalchemy import SQLAlchemy
-from werkzeug.security import generate_password_hash, check_password_hash
-from sqlalchemy.sql import func
-
-# Import database and models from models.py
-from models import db, User, SelectionQuestion, LabelingQuestion, UserPerformance, GroundTruth
-from models import FillInTheBlank, ArrangeTheWord, MultipleChoice, PlacementTestAttempt
-from models import MakeASentence, FinishTheSentence
 
 app = Flask(__name__)
 app.secret_key = "7373"
 # Configure PostgreSQL database
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://yechiel@localhost/languagex'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-# Initialize the database with this app
-db.init_app(app)
+db = SQLAlchemy(app)
 
 # Cloud API configuration
-CLOUD_API_URL = os.getenv('CLOUD_API_URL', 'https://51ce-103-119-147-234.ngrok-free.app')
+CLOUD_API_URL = os.getenv('CLOUD_API_URL', 'https://a657-103-119-147-234.ngrok-free.app')
 # Grammar API configuration
-CLOUD_API_Grammar_URL = os.getenv('CLOUD_API_Grammar_URL', 'https://51ce-103-119-147-234.ngrok-free.app')
+CLOUD_API_Grammar_URL = os.getenv('CLOUD_API_Grammar_URL', 'https://a657-103-119-147-234.ngrok-free.app')
 
 # Add these configurations for file uploads
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static/uploads')
@@ -42,6 +35,194 @@ app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5MB max upload size
 # Make sure upload directory exists
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+# Define User model
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password_hash = db.Column(db.String(256), nullable=False)
+    name = db.Column(db.String(100))
+    language = db.Column(db.String(50))
+    level = db.Column(db.String(10))
+    study_time = db.Column(db.Integer, default=0)
+    streak = db.Column(db.Integer, default=0)
+    lessons_completed = db.Column(db.Integer, default=0)
+    average_score = db.Column(db.Float, default=0.0)
+    last_active_date = db.Column(db.Date, nullable=True)
+    total_attempts = db.Column(db.Integer, default=0)
+    correct_attempts = db.Column(db.Integer, default=0)
+    placement_test_for_user = db.Column(db.Integer, nullable=True)  # User ID if used for placement test
+    profile_picture = db.Column(db.String(255), nullable=True)  # Path or URL to profile picture
+    is_deleted = db.Column(db.Boolean, default=False)  # New column to mark deleted accounts
+    
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+    
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+class SelectionQuestion(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    question_text = db.Column(db.Text, nullable=False)  # Note: field is question_text, not question
+    sentences = db.Column(db.Text, nullable=False)
+    correct_sentence = db.Column(db.Text, nullable=False)
+    level = db.Column(db.String(10), nullable=False)
+    generated_at = db.Column(db.DateTime, default=func.now())
+    deleted_at = db.Column(db.DateTime, nullable=True)
+    is_seen = db.Column(db.Boolean, default=False)
+    for_user = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_answer = db.Column(db.Text, nullable=True)
+    is_correct = db.Column(db.Boolean, nullable=True)
+    user_feedback = db.Column(db.Text, nullable=True)
+    ground_truth_id = db.Column(db.Integer, db.ForeignKey('ground_truth.id'), nullable=True)
+
+    user = db.relationship('User', backref=db.backref('selection_questions', lazy=True))
+    ground_truth = db.relationship('GroundTruth', backref=db.backref('selection_questions', lazy=True))
+
+
+class LabelingQuestion(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    question_text = db.Column(db.Text, nullable=False)
+    instruction = db.Column(db.Text, nullable=False)
+    correct_labels = db.Column(db.Text, nullable=False)  # Store as JSON string
+    level = db.Column(db.String(10), nullable=False)
+    generated_at = db.Column(db.DateTime, default=func.now())
+    deleted_at = db.Column(db.DateTime, nullable=True)
+    is_seen = db.Column(db.Boolean, default=False)
+    for_user = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_answer = db.Column(db.Text, nullable=True)
+    is_correct = db.Column(db.Boolean, nullable=True)
+    user_feedback = db.Column(db.Text, nullable=True)
+    ground_truth_id = db.Column(db.Integer, db.ForeignKey('ground_truth.id'), nullable=True)
+
+    user = db.relationship('User', backref=db.backref('labeling_questions', lazy=True))
+    ground_truth = db.relationship('GroundTruth', backref=db.backref('labeling_questions', lazy=True))
+
+
+# Define UserPerformance model
+class UserPerformance(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    concept = db.Column(db.String(100), nullable=False)
+    success_rate = db.Column(db.Float, default=0.0)
+    error_rate = db.Column(db.Float, default=0.0)
+    timestamp = db.Column(db.DateTime, default=func.now())
+    total_attempts = db.Column(db.Integer, default=0)
+    correct_attempts = db.Column(db.Integer, default=0)
+
+    user = db.relationship('User', backref=db.backref('performance', lazy=True))
+
+# GroundTruth model
+class GroundTruth(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    word = db.Column(db.String(100), nullable=False)
+    pos = db.Column(db.String(50), nullable=False)
+    sentence = db.Column(db.Text, nullable=False)
+    level = db.Column(db.String(10), nullable=False)
+    generated_at = db.Column(db.DateTime, default=func.now())
+    deleted_at = db.Column(db.DateTime, nullable=True)
+    is_seen = db.Column(db.Boolean, default=False)
+    for_user = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_answer = db.Column(db.Text, nullable=True)
+    is_correct = db.Column(db.Boolean, nullable=True)
+    
+    user = db.relationship('User', backref=db.backref('ground_truths', lazy=True))
+
+# FillInTheBlank model
+class FillInTheBlank(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    question = db.Column(db.Text, nullable=False)
+    answer = db.Column(db.String(100), nullable=False)
+    level = db.Column(db.String(10), nullable=False)
+    generated_at = db.Column(db.DateTime, default=func.now())
+    deleted_at = db.Column(db.DateTime, nullable=True)
+    is_seen = db.Column(db.Boolean, default=False)
+    for_user = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_answer = db.Column(db.Text, nullable=True)
+    is_correct = db.Column(db.Boolean, nullable=True)
+    user_feedback = db.Column(db.Text, nullable=True)
+    ground_truth_id = db.Column(db.Integer, db.ForeignKey('ground_truth.id'), nullable=True)
+
+    user = db.relationship('User', backref=db.backref('fill_blanks', lazy=True))
+    ground_truth = db.relationship('GroundTruth', backref=db.backref('fill_blanks', lazy=True))
+
+# ArrangeTheWord model
+class ArrangeTheWord(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    question = db.Column(db.Text, nullable=False)
+    correct_arrangement = db.Column(db.Text, nullable=False)
+    level = db.Column(db.String(10), nullable=False)
+    generated_at = db.Column(db.DateTime, default=func.now())
+    deleted_at = db.Column(db.DateTime, nullable=True)
+    is_seen = db.Column(db.Boolean, default=False)
+    for_user = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_answer = db.Column(db.Text, nullable=True)
+    is_correct = db.Column(db.Boolean, nullable=True)
+    user_feedback = db.Column(db.Text, nullable=True)
+    ground_truth_id = db.Column(db.Integer, db.ForeignKey('ground_truth.id'), nullable=True)
+
+    user = db.relationship('User', backref=db.backref('arrange_words', lazy=True))
+    ground_truth = db.relationship('GroundTruth', backref=db.backref('arrange_words', lazy=True))
+
+# MultipleChoice model
+class MultipleChoice(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    question = db.Column(db.Text, nullable=False)
+    choices = db.Column(db.Text, nullable=False)
+    correct_answer = db.Column(db.String(100), nullable=False)
+    level = db.Column(db.String(10), nullable=False)
+    generated_at = db.Column(db.DateTime, default=func.now())
+    deleted_at = db.Column(db.DateTime, nullable=True)
+    is_seen = db.Column(db.Boolean, default=False)
+    for_user = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_answer = db.Column(db.Text, nullable=True)
+    is_correct = db.Column(db.Boolean, nullable=True)
+    user_feedback = db.Column(db.Text, nullable=True)
+    ground_truth_id = db.Column(db.Integer, db.ForeignKey('ground_truth.id'), nullable=True)
+
+    user = db.relationship('User', backref=db.backref('multiple_choices', lazy=True))
+    ground_truth = db.relationship('GroundTruth', backref=db.backref('multiple_choices', lazy=True))
+
+# PlacementTestAttempt model
+class PlacementTestAttempt(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    started_at = db.Column(db.DateTime, default=func.now())
+    completed_at = db.Column(db.DateTime, nullable=True)
+    score = db.Column(db.Float, nullable=True)
+    estimated_level = db.Column(db.String(10), nullable=True)
+    user = db.relationship('User', backref=db.backref('placement_attempts', lazy=True))
+
+class MakeASentence(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    question = db.Column(db.Text, nullable=False)  # The question text
+    words = db.Column(db.String(255), nullable=False)  # The 1-2 words used for the question
+    level = db.Column(db.String(10), nullable=False)
+    generated_at = db.Column(db.DateTime, default=func.now())
+    deleted_at = db.Column(db.DateTime, nullable=True)
+    is_seen = db.Column(db.Boolean, default=False)
+    for_user = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_answer = db.Column(db.Text, nullable=True)
+    score = db.Column(db.Float, nullable=True)  # Ganti dari is_correct ke score (float/angka)
+
+    user = db.relationship('User', backref=db.backref('make_a_sentence_questions', lazy=True))
+
+class FinishTheSentence(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    question = db.Column(db.Text, nullable=False)  # The sentence to be finished
+    words = db.Column(db.String(255), nullable=False)
+    level = db.Column(db.String(10), nullable=False)
+    generated_at = db.Column(db.DateTime, default=func.now())
+    deleted_at = db.Column(db.DateTime, nullable=True)
+    is_seen = db.Column(db.Boolean, default=False)
+    for_user = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_answer = db.Column(db.Text, nullable=True)
+    score = db.Column(db.Float, nullable=True)
+
+    user = db.relationship('User', backref=db.backref('finish_sentences', lazy=True))
 
 # Logging setup
 if not os.path.exists('logs'):
@@ -106,29 +287,36 @@ def signup():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    if request.method == 'GET':
-        return render_template('login.html')
-    
     if request.method == 'POST':
-        email = request.form['email']
-        password = request.form['password']
-        
-        if (email == 'test@test.com' and password == 'password') or (email == 'admin@yahoo.com' and password == 'admin321'):
-            session['logged_in'] = True
-            session['user_id'] = 0
-            return redirect(url_for('generate'))
+        email = request.form.get('email')
+        password = request.form.get('password')
         
         user = User.query.filter_by(email=email).first()
         
-        # Check if the user exists, hasn't been deleted, and password is correct
-        if user and not user.is_deleted and user.check_password(password):
+        if user and check_password_hash(user.password_hash, password):
             session['logged_in'] = True
             session['user_id'] = user.id
+            session['user_email'] = user.email
             session['user_name'] = user.name
-            return redirect(url_for('generate'))
+            session['user_level'] = user.level
             
-        return render_template('login.html', error="Invalid credentials")
+            # Only set is_admin flag for the actual admin email
+            if user.email == 'admin@yahoo.com':  # Make sure this matches your actual admin email
+                session['is_admin'] = True
+            else:
+                # Explicitly remove the is_admin flag for non-admin users
+                session.pop('is_admin', None)
+            
+            # Update last active date
+            user.last_active_date = date.today()
+            db.session.commit()
+            
+            return redirect(url_for('generate'))
+        else:
+            return render_template('login.html', error='Invalid email or password')
     
+    return render_template('login.html')
+
 @app.route('/logout')
 def logout():
     # Clear the session
@@ -137,40 +325,49 @@ def logout():
 
 @app.route('/profile')
 def profile():
+    # Debug log to help troubleshoot
+    app.logger.info(f"Session data on profile access: {session}")
+    
     if not session.get('logged_in'):
+        app.logger.info("User not logged in, redirecting to login")
         return redirect(url_for('login'))
     
     user_id = session.get('user_id')
-    user = db.session.get(User, user_id)
+    app.logger.info(f"Profile access for user_id: {user_id}")
+    
+    user = User.query.get(user_id)
+    
     if not user:
-        return redirect(url_for('login'))
+        app.logger.error(f"User {user_id} not found in database")
+        return redirect(url_for('logout'))
     
-    # Format study time as hours and minutes
-    study_time_str = format_study_time(user.study_time or 0)
+    # Make sure admin flag is set for admin users
+    if user.email == 'admin@yahoo.com':
+        session['is_admin'] = True
+        app.logger.info("Admin user confirmed, setting is_admin flag")
     
-    user_data = {
-        'name': user.name,
-        'level': user.level,
-        'language': user.language,
-        'study_time': study_time_str,
-        'streak': str(user.streak),
-        'lessons_completed': str(user.lessons_completed),
-        'average_score': str(int(user.average_score)),
-        'performance': [],
-        'profile_picture': user.profile_picture
-    }
+    # Get user performance data
+    user_performance = UserPerformance.query.filter_by(user_id=user_id).all()
+    performance_data = []
     
-    # Gather performance stats
-    performance = UserPerformance.query.filter_by(user_id=user_id).order_by(UserPerformance.timestamp.desc()).all()
-    for perf in performance:
-        user_data['performance'].append({
+    for perf in user_performance:
+        performance_data.append({
             'concept': perf.concept,
-            'success_rate': str(int(perf.success_rate)),
-            'error_rate': str(int(perf.error_rate)),
+            'success_rate': perf.success_rate,
+            'error_rate': perf.error_rate,
             'total_attempts': perf.total_attempts
         })
     
-    return render_template('profile.html', user=user_data)
+    # For admins, you might want to provide additional data
+    admin_data = None
+    if session.get('is_admin'):
+        admin_data = {
+            'user_count': User.query.filter(User.email != 'admin@yahoo.com').count(),
+            'active_users': User.query.filter(User.last_active_date >= (date.today() - timedelta(days=7))).count()
+        }
+    
+    return render_template('profile.html', user=user, performance_data=performance_data, admin_data=admin_data)
+
 
 @app.route('/update_profile', methods=['POST'])
 def update_profile():
@@ -652,6 +849,60 @@ def generate():
     else:
         return jsonify({"error": "Method not allowed", "success": False}), 405
 
+@app.route('/admin_dashboard')
+def admin_dashboard():
+    # Check if user is logged in and is admin
+    if not session.get('logged_in') or session.get('user_email') != 'admin@yahoo.com':
+        return redirect(url_for('login'))
+    
+    # Set admin flag in session
+    session['is_admin'] = True
+    
+    # Get all users except admin and deleted accounts
+    users = User.query.filter(User.email != 'admin@yahoo.com', User.is_deleted == False).all()
+    
+    # For each user, gather question statistics
+    user_data = []
+    for user in users:
+        # Calculate question stats
+        question_stats = {
+            'fill_blanks': FillInTheBlank.query.filter_by(for_user=user.id).count(),
+            'multiple_choice': MultipleChoice.query.filter_by(for_user=user.id).count(),
+            'arrange_words': ArrangeTheWord.query.filter_by(for_user=user.id).count(),
+            'selection': SelectionQuestion.query.filter_by(for_user=user.id).count(),
+            'labeling': LabelingQuestion.query.filter_by(for_user=user.id).count(),
+            'make_sentence': MakeASentence.query.filter_by(for_user=user.id).count(),
+            'finish_sentence': FinishTheSentence.query.filter_by(for_user=user.id).count()
+        }
+        question_stats['total'] = sum(question_stats.values())
+        
+        # Get performance data
+        performance_data = []
+        user_performance = UserPerformance.query.filter_by(user_id=user.id).all()
+        for perf in user_performance:
+            performance_data.append({
+                'concept': perf.concept,
+                'success_rate': perf.success_rate,
+                'error_rate': perf.error_rate,
+                'total_attempts': perf.total_attempts
+            })
+        
+        # Create a dictionary with user info and stats, DON'T modify the User model
+        # Use a default datetime if join_date doesn't exist
+        user_data.append({
+            'id': user.id,
+            'name': user.name,
+            'email': user.email,
+            'level': user.level,
+            # Use getattr with default to safely handle missing attributes
+            'join_date': getattr(user, 'join_date', datetime.datetime.now()),
+            'last_active_date': user.last_active_date,
+            'question_stats': question_stats,
+            'performance': performance_data
+        })
+    
+    return render_template('admin_dashboard.html', users=user_data)
+
 @app.route('/api/submit_placement_test', methods=['POST'])
 def submit_placement_test():
     user_id = session.get('user_id')
@@ -706,11 +957,64 @@ def submit_placement_test():
         elif question_type == 'multiple_choice':
             question = db.session.get(MultipleChoice, question_id)
             if question:
-                level = question.level
-                correct = (question.correct_answer.strip().lower() == user_answer.strip().lower())
-                question.is_seen = True
+                # First try exact match
+                exact_match = normalize_answer(question.correct_answer) == normalize_answer(user_answer)
+                
+                # If not an exact match, try semantic similarity with full sentence context
+                if not exact_match and question.choices:
+                    try:
+                        import spacy
+                        
+                        # Load the language model
+                        nlp = spacy.load("en_core_web_md")
+                        
+                        # Get the full question text and extract the sentence with blank
+                        question_text = question.question
+                        
+                        # Extract the original sentence with a blank placeholder
+                        sentence_with_blank = re.sub(r'Choose the correct verb for: ', '', question_text)
+                        
+                        # Create the complete sentences using both answers
+                        correct_sentence = sentence_with_blank.replace('____', normalize_answer(question.correct_answer))
+                        user_sentence = sentence_with_blank.replace('____', normalize_answer(user_answer))
+                        
+                        app.logger.info(f"Comparing sentences for semantic similarity:")
+                        app.logger.info(f"  Correct: '{correct_sentence}'")
+                        app.logger.info(f"  User: '{user_sentence}'")
+                        
+                        # Get the sentence embeddings
+                        correct_doc = nlp(correct_sentence)
+                        user_doc = nlp(user_sentence)
+                        
+                        # Calculate similarity score (0-1 range)
+                        similarity = correct_doc.similarity(user_doc)
+                        app.logger.info(f"Semantic similarity score: {similarity}")
+                        
+                        # Consider answers with similarity over 0.80 as correct (per user request)
+                        semantic_match = similarity > 0.80
+                        
+                        is_correct = exact_match or semantic_match
+                        
+                        # Log the acceptance criteria that was used
+                        if semantic_match and not exact_match:
+                            app.logger.info(f"Answer accepted based on semantic similarity ({similarity})")
+                        
+                        # Still log borderline cases for future reference (now 0.70-0.80)
+                        if 0.70 <= similarity < 0.80:
+                            app.logger.info(f"Borderline answer similarity ({similarity}): '{user_sentence}' vs '{correct_sentence}'")
+                    except ImportError:
+                        # Fallback to exact match if spaCy isn't available
+                        app.logger.warning("spaCy not available for semantic matching, falling back to exact match")
+                        is_correct = exact_match
+                    except Exception as e:
+                        # Handle other errors in semantic comparison
+                        app.logger.error(f"Error in semantic comparison: {str(e)}")
+                        is_correct = exact_match
+                else:
+                    is_correct = exact_match
+                    
                 question.user_answer = user_answer
-                question.is_correct = correct
+                question.is_correct = is_correct
                 
         # In the submit_placement_test function, update the selection_question block:
         # Update the selection_question block in submit_placement_test function
@@ -860,17 +1164,6 @@ def submit_answer():
 
     app.logger.info(f"submit_answer called with question_id={question_id}, question_type={question_type}")
 
-    # For make_a_sentence questions, redirect to the specific endpoint
-    if question_type == 'make_a_sentence':
-        # Return a success response but indicate it needs grammar check
-        app.logger.info(f"Redirecting make_a_sentence question to proper endpoint")
-        return jsonify({
-            'success': True,
-            'needs_grammar_check': True,
-            'message': 'Make a sentence questions should be submitted to /submit_make_a_sentence'
-        })
-
-    # Regular question handling continues...
     if not question_id:
         # Try to get the ID from another field that might be used
         question_id = data.get('id')
@@ -985,7 +1278,62 @@ def submit_answer():
         elif question_type == 'multiple_choice':
             question = db.session.get(MultipleChoice, question_id)
             if question:
-                is_correct = normalize_answer(question.correct_answer) == normalize_answer(user_answer)
+                # First try exact match
+                exact_match = normalize_answer(question.correct_answer) == normalize_answer(user_answer)
+                
+                # If not an exact match, try semantic similarity with full sentence context
+                if not exact_match and question.choices:
+                    try:
+                        import spacy
+                        
+                        # Load the language model
+                        nlp = spacy.load("en_core_web_md")
+                        
+                        # Get the full question text and extract the sentence with blank
+                        question_text = question.question
+                        
+                        # Extract the original sentence with a blank placeholder
+                        sentence_with_blank = re.sub(r'Choose the correct verb for: ', '', question_text)
+                        
+                        # Create the complete sentences using both answers
+                        correct_sentence = sentence_with_blank.replace('____', normalize_answer(question.correct_answer))
+                        user_sentence = sentence_with_blank.replace('____', normalize_answer(user_answer))
+                        
+                        app.logger.info(f"Comparing sentences for semantic similarity:")
+                        app.logger.info(f"  Correct: '{correct_sentence}'")
+                        app.logger.info(f"  User: '{user_sentence}'")
+                        
+                        # Get the sentence embeddings
+                        correct_doc = nlp(correct_sentence)
+                        user_doc = nlp(user_sentence)
+                        
+                        # Calculate similarity score (0-1 range)
+                        similarity = correct_doc.similarity(user_doc)
+                        app.logger.info(f"Semantic similarity score: {similarity}")
+                        
+                        # Consider answers with similarity over 0.80 as correct (per user request)
+                        semantic_match = similarity > 0.80
+                        
+                        is_correct = exact_match or semantic_match
+                        
+                        # Log the acceptance criteria that was used
+                        if semantic_match and not exact_match:
+                            app.logger.info(f"Answer accepted based on semantic similarity ({similarity})")
+                        
+                        # Still log borderline cases for future reference (now 0.70-0.80)
+                        if 0.70 <= similarity < 0.80:
+                            app.logger.info(f"Borderline answer similarity ({similarity}): '{user_sentence}' vs '{correct_sentence}'")
+                    except ImportError:
+                        # Fallback to exact match if spaCy isn't available
+                        app.logger.warning("spaCy not available for semantic matching, falling back to exact match")
+                        is_correct = exact_match
+                    except Exception as e:
+                        # Handle other errors in semantic comparison
+                        app.logger.error(f"Error in semantic comparison: {str(e)}")
+                        is_correct = exact_match
+                else:
+                    is_correct = exact_match
+                    
                 question.user_answer = user_answer
                 question.is_correct = is_correct
                 
@@ -1608,29 +1956,63 @@ def submit_finish_the_sentence():
     except Exception as e:
         app.logger.error(f"Unexpected error: {str(e)}")
         return jsonify({'success': False, 'error': 'Internal server error'}), 500
+
+@app.route('/create_finish_sentence', methods=['POST'])
+def create_finish_sentence():
+    """Create a new FinishTheSentence entry and return its ID"""
+    try:
+        data = request.get_json()
+        app.logger.info(f"create_finish_sentence called with data: {data}")
+        
+        # Extract needed fields
+        question = data.get('question', '')
+        words = data.get('words', '')
+        level = data.get('level', 'A1')
+        for_user = data.get('for_user') or session.get('user_id')
+        
+        # Create new FinishTheSentence record
+        finish_sentence = FinishTheSentence(
+            question=question,
+            words=words,
+            level=level,
+            for_user=for_user
+        )
+        
+        db.session.add(finish_sentence)
+        db.session.commit()
+        
+        app.logger.info(f"Created FinishTheSentence with ID: {finish_sentence.id}")
+        
+        return jsonify({
+            'success': True,
+            'id': finish_sentence.id,
+            'message': 'FinishTheSentence record created successfully'
+        })
+        
+    except Exception as e:
+        app.logger.error(f"Error creating FinishTheSentence: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
     
 # # Create database tables
-# Initialize database tables and create admin user if needed
-def init_db():
-    with app.app_context():
-        db.create_all()
-        if not User.query.filter_by(email='admin@yahoo.com').first():
-            admin = User(email='admin@yahoo.com', name='Admin User', language='English', level='C2')
-            admin.set_password('admin321')
-            db.session.add(admin)
-            db.session.commit()
-
-# Initialize database when app starts
-init_db()
+with app.app_context():
+    db.create_all()
+    if not User.query.filter_by(email='admin@yahoo.com').first():
+        admin = User(email='admin@yahoo.com', name='Admin User', language='English', level='C2')
+        admin.set_password('admin321')
+        db.session.add(admin)
+        db.session.commit()
 
 if __name__ == '__main__':
     app.run()
-
+    
        
 # flask shell
 
 # # In the Flask shell, run:
 # from app import db
-# db.drop_all()
-# db.create_all()
-# exit()
+db.drop_all()
+db.create_all()
+exit()
