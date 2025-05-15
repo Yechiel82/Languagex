@@ -3,23 +3,30 @@ import os
 import logging
 import requests
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for, send_file
-from flask_sqlalchemy import SQLAlchemy
-from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 import datetime
-from sqlalchemy.sql import func
 from logging.handlers import RotatingFileHandler
 from datetime import date, timedelta
 import random
 import json
 import re
+from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy.sql import func
+
+# Import database and models from models.py
+from models import db, User, SelectionQuestion, LabelingQuestion, UserPerformance, GroundTruth
+from models import FillInTheBlank, ArrangeTheWord, MultipleChoice, PlacementTestAttempt
+from models import MakeASentence, FinishTheSentence
 
 app = Flask(__name__)
 app.secret_key = "7373"
 # Configure PostgreSQL database
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://yechiel@localhost/languagex'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(app)
+
+# Initialize the database with this app
+db.init_app(app)
 
 # Cloud API configuration
 CLOUD_API_URL = os.getenv('CLOUD_API_URL', 'https://51ce-103-119-147-234.ngrok-free.app')
@@ -35,194 +42,6 @@ app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5MB max upload size
 # Make sure upload directory exists
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
-
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-# Define User model
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(256), nullable=False)
-    name = db.Column(db.String(100))
-    language = db.Column(db.String(50))
-    level = db.Column(db.String(10))
-    study_time = db.Column(db.Integer, default=0)
-    streak = db.Column(db.Integer, default=0)
-    lessons_completed = db.Column(db.Integer, default=0)
-    average_score = db.Column(db.Float, default=0.0)
-    last_active_date = db.Column(db.Date, nullable=True)
-    total_attempts = db.Column(db.Integer, default=0)
-    correct_attempts = db.Column(db.Integer, default=0)
-    placement_test_for_user = db.Column(db.Integer, nullable=True)  # User ID if used for placement test
-    profile_picture = db.Column(db.String(255), nullable=True)  # Path or URL to profile picture
-    is_deleted = db.Column(db.Boolean, default=False)  # New column to mark deleted accounts
-    
-    def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
-    
-    def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
-
-class SelectionQuestion(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    question_text = db.Column(db.Text, nullable=False)  # Note: field is question_text, not question
-    sentences = db.Column(db.Text, nullable=False)
-    correct_sentence = db.Column(db.Text, nullable=False)
-    level = db.Column(db.String(10), nullable=False)
-    generated_at = db.Column(db.DateTime, default=func.now())
-    deleted_at = db.Column(db.DateTime, nullable=True)
-    is_seen = db.Column(db.Boolean, default=False)
-    for_user = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    user_answer = db.Column(db.Text, nullable=True)
-    is_correct = db.Column(db.Boolean, nullable=True)
-    user_feedback = db.Column(db.Text, nullable=True)
-    ground_truth_id = db.Column(db.Integer, db.ForeignKey('ground_truth.id'), nullable=True)
-
-    user = db.relationship('User', backref=db.backref('selection_questions', lazy=True))
-    ground_truth = db.relationship('GroundTruth', backref=db.backref('selection_questions', lazy=True))
-
-
-class LabelingQuestion(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    question_text = db.Column(db.Text, nullable=False)
-    instruction = db.Column(db.Text, nullable=False)
-    correct_labels = db.Column(db.Text, nullable=False)  # Store as JSON string
-    level = db.Column(db.String(10), nullable=False)
-    generated_at = db.Column(db.DateTime, default=func.now())
-    deleted_at = db.Column(db.DateTime, nullable=True)
-    is_seen = db.Column(db.Boolean, default=False)
-    for_user = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    user_answer = db.Column(db.Text, nullable=True)
-    is_correct = db.Column(db.Boolean, nullable=True)
-    user_feedback = db.Column(db.Text, nullable=True)
-    ground_truth_id = db.Column(db.Integer, db.ForeignKey('ground_truth.id'), nullable=True)
-
-    user = db.relationship('User', backref=db.backref('labeling_questions', lazy=True))
-    ground_truth = db.relationship('GroundTruth', backref=db.backref('labeling_questions', lazy=True))
-
-
-# Define UserPerformance model
-class UserPerformance(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    concept = db.Column(db.String(100), nullable=False)
-    success_rate = db.Column(db.Float, default=0.0)
-    error_rate = db.Column(db.Float, default=0.0)
-    timestamp = db.Column(db.DateTime, default=func.now())
-    total_attempts = db.Column(db.Integer, default=0)
-    correct_attempts = db.Column(db.Integer, default=0)
-
-    user = db.relationship('User', backref=db.backref('performance', lazy=True))
-
-# GroundTruth model
-class GroundTruth(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    word = db.Column(db.String(100), nullable=False)
-    pos = db.Column(db.String(50), nullable=False)
-    sentence = db.Column(db.Text, nullable=False)
-    level = db.Column(db.String(10), nullable=False)
-    generated_at = db.Column(db.DateTime, default=func.now())
-    deleted_at = db.Column(db.DateTime, nullable=True)
-    is_seen = db.Column(db.Boolean, default=False)
-    for_user = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    user_answer = db.Column(db.Text, nullable=True)
-    is_correct = db.Column(db.Boolean, nullable=True)
-    
-    user = db.relationship('User', backref=db.backref('ground_truths', lazy=True))
-
-# FillInTheBlank model
-class FillInTheBlank(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    question = db.Column(db.Text, nullable=False)
-    answer = db.Column(db.String(100), nullable=False)
-    level = db.Column(db.String(10), nullable=False)
-    generated_at = db.Column(db.DateTime, default=func.now())
-    deleted_at = db.Column(db.DateTime, nullable=True)
-    is_seen = db.Column(db.Boolean, default=False)
-    for_user = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    user_answer = db.Column(db.Text, nullable=True)
-    is_correct = db.Column(db.Boolean, nullable=True)
-    user_feedback = db.Column(db.Text, nullable=True)
-    ground_truth_id = db.Column(db.Integer, db.ForeignKey('ground_truth.id'), nullable=True)
-
-    user = db.relationship('User', backref=db.backref('fill_blanks', lazy=True))
-    ground_truth = db.relationship('GroundTruth', backref=db.backref('fill_blanks', lazy=True))
-
-# ArrangeTheWord model
-class ArrangeTheWord(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    question = db.Column(db.Text, nullable=False)
-    correct_arrangement = db.Column(db.Text, nullable=False)
-    level = db.Column(db.String(10), nullable=False)
-    generated_at = db.Column(db.DateTime, default=func.now())
-    deleted_at = db.Column(db.DateTime, nullable=True)
-    is_seen = db.Column(db.Boolean, default=False)
-    for_user = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    user_answer = db.Column(db.Text, nullable=True)
-    is_correct = db.Column(db.Boolean, nullable=True)
-    user_feedback = db.Column(db.Text, nullable=True)
-    ground_truth_id = db.Column(db.Integer, db.ForeignKey('ground_truth.id'), nullable=True)
-
-    user = db.relationship('User', backref=db.backref('arrange_words', lazy=True))
-    ground_truth = db.relationship('GroundTruth', backref=db.backref('arrange_words', lazy=True))
-
-# MultipleChoice model
-class MultipleChoice(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    question = db.Column(db.Text, nullable=False)
-    choices = db.Column(db.Text, nullable=False)
-    correct_answer = db.Column(db.String(100), nullable=False)
-    level = db.Column(db.String(10), nullable=False)
-    generated_at = db.Column(db.DateTime, default=func.now())
-    deleted_at = db.Column(db.DateTime, nullable=True)
-    is_seen = db.Column(db.Boolean, default=False)
-    for_user = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    user_answer = db.Column(db.Text, nullable=True)
-    is_correct = db.Column(db.Boolean, nullable=True)
-    user_feedback = db.Column(db.Text, nullable=True)
-    ground_truth_id = db.Column(db.Integer, db.ForeignKey('ground_truth.id'), nullable=True)
-
-    user = db.relationship('User', backref=db.backref('multiple_choices', lazy=True))
-    ground_truth = db.relationship('GroundTruth', backref=db.backref('multiple_choices', lazy=True))
-
-# PlacementTestAttempt model
-class PlacementTestAttempt(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    started_at = db.Column(db.DateTime, default=func.now())
-    completed_at = db.Column(db.DateTime, nullable=True)
-    score = db.Column(db.Float, nullable=True)
-    estimated_level = db.Column(db.String(10), nullable=True)
-    user = db.relationship('User', backref=db.backref('placement_attempts', lazy=True))
-
-class MakeASentence(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    question = db.Column(db.Text, nullable=False)  # The question text
-    words = db.Column(db.String(255), nullable=False)  # The 1-2 words used for the question
-    level = db.Column(db.String(10), nullable=False)
-    generated_at = db.Column(db.DateTime, default=func.now())
-    deleted_at = db.Column(db.DateTime, nullable=True)
-    is_seen = db.Column(db.Boolean, default=False)
-    for_user = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    user_answer = db.Column(db.Text, nullable=True)
-    score = db.Column(db.Float, nullable=True)  # Ganti dari is_correct ke score (float/angka)
-
-    user = db.relationship('User', backref=db.backref('make_a_sentence_questions', lazy=True))
-
-class FinishTheSentence(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    question = db.Column(db.Text, nullable=False)  # The sentence to be finished
-    words = db.Column(db.String(255), nullable=False)
-    level = db.Column(db.String(10), nullable=False)
-    generated_at = db.Column(db.DateTime, default=func.now())
-    deleted_at = db.Column(db.DateTime, nullable=True)
-    is_seen = db.Column(db.Boolean, default=False)
-    for_user = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    user_answer = db.Column(db.Text, nullable=True)
-    score = db.Column(db.Float, nullable=True)
-
-    user = db.relationship('User', backref=db.backref('finish_sentences', lazy=True))
 
 # Logging setup
 if not os.path.exists('logs'):
@@ -1041,6 +860,17 @@ def submit_answer():
 
     app.logger.info(f"submit_answer called with question_id={question_id}, question_type={question_type}")
 
+    # For make_a_sentence questions, redirect to the specific endpoint
+    if question_type == 'make_a_sentence':
+        # Return a success response but indicate it needs grammar check
+        app.logger.info(f"Redirecting make_a_sentence question to proper endpoint")
+        return jsonify({
+            'success': True,
+            'needs_grammar_check': True,
+            'message': 'Make a sentence questions should be submitted to /submit_make_a_sentence'
+        })
+
+    # Regular question handling continues...
     if not question_id:
         # Try to get the ID from another field that might be used
         question_id = data.get('id')
@@ -1780,17 +1610,22 @@ def submit_finish_the_sentence():
         return jsonify({'success': False, 'error': 'Internal server error'}), 500
     
 # # Create database tables
-with app.app_context():
-    db.create_all()
-    if not User.query.filter_by(email='admin@yahoo.com').first():
-        admin = User(email='admin@yahoo.com', name='Admin User', language='English', level='C2')
-        admin.set_password('admin321')
-        db.session.add(admin)
-        db.session.commit()
+# Initialize database tables and create admin user if needed
+def init_db():
+    with app.app_context():
+        db.create_all()
+        if not User.query.filter_by(email='admin@yahoo.com').first():
+            admin = User(email='admin@yahoo.com', name='Admin User', language='English', level='C2')
+            admin.set_password('admin321')
+            db.session.add(admin)
+            db.session.commit()
+
+# Initialize database when app starts
+init_db()
 
 if __name__ == '__main__':
     app.run()
-    
+
        
 # flask shell
 

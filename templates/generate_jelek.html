@@ -1245,93 +1245,31 @@ $('#question-form').on('submit', function(e) {
         }
     }
 
-    // If last question, submit all answers to backend
-    if (currentIndex === questions.length - 1) {
-        const timeSpent = endLessonTimer();
-        $.ajax({
-            url: '/submit_answer',
-            type: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify({
-                question_id: questionId,
-                user_answer: userAnswer,
-                is_correct: isCorrect,
-                question_type: sentence._chosenType,
-                concept: currentTopic,
-                time_spent: timeSpent
-            }),
-            success: function(response) {
-                currentIndex += 1;
-                displayQuestion(currentIndex);
-            },
-            error: function(xhr, status, error) {
-                console.error('Error submitting answer:', error);
-                alert('Error saving answer!');
-                currentIndex += 1;
-                displayQuestion(currentIndex);
-            }
-        });
-    } else {
-        // For intermediate questions, just move to next question
-        currentIndex += 1;
-        displayQuestion(currentIndex);
-    }
-});
-
-$('#submit-answer').on('click', function(e) {
-    e.preventDefault();
-
-    // Clear previous validation warnings
-    $('.validation-warning').remove();
-    
-    console.log('Starting validation for submission...');
-
-    // On submit (Finish), ONLY validate the CURRENT question
-    const currentQuestion = questions[currentIndex];
-    const chosenType = currentQuestion._chosenType;
-    
-    // Only validate make_a_sentence and finish_the_sentence questions
-    if (chosenType === 'make_a_sentence' || chosenType === 'finish_the_sentence') {
-        const answer = $('input[name="answer"]').val() || '';
-        let requiredWords = [];
-        
-        console.log(`Validating current question, type: ${chosenType}`);
-        console.log('Answer:', answer);
-
-        if (chosenType === 'make_a_sentence') {
-            requiredWords = (currentQuestion.words || []).map(w => w.trim().toLowerCase()).filter(Boolean);
-            console.log('Required words for make_a_sentence:', requiredWords);
-        } else if (chosenType === 'finish_the_sentence') {
-            let requiredText = currentQuestion.question.replace(/^Finish the sentence:/i, '').trim();
-            requiredWords = requiredText.split(/\s+/).map(w => w.trim().toLowerCase()).filter(Boolean);
-            console.log('Required words:', requiredWords);
+    // Always submit the answer to the backend
+    $.ajax({
+        url: '/submit_answer',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            question_id: questionId,
+            user_answer: userAnswer,
+            is_correct: isCorrect,
+            question_type: sentence._chosenType,
+            concept: currentTopic,
+            time_spent: currentIndex === questions.length - 1 ? endLessonTimer() : 0
+        }),
+        success: function(response) {
+            // After successful submission, move to next question
+            currentIndex += 1;
+            displayQuestion(currentIndex);
+        },
+        error: function(xhr, status, error) {
+            console.error('Error submitting answer:', error);
+            // Still move to the next question even if there's an error
+            currentIndex += 1;
+            displayQuestion(currentIndex);
         }
-
-        const answerWords = getWords(answer);
-        console.log('Words in answer:', answerWords);
-
-        let allWordsPresent = requiredWords.every(word => {
-            const isPresent = answerWords.includes(word);
-            if (!isPresent) {
-                console.log(`Missing required word: "${word}"`);
-            }
-            return isPresent;
-        });
-
-        if (!allWordsPresent) {
-            console.log('Validation failed: Not all required words are present');
-            if ($('#validation-warning').length === 0) {
-                // Show which words are missing
-                const missingWords = requiredWords.filter(word => !answerWords.includes(word));
-                $('input[name="answer"]').after(`<div id="validation-warning" class="validation-warning" style="color:red; margin-top:5px;">Please include the following required words in your answer: <strong>${missingWords.join(', ')}</strong></div>`);
-            }
-            return; // Stop submission if validation fails
-        }
-    }
-
-    console.log('Validation passed! Submitting form...');
-    // If validation passes, submit the form
-    $('#question-form').submit();
+    });
 });
 
 $('#next-answer').on('click', function(e) {

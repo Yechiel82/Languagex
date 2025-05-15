@@ -1,10 +1,10 @@
-2025-05-15 04:04:12,852 - app - INFO - Sending request to  https://51ce-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A1', 'num_sentences': 2, 'user_id': 2, 'topic': 'daily', 'question_types': ['fill_in_blank']}
-2025-05-15 04:04:18,864 - app - INFO - API response status: 200
-2025-05-15 04:04:18,867 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'I am a teacher.', 'verb': 'am', 'level': 'A1', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'I __ a teacher  (be).', 'correct_answer': 'am'}}, {'sentence': 'I like my breakfast at 7:00 a.', 'verb': 'like', 'level': 'A1', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'I __ my breakfast at 7:00 a (like).', 'correct_answer': 'like'}}], 'message': "Generated 2 sentences for level A1 on topic 'daily' with question types ['fill_in_blank']", 'processing_time': 4.2359254360198975, 'timestamp': '2025-05-15T04:04:18.710639'}
-2025-05-15 04:04:54,701 - app - INFO - submit_answer called with question_id=4, question_type=make_a_sentence
-2025-05-15 04:04:54,703 - app - INFO - Debug - Received question_type: 'make_a_sentence', question_id: 4
-2025-05-15 04:04:54,706 - app - INFO - Debug - Found question ID 4 in table: fill_in_blank
-2025-05-15 04:04:54,707 - app - INFO - Debug - Found question ID 4 in table: multiple_choice
-2025-05-15 04:04:54,708 - app - INFO - Debug - Found question ID 4 in table: selection_question
-2025-05-15 04:04:54,713 - app - INFO - Debug - Found question ID 4 in table: arrange
-2025-05-15 04:04:54,715 - app - INFO - Debug - Found question ID 4 in table: make_a_sentence
+2025-05-15 15:43:37,944 - app - INFO - Received generate request: level=A1, topic=love, num_sentences=2, user_id=2
+2025-05-15 15:43:37,951 - app - INFO - Sending request to https://51ce-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A1', 'num_sentences': 2, 'user_id': 2, 'topic': 'love', 'question_types': ['fill_in_blank']}
+2025-05-15 15:43:42,594 - app - INFO - API response status: 200
+2025-05-15 15:43:42,595 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'I love playing soccer with my friends.', 'verb': 'love', 'level': 'A1', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'I __ playing soccer with my friends  (love).', 'correct_answer': 'love'}}, {'sentence': 'My friend loves his dog.', 'verb': 'loves', 'level': 'A1', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'My friend __ his dog  (love).', 'correct_answer': 'loves'}}], 'message': "Generated 2 sentences for level A1 on topic 'love' with question types ['fill_in_blank']", 'processing_time': 3.50923490524292, 'timestamp': '2025-05-15T15:43:42.396617'}
+2025-05-15 15:43:42,625 - app - INFO - Stored 2 valid sentences for user 2
+2025-05-15 15:43:42,625 - app - INFO - Returning 2 sentences to client
+2025-05-15 15:43:48,514 - app - INFO - Received submit_answer data: {'question_id': 6, 'user_answer': 'love', 'is_correct': False, 'question_type': 'fill_in_blank', 'concept': 'love', 'time_spent': 0}
+2025-05-15 15:43:48,515 - app - INFO - Received submit_answer data: {'question_id': 6, 'user_answer': 'love', 'is_correct': False, 'question_type': 'fill_in_blank', 'concept': 'love', 'time_spent': 0}
+2025-05-15 15:43:48,515 - app - INFO - submit_answer called with question_id=6, question_type=fill_in_blank
+2025-05-15 15:43:48,515 - app - INFO - submit_answer called with question_id=6, question_type=fill_in_blank

@@ -1,57 +1,52 @@
-2025-05-15 03:44:47,281 - app - INFO - submit_answer called with question_id=11, question_type=selection_question
-2025-05-15 03:44:47,290 - app - INFO - Debug - Received question_type: 'selection_question', question_id: 11
-2025-05-15 03:44:47,310 - app - INFO - Debug - Found question ID 11 in table: multiple_choice
-2025-05-15 03:44:47,311 - app - INFO - Debug - Found question ID 11 in table: selection_question
-2025-05-15 03:44:47,313 - app - INFO - Debug - Found question ID 11 in table: arrange
-2025-05-15 03:44:53,128 - app - INFO - submit_answer called with question_id=12, question_type=selection_question
-2025-05-15 03:44:53,129 - app - INFO - Debug - Received question_type: 'selection_question', question_id: 12
-2025-05-15 03:44:53,132 - app - INFO - Debug - Found question ID 12 in table: multiple_choice
-2025-05-15 03:44:53,134 - app - INFO - Debug - Found question ID 12 in table: selection_question
-2025-05-15 03:44:53,136 - app - INFO - Debug - Found question ID 12 in table: arrange
-2025-05-15 03:45:05,042 - app - INFO - Received generate request: level=A1, topic=food, num_sentences=2, user_id=2
-2025-05-15 03:45:05,044 - app - INFO - Sending request to  https://51ce-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A1', 'num_sentences': 2, 'user_id': 2, 'topic': 'food', 'question_types': ['fill_in_blank']}
-2025-05-15 03:45:10,056 - app - INFO - API response status: 200
-2025-05-15 03:45:10,057 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'I eat an apple.', 'verb': 'eat', 'level': 'A1', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'I __ an apple  (eat).', 'correct_answer': 'eat'}}, {'sentence': 'I have a banana for breakfast.', 'verb': 'have', 'level': 'A1', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'I __ a banana for breakfast  (have).', 'correct_answer': 'have'}}], 'message': "Generated 2 sentences for level A1 on topic 'food' with question types ['fill_in_blank']", 'processing_time': 4.185028076171875, 'timestamp': '2025-05-15T03:45:09.845977'}
-2025-05-15 03:45:24,869 - app - INFO - Received generate request: level=A1, topic=animal, num_sentences=2, user_id=2
-2025-05-15 03:45:24,871 - app - INFO - Sending request to  https://51ce-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A1', 'num_sentences': 2, 'user_id': 2, 'topic': 'animal', 'question_types': ['fill_in_blank']}
-2025-05-15 03:45:33,332 - app - INFO - API response status: 200
-2025-05-15 03:45:33,333 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'My pet cat eats fish.', 'verb': 'eats', 'level': 'A1', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'My pet cat __ fish  (eat).', 'correct_answer': 'eats'}}, {'sentence': 'The dog runs in the park.', 'verb': 'runs', 'level': 'A1', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'The dog __ in the park  (run).', 'correct_answer': 'runs'}}], 'message': "Generated 2 sentences for level A1 on topic 'animal' with question types ['fill_in_blank']", 'processing_time': 6.6319520473480225, 'timestamp': '2025-05-15T03:45:33.209650'}
-2025-05-15 03:53:31,532 - app - INFO - Flask app is starting up
-2025-05-15 03:53:46,441 - app - INFO - Received generate request: level=A1, topic=teeth, num_sentences=2, user_id=2
-2025-05-15 03:53:46,442 - app - INFO - Sending request to  https://51ce-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A1', 'num_sentences': 2, 'user_id': 2, 'topic': 'teeth', 'question_types': ['fill_in_blank']}
-2025-05-15 03:53:51,162 - app - INFO - API response status: 200
-2025-05-15 03:53:51,163 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'My friend brushes her teeth three times a day.', 'verb': 'brushes', 'level': 'A1', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'My friend __ her teeth three times a day  (brush).', 'correct_answer': 'brushes'}}, {'sentence': 'I brush my teeth three times a day.', 'verb': 'brush', 'level': 'A1', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'I __ my teeth three times a day  (brush).', 'correct_answer': 'brush'}}], 'message': "Generated 2 sentences for level A1 on topic 'teeth' with question types ['fill_in_blank']", 'processing_time': 3.8998732566833496, 'timestamp': '2025-05-15T03:53:51.001305'}
-2025-05-15 03:54:25,784 - app - INFO - submit_answer called with question_id=1, question_type=make_a_sentence
-2025-05-15 03:54:25,787 - app - INFO - Debug - Received question_type: 'make_a_sentence', question_id: 1
-2025-05-15 03:54:25,812 - app - INFO - Debug - Found question ID 1 in table: fill_in_blank
-2025-05-15 03:54:25,817 - app - INFO - Debug - Found question ID 1 in table: multiple_choice
-2025-05-15 03:54:25,822 - app - INFO - Debug - Found question ID 1 in table: selection_question
-2025-05-15 03:54:25,825 - app - INFO - Debug - Found question ID 1 in table: arrange
-2025-05-15 03:54:25,826 - app - INFO - Debug - Found question ID 1 in table: make_a_sentence
-2025-05-15 03:54:49,236 - app - INFO - Received generate request: level=A1, topic=teeth, num_sentences=2, user_id=2
-2025-05-15 03:54:49,239 - app - INFO - Sending request to  https://51ce-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A1', 'num_sentences': 2, 'user_id': 2, 'topic': 'teeth', 'question_types': ['fill_in_blank']}
-2025-05-15 03:54:54,982 - app - INFO - API response status: 200
-2025-05-15 03:54:54,984 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'My friend has two big teeth.', 'verb': 'has', 'level': 'A1', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'My friend __ two big teeth  (have).', 'correct_answer': 'has'}}, {'sentence': 'My friend brushes her teeth.', 'verb': 'brushes', 'level': 'A1', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'My friend __ her teeth  (brush).', 'correct_answer': 'brushes'}}], 'message': "Generated 2 sentences for level A1 on topic 'teeth' with question types ['fill_in_blank']", 'processing_time': 4.9830827713012695, 'timestamp': '2025-05-15T03:54:54.845341'}
-2025-05-15 03:55:39,806 - app - INFO - submit_answer called with question_id=2, question_type=make_a_sentence
-2025-05-15 03:55:39,808 - app - INFO - Debug - Received question_type: 'make_a_sentence', question_id: 2
-2025-05-15 03:55:39,824 - app - INFO - Debug - Found question ID 2 in table: fill_in_blank
-2025-05-15 03:55:39,825 - app - INFO - Debug - Found question ID 2 in table: multiple_choice
-2025-05-15 03:55:39,826 - app - INFO - Debug - Found question ID 2 in table: selection_question
-2025-05-15 03:55:39,829 - app - INFO - Debug - Found question ID 2 in table: arrange
-2025-05-15 03:55:39,830 - app - INFO - Debug - Found question ID 2 in table: make_a_sentence
-2025-05-15 04:03:02,605 - app - INFO - Received generate request: level=A1, topic=teeth, num_sentences=2, user_id=2
-2025-05-15 04:03:02,608 - app - INFO - Sending request to  https://51ce-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A1', 'num_sentences': 2, 'user_id': 2, 'topic': 'teeth', 'question_types': ['fill_in_blank']}
-2025-05-15 04:03:08,368 - app - INFO - API response status: 200
-2025-05-15 04:03:08,371 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'I brush my teeth twice a day.', 'verb': 'brush', 'level': 'A1', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'I __ my teeth twice a day  (brush).', 'correct_answer': 'brush'}}, {'sentence': 'I brush my teeth once a day.', 'verb': 'brush', 'level': 'A1', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'I __ my teeth once a day  (brush).', 'correct_answer': 'brush'}}], 'message': "Generated 2 sentences for level A1 on topic 'teeth' with question types ['fill_in_blank']", 'processing_time': 4.548609495162964, 'timestamp': '2025-05-15T04:03:07.873462'}
-2025-05-15 04:03:27,324 - app - INFO - Received generate request: level=A1, topic=daily, num_sentences=2, user_id=2
-2025-05-15 04:03:27,327 - app - INFO - Sending request to  https://51ce-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A1', 'num_sentences': 2, 'user_id': 2, 'topic': 'daily', 'question_types': ['fill_in_blank']}
-2025-05-15 04:03:33,003 - app - INFO - API response status: 200
-2025-05-15 04:03:33,006 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'I have a small apple in my bag.', 'verb': 'have', 'level': 'A1', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'I __ a small apple in my bag  (have).', 'correct_answer': 'have'}}, {'sentence': 'I am brushing my teeth.', 'verb': 'am', 'level': 'A1', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'I am __ my teeth  (brush).', 'correct_answer': 'brushing'}}], 'message': "Generated 2 sentences for level A1 on topic 'daily' with question types ['fill_in_blank']", 'processing_time': 4.755658388137817, 'timestamp': '2025-05-15T04:03:32.747607'}
-2025-05-15 04:04:06,967 - app - INFO - submit_answer called with question_id=3, question_type=make_a_sentence
-2025-05-15 04:04:06,970 - app - INFO - Debug - Received question_type: 'make_a_sentence', question_id: 3
-2025-05-15 04:04:06,974 - app - INFO - Debug - Found question ID 3 in table: fill_in_blank
-2025-05-15 04:04:06,979 - app - INFO - Debug - Found question ID 3 in table: multiple_choice
-2025-05-15 04:04:06,981 - app - INFO - Debug - Found question ID 3 in table: selection_question
-2025-05-15 04:04:06,984 - app - INFO - Debug - Found question ID 3 in table: arrange
-2025-05-15 04:04:06,985 - app - INFO - Debug - Found question ID 3 in table: make_a_sentence
-2025-05-15 04:04:12,850 - app - INFO - Received generate request: level=A1, topic=daily, num_sentences=2, user_id=2
+2025-05-15 15:32:34,069 - app - INFO - Received submit_answer data: {'question_id': None, 'user_answer': 'I am having a breakfast', 'is_correct': False, 'question_type': 'make_a_sentence', 'concept': 'food', 'time_spent': 0}
+2025-05-15 15:32:34,070 - app - INFO - submit_answer called with question_id=2, question_type=make_a_sentence
+2025-05-15 15:32:34,077 - app - INFO - submit_answer called with question_id=None, question_type=make_a_sentence
+2025-05-15 15:32:34,078 - app - INFO - Redirecting make_a_sentence question to proper endpoint
+2025-05-15 15:32:34,078 - app - INFO - Redirecting make_a_sentence question to proper endpoint
+2025-05-15 15:32:38,322 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'I like eating apple', 'corrected': 'I like eating apples', 'corrections': ["1. Changed 'apple' to 'apples' - Replace noun number"]}
+2025-05-15 15:32:40,576 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'I like eating apple', 'corrected': 'I like eating apples', 'corrections': ["1. Changed 'apple' to 'apples' - Replace noun number"]}
+2025-05-15 15:32:42,369 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'I am having a breakfast', 'corrected': 'I am having breakfast', 'corrections': ["1. Changed 'a' to '' - Unnecessary determiner"]}
+2025-05-15 15:32:44,422 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'I am having a breakfast', 'corrected': 'I am having breakfast', 'corrections': ["1. Changed 'a' to '' - Unnecessary determiner"]}
+2025-05-15 15:33:56,294 - app - INFO - Received generate request: level=A1, topic=food, num_sentences=2, user_id=2
+2025-05-15 15:33:56,296 - app - INFO - Sending request to https://51ce-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A1', 'num_sentences': 2, 'user_id': 2, 'topic': 'food', 'question_types': ['fill_in_blank']}
+2025-05-15 15:34:02,305 - app - INFO - API response status: 200
+2025-05-15 15:34:02,307 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'She eats an apple.', 'verb': 'eats', 'level': 'A1', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'She __ an apple  (eat).', 'correct_answer': 'eats'}}, {'sentence': 'The dog eats a banana.', 'verb': 'eats', 'level': 'A1', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'The dog __ a banana  (eat).', 'correct_answer': 'eats'}}], 'message': "Generated 2 sentences for level A1 on topic 'food' with question types ['fill_in_blank']", 'processing_time': 4.78425407409668, 'timestamp': '2025-05-15T15:34:02.174739'}
+2025-05-15 15:34:02,359 - app - INFO - Stored 2 valid sentences for user 2
+2025-05-15 15:34:02,359 - app - INFO - Returning 2 sentences to client
+2025-05-15 15:34:09,118 - app - INFO - Received submit_answer data: {'question_id': 2, 'user_answer': 'ate', 'is_correct': False, 'question_type': 'fill_in_blank', 'concept': 'food', 'time_spent': 0}
+2025-05-15 15:34:09,119 - app - INFO - Received submit_answer data: {'question_id': 2, 'user_answer': 'ate', 'is_correct': False, 'question_type': 'fill_in_blank', 'concept': 'food', 'time_spent': 0}
+2025-05-15 15:34:09,120 - app - INFO - submit_answer called with question_id=2, question_type=fill_in_blank
+2025-05-15 15:34:09,120 - app - INFO - submit_answer called with question_id=2, question_type=fill_in_blank
+2025-05-15 15:34:32,769 - app - INFO - Received generate request: level=A1, topic=food, num_sentences=4, user_id=2
+2025-05-15 15:34:32,770 - app - INFO - Sending request to https://51ce-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A1', 'num_sentences': 4, 'user_id': 2, 'topic': 'food', 'question_types': ['multiple_choice']}
+2025-05-15 15:34:51,770 - app - INFO - API response status: 200
+2025-05-15 15:34:51,773 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'She eats a banana for breakfast.', 'verb': 'eats', 'level': 'A1', 'for_user': 2, 'multiple_choice_question': {'question_text': 'She __ a banana for breakfast .', 'options': ['takes', 'likes', 'eats', 'reads'], 'correct_answer': 'eats'}}, {'sentence': 'I eat an apple.', 'verb': 'eat', 'level': 'A1', 'for_user': 2, 'multiple_choice_question': {'question_text': 'I __ an apple .', 'options': ['walk', 'chew', 'eat', 'grasp'], 'correct_answer': 'eat'}}, {'sentence': 'I eat a banana.', 'verb': 'eat', 'level': 'A1', 'for_user': 2, 'multiple_choice_question': {'question_text': 'I __ a banana .', 'options': ['chew', 'eat', 'ripen', 'walk'], 'correct_answer': 'eat'}}, {'sentence': 'I have a banana for breakfast.', 'verb': 'have', 'level': 'A1', 'for_user': 2, 'multiple_choice_question': {'question_text': 'I __ a banana for breakfast .', 'options': ['take', 'hold', 'keep', 'have'], 'correct_answer': 'have'}}], 'message': "Generated 4 sentences for level A1 on topic 'food' with question types ['multiple_choice']", 'processing_time': 17.918596506118774, 'timestamp': '2025-05-15T15:34:51.640374'}
+2025-05-15 15:34:51,802 - app - INFO - Stored 4 valid sentences for user 2
+2025-05-15 15:34:51,802 - app - INFO - Returning 4 sentences to client
+2025-05-15 15:35:28,290 - app - INFO - Received submit_answer data: {'question_id': 6, 'user_answer': 'have', 'is_correct': True, 'question_type': 'multiple_choice', 'concept': 'food', 'time_spent': 1}
+2025-05-15 15:35:28,292 - app - INFO - Received submit_answer data: {'question_id': 6, 'user_answer': 'have', 'is_correct': True, 'question_type': 'multiple_choice', 'concept': 'food', 'time_spent': 1}
+2025-05-15 15:35:28,293 - app - INFO - submit_answer called with question_id=6, question_type=multiple_choice
+2025-05-15 15:35:28,293 - app - INFO - submit_answer called with question_id=6, question_type=multiple_choice
+2025-05-15 15:40:14,058 - app - INFO - Flask app is starting up
+2025-05-15 15:40:45,970 - app - INFO - Received generate request: level=A1, topic=label, num_sentences=2, user_id=2
+2025-05-15 15:40:45,971 - app - INFO - Sending request to https://51ce-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A1', 'num_sentences': 2, 'user_id': 2, 'topic': 'label', 'question_types': ['fill_in_blank']}
+2025-05-15 15:40:51,650 - app - INFO - API response status: 200
+2025-05-15 15:40:51,652 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'I have a blue label on my bag.', 'verb': 'have', 'level': 'A1', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'I __ a blue label on my bag  (have).', 'correct_answer': 'have'}}, {'sentence': 'The new label is on the box.', 'verb': 'is', 'level': 'A1', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'The new label __ on the box  (be).', 'correct_answer': 'is'}}], 'message': "Generated 2 sentences for level A1 on topic 'label' with question types ['fill_in_blank']", 'processing_time': 4.276234149932861, 'timestamp': '2025-05-15T15:40:51.384065'}
+2025-05-15 15:40:51,683 - app - INFO - Stored 2 valid sentences for user 2
+2025-05-15 15:40:51,684 - app - INFO - Returning 2 sentences to client
+2025-05-15 15:42:16,089 - app - INFO - Flask app is starting up
+2025-05-15 15:42:46,605 - app - INFO - Received generate request: level=A1, topic=love, num_sentences=2, user_id=2
+2025-05-15 15:42:46,607 - app - INFO - Sending request to https://51ce-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A1', 'num_sentences': 2, 'user_id': 2, 'topic': 'love', 'question_types': ['fill_in_blank']}
+2025-05-15 15:42:51,734 - app - INFO - API response status: 200
+2025-05-15 15:42:51,735 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'I love my little cat.', 'verb': 'love', 'level': 'A1', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'I __ my little cat  (love).', 'correct_answer': 'love'}}, {'sentence': 'She loves her cat.', 'verb': 'loves', 'level': 'A1', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'She __ her cat  (love).', 'correct_answer': 'loves'}}], 'message': "Generated 2 sentences for level A1 on topic 'love' with question types ['fill_in_blank']", 'processing_time': 3.8112945556640625, 'timestamp': '2025-05-15T15:42:51.498654'}
+2025-05-15 15:43:07,805 - app - INFO - Received submit_answer data: {'question_id': 4, 'user_answer': 'She eat a cat', 'is_correct': False, 'question_type': 'make_a_sentence', 'concept': 'love', 'time_spent': 0}
+2025-05-15 15:43:07,806 - app - INFO - Received submit_answer data: {'question_id': None, 'user_answer': 'She eat a cat', 'is_correct': False, 'question_type': 'make_a_sentence', 'concept': 'love', 'time_spent': 0}
+2025-05-15 15:43:07,807 - app - INFO - submit_answer called with question_id=4, question_type=make_a_sentence
+2025-05-15 15:43:07,807 - app - INFO - submit_answer called with question_id=None, question_type=make_a_sentence
+2025-05-15 15:43:07,811 - app - ERROR - submit_answer: Missing question_id
+2025-05-15 15:43:07,833 - app - INFO - Required words: ['cat', 'she']
+2025-05-15 15:43:07,833 - app - INFO - Words in answer: ['she', 'eat', 'a', 'cat']
+2025-05-15 15:43:13,161 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'I eat a cat', 'corrected': 'I eat a cat', 'corrections': ['1. No operation - No correction']}
+2025-05-15 15:43:15,463 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'She eat a cat', 'corrected': 'She ate a cat', 'corrections': ["1. Changed 'eat' to 'ate' - Replace verb tense"]}
+2025-05-15 15:43:16,645 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'I eat a cat', 'corrected': 'I eat a cat', 'corrections': ['1. No operation - No correction']}
+2025-05-15 15:43:19,408 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'She eat a cat', 'corrected': 'She ate a cat', 'corrections': ["1. Changed 'eat' to 'ate' - Replace verb tense"]}
