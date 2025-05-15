@@ -1309,74 +1309,75 @@
                     isCorrect = normalizeAnswer(normalizedUserAnswer) === normalizeAnswer(correctAnswer);
                     
                 } else if (sentence._chosenType === 'multiple_choice') {
-    userAnswer = $(this).find('input[name="answer"]:checked').val() || '';
-    
-    // Get correct answer from appropriate location
-    let correctAnswer = '';
-    if (sentence.multiple_choice_question && sentence.multiple_choice_question.correct_answer) {
-        correctAnswer = sentence.multiple_choice_question.correct_answer;
-    } else if (sentence.multiple_choice && sentence.multiple_choice.correct_answer) {
-        correctAnswer = sentence.multiple_choice.correct_answer;
-    } else if (sentence.correct_answer) {
-        correctAnswer = sentence.correct_answer;
-    }
-    
-    // Get the full question text with the blank/placeholder
-    let fullSentence = '';
-    if (sentence.multiple_choice_question && sentence.multiple_choice_question.question_text) {
-        fullSentence = sentence.multiple_choice_question.question_text;
-    } else if (sentence.multiple_choice && sentence.multiple_choice.question_text) {
-        fullSentence = sentence.multiple_choice.question_text;
-    } else if (sentence.question) {
-        fullSentence = sentence.question;
-    }
-    
-    // Basic correctness check (exact match)
-    isCorrect = normalizeAnswer(userAnswer) === normalizeAnswer(correctAnswer);
-    
-    // Store info for semantic check if needed
-    savedAnswers[currentIndex] = savedAnswers[currentIndex] || {};
-    savedAnswers[currentIndex].userAnswer = userAnswer;
-    savedAnswers[currentIndex].expectedAnswer = correctAnswer;
-    savedAnswers[currentIndex].fullSentence = fullSentence;
-    
-    // If not correct by exact match, check semantically
-    if (!isCorrect && userAnswer && correctAnswer) {
-        // Call semantic similarity API
-        $.ajax({
-            url: '/check_semantic_similarity',
-            type: 'POST',
-            contentType: 'application/json',
-            async: false, // Make this synchronous
-            data: JSON.stringify({
-                text1: userAnswer,
-                text2: correctAnswer,
-                full_sentence: fullSentence // Include the full sentence for context
-            }),
-            success: function(response) {
-                if (response.success && response.similarity_score) {
-                    const similarityScore = response.similarity_score;
-                    savedAnswers[currentIndex].semanticScore = similarityScore;
+                    userAnswer = $(this).find('input[name="answer"]:checked').val() || '';
                     
-                    // Display semantic score in feedback
-                    console.log(`Semantic similarity for multiple choice: ${similarityScore.toFixed(2)}`);
-                    console.log(`User's choice: "${userAnswer}", Correct answer: "${correctAnswer}"`);
-                    console.log(`Full question: "${fullSentence}"`);
-                    
-                    // If score is high enough (≥ 0.80), consider it correct
-                    if (similarityScore >= 0.80) {
-                        console.log(`High semantic similarity (${similarityScore.toFixed(2)} ≥ 0.80), marking as correct despite API result`);
-                        savedAnswers[currentIndex].isCorrect = true;
-                        isCorrect = true;
+                    // Get correct answer from appropriate location
+                    let correctAnswer = '';
+                    if (sentence.multiple_choice_question && sentence.multiple_choice_question.correct_answer) {
+                        correctAnswer = sentence.multiple_choice_question.correct_answer;
+                    } else if (sentence.multiple_choice && sentence.multiple_choice.correct_answer) {
+                        correctAnswer = sentence.multiple_choice.correct_answer;
+                    } else if (sentence.correct_answer) {
+                        correctAnswer = sentence.correct_answer;
                     }
-                }
-            },
-            error: function(xhr, status, error) {
-                console.error('Error checking semantic similarity:', error);
-            }
-        });
-    }
-} else if (sentence._chosenType === 'selection_question') {
+                    
+                    // Get the full question text with the blank/placeholder
+                    let fullSentence = '';
+                    if (sentence.multiple_choice_question && sentence.multiple_choice_question.question_text) {
+                        fullSentence = sentence.multiple_choice_question.question_text;
+                    } else if (sentence.multiple_choice && sentence.multiple_choice.question_text) {
+                        fullSentence = sentence.multiple_choice.question_text;
+                    } else if (sentence.question) {
+                        fullSentence = sentence.question;
+                    }
+                    
+                    // Basic correctness check (exact match)
+                    isCorrect = normalizeAnswer(userAnswer) === normalizeAnswer(correctAnswer);
+                    
+                    // Store info for semantic check if needed
+                    savedAnswers[currentIndex] = savedAnswers[currentIndex] || {};
+                    savedAnswers[currentIndex].userAnswer = userAnswer;
+                    savedAnswers[currentIndex].expectedAnswer = correctAnswer;
+                    savedAnswers[currentIndex].fullSentence = fullSentence;
+                    
+                    // If not correct by exact match, check semantically
+                    if (!isCorrect && userAnswer && correctAnswer) {
+                        // Call semantic similarity API
+                        $.ajax({
+                            url: '/check_semantic_similarity',
+                            type: 'POST',
+                            contentType: 'application/json',
+                            async: false, // Make this synchronous
+                            data: JSON.stringify({
+                                text1: userAnswer,
+                                text2: correctAnswer,
+                                full_sentence: fullSentence // Include the full sentence for context
+                            }),
+                            success: function(response) {
+                                if (response.success && response.similarity_score) {
+                                    const similarityScore = response.similarity_score;
+                                    savedAnswers[currentIndex].semanticScore = similarityScore;
+                                    
+                                    // Display semantic score in feedback
+                                    console.log(`Semantic similarity for multiple choice: ${similarityScore.toFixed(2)}`);
+                                    console.log(`User's choice: "${userAnswer}", Correct answer: "${correctAnswer}"`);
+                                    console.log(`Full question: "${fullSentence}"`);
+                                    
+                                    // Make the threshold higher - 0.95 is still too low for verbs
+                                    // For multiple choice, we should be stricter - require at least 0.98 similarity
+                                    if (similarityScore >= 0.98) {
+                                        console.log(`High semantic similarity (${similarityScore.toFixed(2)} ≥ 0.98), marking as correct despite API result`);
+                                        savedAnswers[currentIndex].isCorrect = true;
+                                        isCorrect = true;
+                                    }
+                                }
+                            },
+                            error: function(xhr, status, error) {
+                                console.error('Error checking semantic similarity:', error);
+                            }
+                        });
+                    }
+                } else if (sentence._chosenType === 'selection_question') {
                     userAnswer = $(this).find('input[name="selection_answer"]:checked').val() || '';
                     let correctAnswer = sentence.selection_question && sentence.selection_question.correct_sentence;
                     isCorrect = normalizeAnswer(userAnswer) === normalizeAnswer(correctAnswer);

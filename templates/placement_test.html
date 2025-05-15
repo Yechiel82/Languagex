@@ -93,9 +93,21 @@
     </div>
     <script>
         $(document).ready(function() {
+            // Add profile circle click handler
+            $('#profileCircle').on('click', function() {
+                window.location.href = '/profile';
+            });
+            
             $('#loading').show();
             $('#output').empty();
-            
+            function normalizeAnswer(str) {
+            return (str || '')
+                .replace(/[.,!?;:]/g, '') // Remove common punctuation
+                .replace(/\s+/g, ' ')     // Normalize spaces
+                .trim()
+                .toLowerCase();
+         }
+        
             // Track current level and questions
             let currentLevel = 'A1';
             let allQuestions = [];

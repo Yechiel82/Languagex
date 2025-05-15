@@ -376,14 +376,7 @@
 </head>
 <body>
     <div class="container">
-        {% if session.get('is_admin') %}
-        <div class="debug-info" style="padding: 15px; margin-bottom: 20px; background-color: #f0f0f0; border-radius: 5px;">
-            <h3>Admin Debug Info</h3>
-            <p>User ID: {{ user.id }}</p>
-            <p>Email: {{ user.email }}</p>
-            <p>Session Data: {{ session }}</p>
-        </div>
-        {% endif %}
+
         
         <div class="actions-bar">
             <a href="{{ url_for('generate') }}" class="back-button">← Back to Sentences</a>
