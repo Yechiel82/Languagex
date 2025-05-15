@@ -1,2 +1,7 @@
-2025-05-15 16:59:23,962 - app - INFO - Profile access for user_id: 1
-2025-05-15 16:59:23,989 - app - INFO - Admin user confirmed, setting is_admin flag
+2025-05-15 17:14:22,108 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'Crisp apples are my favorite snack.', 'verb': 'are', 'level': 'A2', 'for_user': 2, 'multiple_choice_question': {'question_text': 'Crisp apples __ my favorite snack .', 'options': ['savor', 'walk', 'are', 'enjoy'], 'correct_answer': 'are'}}, {'sentence': 'I ate an apple at lunchtime yesterday.', 'verb': 'ate', 'level': 'A2', 'for_user': 2, 'multiple_choice_question': {'question_text': 'I __ an apple at lunchtime yesterday .', 'options': ['saw', 'ate', 'read', 'walked'], 'correct_answer': 'ate'}}], 'message': "Generated 2 sentences for level A2 on topic 'food' with question types ['multiple_choice']", 'processing_time': 18.860451221466064, 'timestamp': '2025-05-15T17:14:22.052346'}
+2025-05-15 17:14:22,160 - app - INFO - Stored 2 valid sentences for user 2
+2025-05-15 17:14:22,160 - app - INFO - Returning 2 sentences to client
+2025-05-15 17:14:52,598 - app - INFO - Received submit_answer data: {'question_id': 20, 'user_answer': 'ate', 'is_correct': True, 'question_type': 'multiple_choice', 'concept': 'food', 'time_spent': 1}
+2025-05-15 17:14:52,600 - app - INFO - Received submit_answer data: {'question_id': 20, 'user_answer': 'ate', 'is_correct': True, 'question_type': 'multiple_choice', 'concept': 'food', 'time_spent': 1}
+2025-05-15 17:14:52,601 - app - INFO - submit_answer called with question_id=20, question_type=multiple_choice
+2025-05-15 17:14:52,602 - app - INFO - submit_answer called with question_id=20, question_type=multiple_choice

@@ -22,9 +22,9 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 # Cloud API configuration
-CLOUD_API_URL = os.getenv('CLOUD_API_URL', 'https://51ce-103-119-147-234.ngrok-free.app')
+CLOUD_API_URL = os.getenv('CLOUD_API_URL', 'https://a657-103-119-147-234.ngrok-free.app')
 # Grammar API configuration
-CLOUD_API_Grammar_URL = os.getenv('CLOUD_API_Grammar_URL', 'https://51ce-103-119-147-234.ngrok-free.app')
+CLOUD_API_Grammar_URL = os.getenv('CLOUD_API_Grammar_URL', 'https://a657-103-119-147-234.ngrok-free.app')
 
 # Add these configurations for file uploads
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static/uploads')
