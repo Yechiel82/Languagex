@@ -1848,6 +1848,45 @@ def submit_finish_the_sentence():
     except Exception as e:
         app.logger.error(f"Unexpected error: {str(e)}")
         return jsonify({'success': False, 'error': 'Internal server error'}), 500
+
+@app.route('/create_finish_sentence', methods=['POST'])
+def create_finish_sentence():
+    """Create a new FinishTheSentence entry and return its ID"""
+    try:
+        data = request.get_json()
+        app.logger.info(f"create_finish_sentence called with data: {data}")
+        
+        # Extract needed fields
+        question = data.get('question', '')
+        words = data.get('words', '')
+        level = data.get('level', 'A1')
+        for_user = data.get('for_user') or session.get('user_id')
+        
+        # Create new FinishTheSentence record
+        finish_sentence = FinishTheSentence(
+            question=question,
+            words=words,
+            level=level,
+            for_user=for_user
+        )
+        
+        db.session.add(finish_sentence)
+        db.session.commit()
+        
+        app.logger.info(f"Created FinishTheSentence with ID: {finish_sentence.id}")
+        
+        return jsonify({
+            'success': True,
+            'id': finish_sentence.id,
+            'message': 'FinishTheSentence record created successfully'
+        })
+        
+    except Exception as e:
+        app.logger.error(f"Error creating FinishTheSentence: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
     
 # # Create database tables
 with app.app_context():
@@ -1866,6 +1905,6 @@ if __name__ == '__main__':
 
 # # In the Flask shell, run:
 # from app import db
-# db.drop_all()
-# db.create_all()
-# exit()
+db.drop_all()
+db.create_all()
+exit()

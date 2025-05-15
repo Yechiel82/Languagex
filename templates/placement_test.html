@@ -1107,16 +1107,22 @@
                 const nextLevelIndex = levels.indexOf(currentLevel) + 1;
                 let nextLevelName = nextLevelIndex < levels.length ? levels[nextLevelIndex] : null;
                 
+                // Check if user just passed C2 level
+                const isC2Passed = currentLevel === 'C2' && currentBatchCorrect === currentQuestions.length;
+                
                 const html = `
                     <div style="text-align:center;margin:30px 0;">
                         <h3 style="color:var(--accent-color);">Level Passed!</h3>
                         <p>Congratulations! You got all ${currentQuestions.length} questions correct at level ${currentLevel}.</p>
-                        ${nextLevelName ? 
-                            `<p>You will now advance to level ${nextLevelName}.</p>` : 
-                            `<p>You have completed all levels of the placement test!</p>`
+                        ${isC2Passed ? 
+                            `<p>You have successfully completed the highest level (C2) of the placement test!</p>
+                             <p>You have demonstrated proficiency at the <strong>C2 Proficient</strong> level.</p>` : 
+                            nextLevelName ? 
+                                `<p>You will now advance to level ${nextLevelName}.</p>` : 
+                                `<p>You have completed all levels of the placement test!</p>`
                         }
                         <button id="continueBtn" style="background:var(--accent-color);color:#fff;padding:12px 24px;border:none;border-radius:8px;font-size:16px;cursor:pointer;margin-top:20px;">
-                            Continue
+                            ${isC2Passed ? 'Complete Test' : 'Continue'}
                         </button>
                     </div>
                 `;
@@ -1124,7 +1130,9 @@
                 $('#output').html(html);
                 
                 $('#continueBtn').on('click', function() {
-                    if (nextLevelName) {
+                    if (isC2Passed) {
+                        completeTest(); // Complete the test if C2 is passed
+                    } else if (nextLevelName) {
                         startLevel(nextLevelName); // Move to the next level
                     } else {
                         completeTest(); // Complete the test if all levels are done
@@ -1137,15 +1145,20 @@
                     <div style="text-align:center;margin:30px 0;">
                         <h3 style="color:var(--accent-color);">Placement Test Completed!</h3>
                         <p>Thank you for completing the placement test. Your results have been recorded.</p>
-                        <button onclick="window.location.href='/generate'" style="background:var(--accent-color);color:#fff;padding:12px 24px;border:none;border-radius:8px;font-size:16px;cursor:pointer;">
+                        <button id="continueToGenerate" style="background:var(--accent-color);color:#fff;padding:12px 24px;border:none;border-radius:8px;font-size:16px;cursor:pointer;">
                             Continue to Dashboard
                         </button>
                     </div>
                 `;
                 $('#output').html(html);
                 
+                // Add event listener to the button after it's been added to the DOM
+                $('#continueToGenerate').on('click', function() {
+                    window.location.href = '/generate';
+                });
+                
                 $.ajax({
-                    url: '/api/submit_placement_test_answers',
+                    url: '/submit_placement_test_answers',
                     method: 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify({ answers: userAnswers }),
@@ -1155,11 +1168,16 @@
                                 <div style="text-align:center;margin:30px 0;">
                                     <h3 style="color:var(--accent-color);">Placement Test Completed!</h3>
                                     <p>Thank you for completing the placement test. Your results have been recorded.</p>
-                                    <button onclick="window.location.href='/generate'" style="background:var(--accent-color);color:#fff;padding:12px 24px;border:none;border-radius:8px;font-size:16px;cursor:pointer;">
+                                    <button id="continueToGenerate" style="background:var(--accent-color);color:#fff;padding:12px 24px;border:none;border-radius:8px;font-size:16px;cursor:pointer;">
                                         Continue to Dashboard
                                     </button>
                                 </div>
                             `);
+                            
+                            // Re-attach the event listener after re-rendering the HTML
+                            $('#continueToGenerate').on('click', function() {
+                                window.location.href = '/generate';
+                            });
                         } else {
                             $('#output').html(`<div style="text-align:center;color:red;margin-top:40px;">Error: ${response.error || 'Could not submit answers'}</div>`);
                         }

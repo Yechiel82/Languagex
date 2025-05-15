@@ -1,52 +1,50 @@
-2025-05-15 16:59:23,962 - app - INFO - Profile access for user_id: 1
-2025-05-15 16:59:23,989 - app - INFO - Admin user confirmed, setting is_admin flag
-2025-05-15 17:03:00,878 - app - INFO - Flask app is starting up
-2025-05-15 17:03:46,648 - app - INFO - Received generate request: level=A2, topic=seed, num_sentences=2, user_id=2
-2025-05-15 17:03:46,650 - app - INFO - Sending request to https://51ce-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A2', 'num_sentences': 2, 'user_id': 2, 'topic': 'seed', 'question_types': ['fill_in_blank']}
-2025-05-15 17:03:51,536 - app - INFO - API response status: 200
-2025-05-15 17:03:51,537 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'Seed is used for growing plants.', 'verb': 'used', 'level': 'A2', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'Seed is __ for growing plants  (use).', 'correct_answer': 'used'}}, {'sentence': 'After planting a seed, water it daily for better growth.', 'verb': 'water', 'level': 'A2', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'After planting a seed , __ it daily for better growth  (water).', 'correct_answer': 'water'}}], 'message': "Generated 2 sentences for level A2 on topic 'seed' with question types ['fill_in_blank']", 'processing_time': 3.484179973602295, 'timestamp': '2025-05-15T17:03:51.460379'}
-2025-05-15 17:04:30,244 - app - INFO - Received submit_answer data: {'question_id': 8, 'user_answer': 'for after', 'is_correct': False, 'question_type': 'make_a_sentence', 'concept': 'seed', 'time_spent': 1}
-2025-05-15 17:04:30,246 - app - INFO - Received submit_answer data: {'question_id': None, 'user_answer': 'for after', 'is_correct': False, 'question_type': 'make_a_sentence', 'concept': 'seed', 'time_spent': 1}
-2025-05-15 17:04:30,247 - app - INFO - submit_answer called with question_id=8, question_type=make_a_sentence
-2025-05-15 17:04:30,248 - app - INFO - submit_answer called with question_id=None, question_type=make_a_sentence
-2025-05-15 17:04:30,253 - app - ERROR - submit_answer: Missing question_id
-2025-05-15 17:04:30,280 - app - INFO - Required words: ['for', 'after']
-2025-05-15 17:04:30,280 - app - INFO - Words in answer: ['for', 'after']
-2025-05-15 17:04:36,663 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'my toy is being used by my sister', 'corrected': 'My toy is being used by my sister .', 'corrections': ["1. Changed 'my' to 'My' - Replace orthographic", "2. Changed '' to '.' - Missing punctuation"]}
-2025-05-15 17:04:39,018 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'for after', 'corrected': 'After', 'corrections': ["1. Changed 'for after' to 'After' - Unnecessary preposition"]}
-2025-05-15 17:04:42,597 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'my toy is being used by my sister', 'corrected': 'My toy is being used by my sister .', 'corrections': ["1. Changed 'my' to 'My' - Replace orthographic", "2. Changed '' to '.' - Missing punctuation"]}
-2025-05-15 17:04:44,996 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'for after', 'corrected': 'After', 'corrections': ["1. Changed 'for after' to 'After' - Unnecessary preposition"]}
-2025-05-15 17:06:38,130 - app - INFO - Received generate request: level=A2, topic=seed, num_sentences=2, user_id=2
-2025-05-15 17:06:38,132 - app - INFO - Sending request to https://51ce-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A2', 'num_sentences': 2, 'user_id': 2, 'topic': 'seed', 'question_types': ['fill_in_blank']}
-2025-05-15 17:06:44,971 - app - INFO - API response status: 200
-2025-05-15 17:06:44,974 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'The seeds need some water to grow.', 'verb': 'need', 'level': 'A2', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'The seeds __ some water to grow  (need).', 'correct_answer': 'need'}}, {'sentence': 'The seed grows very quickly in warm weather.', 'verb': 'grows', 'level': 'A2', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'The seed __ very quickly in warm weather  (grow).', 'correct_answer': 'grows'}}], 'message': "Generated 2 sentences for level A2 on topic 'seed' with question types ['fill_in_blank']", 'processing_time': 5.483049392700195, 'timestamp': '2025-05-15T17:06:44.940235'}
-2025-05-15 17:06:45,030 - app - INFO - Stored 2 valid sentences for user 2
-2025-05-15 17:06:45,030 - app - INFO - Returning 2 sentences to client
-2025-05-15 17:06:51,653 - app - INFO - Received submit_answer data: {'question_id': 10, 'user_answer': 'grow', 'is_correct': False, 'question_type': 'fill_in_blank', 'concept': 'seed', 'time_spent': 0}
-2025-05-15 17:06:51,654 - app - INFO - Received submit_answer data: {'question_id': 10, 'user_answer': 'grow', 'is_correct': False, 'question_type': 'fill_in_blank', 'concept': 'seed', 'time_spent': 0}
-2025-05-15 17:06:51,655 - app - INFO - submit_answer called with question_id=10, question_type=fill_in_blank
-2025-05-15 17:06:51,655 - app - INFO - submit_answer called with question_id=10, question_type=fill_in_blank
-2025-05-15 17:06:56,178 - app - INFO - Received generate request: level=A2, topic=seed, num_sentences=2, user_id=2
-2025-05-15 17:06:56,179 - app - INFO - Sending request to https://51ce-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A2', 'num_sentences': 2, 'user_id': 2, 'topic': 'seed', 'question_types': ['arrange']}
-2025-05-15 17:07:04,323 - app - INFO - API response status: 200
-2025-05-15 17:07:04,324 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'The seed has been planted in the ground.', 'verb': 'has', 'level': 'A2', 'for_user': 2, 'arrange_question': {'question_text': 'Arrange the words to form the correct sentence.', 'words': ['has', 'ground', 'planted', 'the', 'been', 'in', 'seed', 'The'], 'correct_sentence': 'The seed has been planted in the ground.'}}, {'sentence': 'The farmer sowed the seeds in the ground in spring.', 'verb': 'sowed', 'level': 'A2', 'for_user': 2, 'arrange_question': {'question_text': 'Arrange the words to form the correct sentence.', 'words': ['sowed', 'the', 'The', 'in', 'ground', 'seeds', 'in', 'farmer', 'the', 'spring'], 'correct_sentence': 'The farmer sowed the seeds in the ground in spring.'}}], 'message': "Generated 2 sentences for level A2 on topic 'seed' with question types ['arrange']", 'processing_time': 6.693413734436035, 'timestamp': '2025-05-15T17:07:04.052425'}
-2025-05-15 17:07:04,356 - app - INFO - Stored 2 valid sentences for user 2
-2025-05-15 17:07:04,356 - app - INFO - Returning 2 sentences to client
-2025-05-15 17:07:29,664 - app - INFO - Received submit_answer data: {'question_id': 2, 'user_answer': 'The farmer sowed the seeds in the ground in spring', 'is_correct': True, 'question_type': 'arrange_question', 'concept': 'seed', 'time_spent': 0}
-2025-05-15 17:07:29,665 - app - INFO - Received submit_answer data: {'question_id': 2, 'user_answer': 'The farmer sowed the seeds in the ground in spring', 'is_correct': True, 'question_type': 'arrange_question', 'concept': 'seed', 'time_spent': 0}
-2025-05-15 17:07:29,666 - app - INFO - submit_answer called with question_id=2, question_type=arrange_question
-2025-05-15 17:07:29,666 - app - INFO - submit_answer called with question_id=2, question_type=arrange_question
-2025-05-15 17:07:36,036 - app - INFO - Received generate request: level=A2, topic=seed, num_sentences=2, user_id=2
-2025-05-15 17:07:36,037 - app - INFO - Sending request to https://51ce-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A2', 'num_sentences': 2, 'user_id': 2, 'topic': 'seed', 'question_types': ['multiple_choice']}
-2025-05-15 17:07:47,573 - app - INFO - API response status: 200
-2025-05-15 17:07:47,574 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'The seeds from the big tree were planted in small pots.', 'verb': 'planted', 'level': 'A2', 'for_user': 2, 'multiple_choice_question': {'question_text': 'The seeds from the big tree were __ in small pots .', 'options': ['planted', 'sown', 'scattered', 'buried'], 'correct_answer': 'planted'}}, {'sentence': 'The seed is in the ground.', 'verb': 'is', 'level': 'A2', 'for_user': 2, 'multiple_choice_question': {'question_text': 'The seed __ in the ground .', 'options': ['is', 'cover', 'spread', 'grow'], 'correct_answer': 'is'}}], 'message': "Generated 2 sentences for level A2 on topic 'seed' with question types ['multiple_choice']", 'processing_time': 9.949025392532349, 'timestamp': '2025-05-15T17:07:47.412715'}
-2025-05-15 17:07:47,587 - app - INFO - Stored 2 valid sentences for user 2
-2025-05-15 17:07:47,588 - app - INFO - Returning 2 sentences to client
-2025-05-15 17:08:00,959 - app - INFO - Received submit_answer data: {'question_id': 18, 'user_answer': 'is', 'is_correct': True, 'question_type': 'multiple_choice', 'concept': 'seed', 'time_spent': 0}
-2025-05-15 17:08:00,960 - app - INFO - Received submit_answer data: {'question_id': 18, 'user_answer': 'is', 'is_correct': True, 'question_type': 'multiple_choice', 'concept': 'seed', 'time_spent': 0}
-2025-05-15 17:08:00,962 - app - INFO - submit_answer called with question_id=18, question_type=multiple_choice
-2025-05-15 17:08:00,962 - app - INFO - submit_answer called with question_id=18, question_type=multiple_choice
-2025-05-15 17:13:51,368 - app - INFO - Flask app is starting up
-2025-05-15 17:14:01,148 - app - INFO - Received generate request: level=A2, topic=food, num_sentences=2, user_id=2
-2025-05-15 17:14:01,150 - app - INFO - Sending request to https://a657-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A2', 'num_sentences': 2, 'user_id': 2, 'topic': 'food', 'question_types': ['multiple_choice']}
-2025-05-15 17:14:22,105 - app - INFO - API response status: 200
+2025-05-15 19:10:20,547 - app - INFO - Received submit_answer data: {'question_id': 'temp_finish_2668', 'user_answer': 'i can sing but I am not very good at it.', 'is_correct': False, 'question_type': 'finish_the_sentence', 'concept': 'game', 'time_spent': 0}
+2025-05-15 19:10:20,556 - app - INFO - submit_answer called with question_id=temp_finish_2668, question_type=finish_the_sentence
+2025-05-15 19:10:20,556 - app - ERROR - submit_answer: Invalid question_id format: temp_finish_2668
+2025-05-15 19:10:29,992 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'I play soccer with his friends.', 'corrected': 'I play soccer with my friends.', 'corrections': ["1. Changed 'his' to 'my' - Replace determiner"]}
+2025-05-15 19:10:31,374 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'i can sing but I am not very good at it.', 'corrected': 'I can sing, but I am not very good at it.', 'corrections': ["1. Changed 'sing' to 'sing,' - Replace other", "2. Changed 'i' to 'I' - Replace orthographic"]}
+2025-05-15 19:10:44,370 - app - INFO - Received generate request: level=A2, topic=game, num_sentences=2, user_id=2
+2025-05-15 19:10:44,372 - app - INFO - Sending request to https://a657-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A2', 'num_sentences': 2, 'user_id': 2, 'topic': 'game', 'question_types': ['fill_in_blank']}
+2025-05-15 19:10:53,007 - app - INFO - API response status: 200
+2025-05-15 19:10:53,008 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'I like playing chess with my friend.', 'verb': 'like', 'level': 'A2', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'I __ playing chess with my friend  (like).', 'correct_answer': 'like'}}, {'sentence': 'Football players have shin guards on to protect their legs.', 'verb': 'have', 'level': 'A2', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'Football players __ shin guards on to protect their legs  (have).', 'correct_answer': 'have'}}], 'message': "Generated 2 sentences for level A2 on topic 'game' with question types ['fill_in_blank']", 'processing_time': 7.29757285118103, 'timestamp': '2025-05-15T19:10:52.621357'}
+2025-05-15 19:11:01,078 - app - INFO - Received submit_answer data: {'question_id': 13, 'user_answer': 'I play with my friend', 'is_correct': False, 'question_type': 'make_a_sentence', 'concept': 'game', 'time_spent': 0}
+2025-05-15 19:11:01,080 - app - INFO - submit_answer called with question_id=13, question_type=make_a_sentence
+2025-05-15 19:11:01,093 - app - INFO - Required words: ['friend', 'with']
+2025-05-15 19:11:01,094 - app - INFO - Words in answer: ['i', 'play', 'with', 'my', 'friend']
+2025-05-15 19:11:10,586 - app - INFO - Received submit_answer data: {'question_id': 14, 'user_answer': 'I need to protect my shin', 'is_correct': False, 'question_type': 'make_a_sentence', 'concept': 'game', 'time_spent': 0}
+2025-05-15 19:11:10,587 - app - INFO - submit_answer called with question_id=14, question_type=make_a_sentence
+2025-05-15 19:11:10,594 - app - INFO - Required words: ['protect', 'shin']
+2025-05-15 19:11:10,594 - app - INFO - Words in answer: ['i', 'need', 'to', 'protect', 'my', 'shin']
+2025-05-15 19:11:14,410 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'I play with my friend', 'corrected': 'I play with my friend', 'corrections': ['1. No operation - No correction']}
+2025-05-15 19:11:16,418 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'I need to protect my shin', 'corrected': 'I need to protect my shin', 'corrections': ['1. No operation - No correction']}
+2025-05-15 19:11:40,832 - app - INFO - Received generate request: level=A2, topic=food, num_sentences=2, user_id=2
+2025-05-15 19:11:40,833 - app - INFO - Sending request to https://a657-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A2', 'num_sentences': 2, 'user_id': 2, 'topic': 'food', 'question_types': ['fill_in_blank']}
+2025-05-15 19:11:47,362 - app - INFO - API response status: 200
+2025-05-15 19:11:47,363 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'The man in the café ate a sandwich and a fruit salad.', 'verb': 'ate', 'level': 'A2', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'The man in the café __ a sandwich and a fruit salad  (eat).', 'correct_answer': 'ate'}}, {'sentence': 'Cakes are my favorite dessert.', 'verb': 'are', 'level': 'A2', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'Cakes __ my favorite dessert  (be).', 'correct_answer': 'are'}}], 'message': "Generated 2 sentences for level A2 on topic 'food' with question types ['fill_in_blank']", 'processing_time': 5.70491099357605, 'timestamp': '2025-05-15T19:11:47.315340'}
+2025-05-15 19:11:55,622 - app - INFO - Received submit_answer data: {'question_id': 'temp_finish_3294', 'user_answer': 'The man in the café ate a sandwich with his bare hand', 'is_correct': False, 'question_type': 'finish_the_sentence', 'concept': 'food', 'time_spent': 0}
+2025-05-15 19:11:55,624 - app - INFO - submit_answer called with question_id=temp_finish_3294, question_type=finish_the_sentence
+2025-05-15 19:11:55,624 - app - ERROR - submit_answer: Invalid question_id format: temp_finish_3294
+2025-05-15 19:42:05,650 - app - INFO - Flask app is starting up
+2025-05-15 19:43:19,409 - app - INFO - Flask app is starting up
+2025-05-15 19:45:16,703 - app - INFO - Flask app is starting up
+2025-05-15 19:45:25,006 - app - INFO - Received generate request: level=A2, topic=conclave, num_sentences=2, user_id=2
+2025-05-15 19:45:25,011 - app - INFO - Sending request to https://a657-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A2', 'num_sentences': 2, 'user_id': 2, 'topic': 'conclave', 'question_types': ['fill_in_blank']}
+2025-05-15 19:45:31,581 - app - INFO - API response status: 200
+2025-05-15 19:45:31,583 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'The cardinals chose the new pope after only one ballot.', 'verb': 'chose', 'level': 'A2', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'The cardinals __ the new pope after only one ballot  (choose).', 'correct_answer': 'chose'}}, {'sentence': 'The cardinals choose a new pope in a secret meeting.', 'verb': 'choose', 'level': 'A2', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'The cardinals __ a new pope in a secret meeting  (choose).', 'correct_answer': 'choose'}}], 'message': "Generated 2 sentences for level A2 on topic 'conclave' with question types ['fill_in_blank']", 'processing_time': 5.365394592285156, 'timestamp': '2025-05-15T19:45:31.484531'}
+2025-05-15 19:45:36,534 - app - INFO - Received submit_answer data: {'question_id': 2681, 'user_answer': 'The cardinals chose the new pope', 'is_correct': False, 'question_type': 'finish_the_sentence', 'concept': 'conclave', 'time_spent': 0}
+2025-05-15 19:45:36,534 - app - INFO - submit_answer called with question_id=2681, question_type=finish_the_sentence
+2025-05-15 19:45:36,556 - app - ERROR - Question not found: id=2681, type=finish_the_sentence
+2025-05-15 19:45:57,884 - app - INFO - Flask app is starting up
+2025-05-15 19:46:08,617 - app - INFO - Received generate request: level=A2, topic=sad, num_sentences=2, user_id=2
+2025-05-15 19:46:08,619 - app - INFO - Sending request to https://a657-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A2', 'num_sentences': 2, 'user_id': 2, 'topic': 'sad', 'question_types': ['fill_in_blank']}
+2025-05-15 19:46:17,143 - app - INFO - API response status: 200
+2025-05-15 19:46:17,148 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'The movie made me cry because my dog died recently.', 'verb': 'made', 'level': 'A2', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'The movie __ me cry because my dog died recently  (make).', 'correct_answer': 'made'}}, {'sentence': 'The girl was very sad when her mother died.', 'verb': 'died', 'level': 'A2', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'The girl __ very sad when her mother died  (be).', 'correct_answer': 'was'}}], 'message': "Generated 2 sentences for level A2 on topic 'sad' with question types ['fill_in_blank']", 'processing_time': 5.660586357116699, 'timestamp': '2025-05-15T19:46:16.262139'}
+2025-05-15 19:46:24,042 - app - INFO - Received submit_answer data: {'question_id': 2050, 'user_answer': 'The movie made me cry a lot', 'is_correct': False, 'question_type': 'finish_the_sentence', 'concept': 'sad', 'time_spent': 0}
+2025-05-15 19:46:24,044 - app - INFO - submit_answer called with question_id=2050, question_type=finish_the_sentence
+2025-05-15 19:46:24,069 - app - ERROR - Question not found: id=2050, type=finish_the_sentence
+2025-05-15 19:46:49,832 - app - INFO - Received submit_answer data: {'question_id': 1628, 'user_answer': 'somehow her mother died.', 'is_correct': False, 'question_type': 'finish_the_sentence', 'concept': 'sad', 'time_spent': 1}
+2025-05-15 19:46:49,835 - app - INFO - submit_answer called with question_id=1628, question_type=finish_the_sentence
+2025-05-15 19:46:49,853 - app - ERROR - Question not found: id=1628, type=finish_the_sentence
+2025-05-15 19:46:54,728 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'The movie made me cry a lot', 'corrected': 'The movie made me cry a lot .', 'corrections': ["1. Changed '' to '.' - Missing punctuation"]}
+2025-05-15 19:46:58,013 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'somehow her mother died.', 'corrected': 'Somehow, somehow her mother died.', 'corrections': ["1. Changed '' to 'Somehow,' - Missing noun", "2. Changed 'somehow' to 'Somehow,' - Replace other"]}
+2025-05-15 19:49:08,001 - app - INFO - Received generate request: level=A2, topic=food, num_sentences=2, user_id=2

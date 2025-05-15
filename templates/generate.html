@@ -319,7 +319,7 @@
             <label for="topic">Topic:</label>
             <input type="text" id="topic" name="topic" placeholder="e.g., games, travel, food" required>
             <label for="num_sentences">Number of Sentences:</label>
-            <input type="number" id="num_sentences" name="num_sentences" value="2" min="1" max="10">
+            <input type="number" id="num_sentences" name="num_sentences" value="2" min="1" max="5">
             <label for="question_type">Question Type:</label>
             <select id="question_type" name="question_type">
                 <option value="random">Random</option>
@@ -386,10 +386,11 @@
             function getWords(text) {
                 if (!text) return [];
                 
-                // Remove punctuation and convert to lowercase
+                // Remove ellipses and other punctuation, convert to lowercase
                 const cleanText = text.toLowerCase()
-                    .replace(/[.,!?;:'"()[\]{}]/g, ' ')
-                    .replace(/\s+/g, ' ')
+                    .replace(/\.{3,}/g, ' ')  // Replace ellipses with space
+                    .replace(/[.,!?;:'"()[\]{}]/g, ' ')  // Replace other punctuation
+                    .replace(/\s+/g, ' ')  // Normalize multiple spaces
                     .trim();
                 
                 // Split by spaces and filter out empty strings
@@ -979,19 +980,25 @@
                     output += `</form></div>`;
 
                 } else if (chosenType === 'finish_the_sentence') {
-                    const questionText = sentence.question.replace('Finish the sentence:', '').trim();
-                    const cleanQuestion = questionText.replace(/^\.{3}|\.{3}$/g, '').trim();
+                    const questionText = sentence.question || '';
+                    // Clean the question text, removing "Finish the sentence:" prefix
+                    const promptText = questionText.replace(/^Finish the sentence:/i, '').trim();
+                    
+                    // Display the original prompt with ellipsis
                     output += `<p><strong>Finish the Sentence:</strong></p>
-                        <p><span style="color:var(--accent-color);font-weight:bold;">${sentence.question}</span></p>`;
-                    output += `<input type="text" name="answer" required value="${cleanQuestion}" 
+                        <p><span style="color:var(--accent-color);font-weight:bold;">${promptText}</span></p>`;
+                    
+                    // For the input field, pre-fill with the prompt text without the ellipsis
+                    const inputText = promptText.replace(/\.{3,}$/g, '').trim();
+                    
+                    output += `<input type="text" name="answer" required value="${inputText}" 
                         style="width:100%;padding:10px;border:1px solid var(--border-color);">`;
                     
                     if (index === questions.length - 1) {
                         output += `<button type="button" id="submit-answer" class="submit-btn">Finish</button>`;
                     } else {
-                        output += `<button type="button" id="next-answer" class="submit-btn">Next</button>`;
+                        output += `<button type="button" id="submit-answer" class="submit-btn">Next</button>`;
                     }
-                    output += `</form></div>`;            
                 }
 
                 $('#output').html(output);
@@ -1354,8 +1361,86 @@
                 } else if (sentence._chosenType === 'make_a_sentence') {
                     questionId = sentence.id || sentence.make_a_sentence_id;
                 } else if (sentence._chosenType === 'finish_the_sentence') {
-                    questionId = sentence.id || sentence.finish_the_sentence_id;
+                    // Try all possible ID sources for finish_the_sentence
+                    questionId = sentence.id || 
+                                sentence.finish_the_sentence_id || 
+                                sentence.finish_id || 
+                                sentence.question_id;
+                    
+                    // If still no ID, create a temporary one but make it a number
+                    if (!questionId && sentence.question) {
+                        // Create a deterministic ID from the question text, but make it numeric
+                        const hash = Math.abs(
+                            sentence.question.split('').reduce((acc, char) => 
+                                acc + char.charCodeAt(0), 0)
+                        );
+                        // Ensure it's a valid integer and within safe range (no scientific notation)
+                        questionId = hash % 1000000000; // Limit to 9 digits
+                        console.log('Created temporary numeric ID for finish_the_sentence:', questionId);
+                    }
                 }
+
+                // Special handling for finish_the_sentence type to properly store in database
+                if (sentence._chosenType === 'finish_the_sentence') {
+                    // Check if this is a temporary ID (not from database)
+                    if (!sentence.finish_the_sentence_id && !sentence.finish_id) {
+                        // First, save the question to the database to get a real ID
+                        console.log('Saving finish_the_sentence question to database first...');
+                        
+                        // Create a proper finish_the_sentence object to send to the server
+                        const finishQuestion = {
+                            question: sentence.question || sentence.original_sentence || '',
+                            words: sentence.words || '',
+                            level: sentence.level || $('#level').val(),
+                            for_user: sentence.for_user || null
+                        };
+                        
+                        // Send a synchronous request to create the question first
+                        $.ajax({
+                            url: '/create_finish_sentence',
+                            type: 'POST',
+                            contentType: 'application/json',
+                            async: false, // Make this synchronous so we wait for the ID
+                            data: JSON.stringify(finishQuestion),
+                            success: function(response) {
+                                if (response.success && response.id) {
+                                    // Update the question ID with the real database ID
+                                    console.log(`Created finish_the_sentence question with ID: ${response.id}`);
+                                    questionId = response.id;
+                                    // Update the original object for future reference
+                                    sentence.finish_the_sentence_id = response.id;
+                                }
+                            },
+                            error: function(xhr, status, error) {
+                                console.error('Error creating finish_the_sentence question:', error);
+                                console.error('Response:', xhr.responseText);
+                                // Continue with temporary ID in this case
+                            }
+                        });
+                    }
+                }
+
+                // If still no questionId found, check for a generic ID or create a fallback
+                if (!questionId) {
+                    if (sentence.id) {
+                        questionId = sentence.id;
+                    } else if (sentence.original_sentence) {
+                        // Create a deterministic ID from the original sentence
+                        questionId = 'temp_' + Math.abs(
+                            sentence.original_sentence.split('').reduce((acc, char) => 
+                                acc + char.charCodeAt(0), 0)
+                        );
+                        console.log('Created temporary ID from original sentence:', questionId);
+                    } else {
+                        // Last resort - create a random temporary ID
+                        questionId = 'temp_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+                        console.log('Created random temporary ID:', questionId);
+                    }
+                }
+
+                // Add a log to debug the question ID extraction
+                console.log(`Question ID for ${sentence._chosenType}:`, questionId);
+                console.log('Question data:', sentence);
                 
                 // Calculate time spent if this is the last question
                 const isLastQuestion = currentIndex === questions.length - 1;
@@ -1391,6 +1476,11 @@
                     error: function(xhr, status, error) {
                         console.error('Error saving answer:', error);
                         console.error('Response:', xhr.responseText);
+                        console.error('Question data that caused error:', {
+                            id: questionId,
+                            type: sentence._chosenType,
+                            data: sentence
+                        });
                         
                         // Alert the user but continue anyway
                         alert('There was an error saving your answer to the database, but you can continue.');
@@ -1448,11 +1538,27 @@
                             requiredWords = (currentQuestion.words || []).map(w => w.trim().toLowerCase()).filter(Boolean);
                         } else if (chosenType === 'finish_the_sentence') {
                             let requiredText = currentQuestion.question.replace(/^Finish the sentence:/i, '').trim();
-                            requiredWords = requiredText.split(/\s+/).map(w => w.trim().toLowerCase()).filter(Boolean);
+                            
+                            // Remove ellipses and clean up
+                            requiredText = requiredText.replace(/\.{3,}/g, ' ').replace(/\s+/g, ' ').trim();
+                            
+                            // Get required words, ignoring ellipses
+                            requiredWords = requiredText.split(/\s+/)
+                                .map(w => w.trim().toLowerCase())
+                                .filter(w => w && w !== '...');
                         }
                         
                         const answerWords = getWords(answer);
-                        const missingWords = requiredWords.filter(word => !answerWords.includes(word));
+                        
+                        // Ensure all required words are included in the answer
+                        const missingWords = requiredWords.filter(word => {
+                            // Clean the word of punctuation for comparison
+                            const cleanWord = word.replace(/[.,!?;:"'()]/g, '');
+                            // Check if this word appears in the answer
+                            return !answerWords.some(answerWord => 
+                                answerWord.replace(/[.,!?;:"'()]/g, '') === cleanWord
+                            );
+                        });
                         
                         if (missingWords.length > 0) {
                             $('input[name="answer"]').after(
