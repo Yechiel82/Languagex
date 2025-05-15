@@ -1,52 +1,112 @@
-2025-05-15 15:32:34,069 - app - INFO - Received submit_answer data: {'question_id': None, 'user_answer': 'I am having a breakfast', 'is_correct': False, 'question_type': 'make_a_sentence', 'concept': 'food', 'time_spent': 0}
-2025-05-15 15:32:34,070 - app - INFO - submit_answer called with question_id=2, question_type=make_a_sentence
-2025-05-15 15:32:34,077 - app - INFO - submit_answer called with question_id=None, question_type=make_a_sentence
-2025-05-15 15:32:34,078 - app - INFO - Redirecting make_a_sentence question to proper endpoint
-2025-05-15 15:32:34,078 - app - INFO - Redirecting make_a_sentence question to proper endpoint
-2025-05-15 15:32:38,322 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'I like eating apple', 'corrected': 'I like eating apples', 'corrections': ["1. Changed 'apple' to 'apples' - Replace noun number"]}
-2025-05-15 15:32:40,576 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'I like eating apple', 'corrected': 'I like eating apples', 'corrections': ["1. Changed 'apple' to 'apples' - Replace noun number"]}
-2025-05-15 15:32:42,369 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'I am having a breakfast', 'corrected': 'I am having breakfast', 'corrections': ["1. Changed 'a' to '' - Unnecessary determiner"]}
-2025-05-15 15:32:44,422 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'I am having a breakfast', 'corrected': 'I am having breakfast', 'corrections': ["1. Changed 'a' to '' - Unnecessary determiner"]}
-2025-05-15 15:33:56,294 - app - INFO - Received generate request: level=A1, topic=food, num_sentences=2, user_id=2
-2025-05-15 15:33:56,296 - app - INFO - Sending request to https://51ce-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A1', 'num_sentences': 2, 'user_id': 2, 'topic': 'food', 'question_types': ['fill_in_blank']}
-2025-05-15 15:34:02,305 - app - INFO - API response status: 200
-2025-05-15 15:34:02,307 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'She eats an apple.', 'verb': 'eats', 'level': 'A1', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'She __ an apple  (eat).', 'correct_answer': 'eats'}}, {'sentence': 'The dog eats a banana.', 'verb': 'eats', 'level': 'A1', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'The dog __ a banana  (eat).', 'correct_answer': 'eats'}}], 'message': "Generated 2 sentences for level A1 on topic 'food' with question types ['fill_in_blank']", 'processing_time': 4.78425407409668, 'timestamp': '2025-05-15T15:34:02.174739'}
-2025-05-15 15:34:02,359 - app - INFO - Stored 2 valid sentences for user 2
-2025-05-15 15:34:02,359 - app - INFO - Returning 2 sentences to client
-2025-05-15 15:34:09,118 - app - INFO - Received submit_answer data: {'question_id': 2, 'user_answer': 'ate', 'is_correct': False, 'question_type': 'fill_in_blank', 'concept': 'food', 'time_spent': 0}
-2025-05-15 15:34:09,119 - app - INFO - Received submit_answer data: {'question_id': 2, 'user_answer': 'ate', 'is_correct': False, 'question_type': 'fill_in_blank', 'concept': 'food', 'time_spent': 0}
-2025-05-15 15:34:09,120 - app - INFO - submit_answer called with question_id=2, question_type=fill_in_blank
-2025-05-15 15:34:09,120 - app - INFO - submit_answer called with question_id=2, question_type=fill_in_blank
-2025-05-15 15:34:32,769 - app - INFO - Received generate request: level=A1, topic=food, num_sentences=4, user_id=2
-2025-05-15 15:34:32,770 - app - INFO - Sending request to https://51ce-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A1', 'num_sentences': 4, 'user_id': 2, 'topic': 'food', 'question_types': ['multiple_choice']}
-2025-05-15 15:34:51,770 - app - INFO - API response status: 200
-2025-05-15 15:34:51,773 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'She eats a banana for breakfast.', 'verb': 'eats', 'level': 'A1', 'for_user': 2, 'multiple_choice_question': {'question_text': 'She __ a banana for breakfast .', 'options': ['takes', 'likes', 'eats', 'reads'], 'correct_answer': 'eats'}}, {'sentence': 'I eat an apple.', 'verb': 'eat', 'level': 'A1', 'for_user': 2, 'multiple_choice_question': {'question_text': 'I __ an apple .', 'options': ['walk', 'chew', 'eat', 'grasp'], 'correct_answer': 'eat'}}, {'sentence': 'I eat a banana.', 'verb': 'eat', 'level': 'A1', 'for_user': 2, 'multiple_choice_question': {'question_text': 'I __ a banana .', 'options': ['chew', 'eat', 'ripen', 'walk'], 'correct_answer': 'eat'}}, {'sentence': 'I have a banana for breakfast.', 'verb': 'have', 'level': 'A1', 'for_user': 2, 'multiple_choice_question': {'question_text': 'I __ a banana for breakfast .', 'options': ['take', 'hold', 'keep', 'have'], 'correct_answer': 'have'}}], 'message': "Generated 4 sentences for level A1 on topic 'food' with question types ['multiple_choice']", 'processing_time': 17.918596506118774, 'timestamp': '2025-05-15T15:34:51.640374'}
-2025-05-15 15:34:51,802 - app - INFO - Stored 4 valid sentences for user 2
-2025-05-15 15:34:51,802 - app - INFO - Returning 4 sentences to client
-2025-05-15 15:35:28,290 - app - INFO - Received submit_answer data: {'question_id': 6, 'user_answer': 'have', 'is_correct': True, 'question_type': 'multiple_choice', 'concept': 'food', 'time_spent': 1}
-2025-05-15 15:35:28,292 - app - INFO - Received submit_answer data: {'question_id': 6, 'user_answer': 'have', 'is_correct': True, 'question_type': 'multiple_choice', 'concept': 'food', 'time_spent': 1}
-2025-05-15 15:35:28,293 - app - INFO - submit_answer called with question_id=6, question_type=multiple_choice
-2025-05-15 15:35:28,293 - app - INFO - submit_answer called with question_id=6, question_type=multiple_choice
-2025-05-15 15:40:14,058 - app - INFO - Flask app is starting up
-2025-05-15 15:40:45,970 - app - INFO - Received generate request: level=A1, topic=label, num_sentences=2, user_id=2
-2025-05-15 15:40:45,971 - app - INFO - Sending request to https://51ce-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A1', 'num_sentences': 2, 'user_id': 2, 'topic': 'label', 'question_types': ['fill_in_blank']}
-2025-05-15 15:40:51,650 - app - INFO - API response status: 200
-2025-05-15 15:40:51,652 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'I have a blue label on my bag.', 'verb': 'have', 'level': 'A1', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'I __ a blue label on my bag  (have).', 'correct_answer': 'have'}}, {'sentence': 'The new label is on the box.', 'verb': 'is', 'level': 'A1', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'The new label __ on the box  (be).', 'correct_answer': 'is'}}], 'message': "Generated 2 sentences for level A1 on topic 'label' with question types ['fill_in_blank']", 'processing_time': 4.276234149932861, 'timestamp': '2025-05-15T15:40:51.384065'}
-2025-05-15 15:40:51,683 - app - INFO - Stored 2 valid sentences for user 2
-2025-05-15 15:40:51,684 - app - INFO - Returning 2 sentences to client
-2025-05-15 15:42:16,089 - app - INFO - Flask app is starting up
-2025-05-15 15:42:46,605 - app - INFO - Received generate request: level=A1, topic=love, num_sentences=2, user_id=2
-2025-05-15 15:42:46,607 - app - INFO - Sending request to https://51ce-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A1', 'num_sentences': 2, 'user_id': 2, 'topic': 'love', 'question_types': ['fill_in_blank']}
-2025-05-15 15:42:51,734 - app - INFO - API response status: 200
-2025-05-15 15:42:51,735 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'I love my little cat.', 'verb': 'love', 'level': 'A1', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'I __ my little cat  (love).', 'correct_answer': 'love'}}, {'sentence': 'She loves her cat.', 'verb': 'loves', 'level': 'A1', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'She __ her cat  (love).', 'correct_answer': 'loves'}}], 'message': "Generated 2 sentences for level A1 on topic 'love' with question types ['fill_in_blank']", 'processing_time': 3.8112945556640625, 'timestamp': '2025-05-15T15:42:51.498654'}
-2025-05-15 15:43:07,805 - app - INFO - Received submit_answer data: {'question_id': 4, 'user_answer': 'She eat a cat', 'is_correct': False, 'question_type': 'make_a_sentence', 'concept': 'love', 'time_spent': 0}
-2025-05-15 15:43:07,806 - app - INFO - Received submit_answer data: {'question_id': None, 'user_answer': 'She eat a cat', 'is_correct': False, 'question_type': 'make_a_sentence', 'concept': 'love', 'time_spent': 0}
-2025-05-15 15:43:07,807 - app - INFO - submit_answer called with question_id=4, question_type=make_a_sentence
-2025-05-15 15:43:07,807 - app - INFO - submit_answer called with question_id=None, question_type=make_a_sentence
-2025-05-15 15:43:07,811 - app - ERROR - submit_answer: Missing question_id
-2025-05-15 15:43:07,833 - app - INFO - Required words: ['cat', 'she']
-2025-05-15 15:43:07,833 - app - INFO - Words in answer: ['she', 'eat', 'a', 'cat']
-2025-05-15 15:43:13,161 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'I eat a cat', 'corrected': 'I eat a cat', 'corrections': ['1. No operation - No correction']}
-2025-05-15 15:43:15,463 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'She eat a cat', 'corrected': 'She ate a cat', 'corrections': ["1. Changed 'eat' to 'ate' - Replace verb tense"]}
-2025-05-15 15:43:16,645 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'I eat a cat', 'corrected': 'I eat a cat', 'corrections': ['1. No operation - No correction']}
-2025-05-15 15:43:19,408 - app - INFO - Raw API response: {'success': True, 'user_id': 2, 'original': 'She eat a cat', 'corrected': 'She ate a cat', 'corrections': ["1. Changed 'eat' to 'ate' - Replace verb tense"]}
+2025-05-15 15:59:28,978 - app - ERROR - Exception on /admin_dashboard [GET]
+Traceback (most recent call last):
+  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/flask/app.py", line 1473, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/flask/app.py", line 882, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/flask/app.py", line 880, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/flask/app.py", line 865, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Yechiel/Project/Languagex/app.py", line 887, in admin_dashboard
+    user.performance = performance_data
+    ^^^^^^^^^^^^^^^^
+  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/sqlalchemy/orm/attributes.py", line 537, in __set__
+    self.impl.set(
+  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/sqlalchemy/orm/attributes.py", line 1985, in set
+    collections.bulk_replace(
+  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/sqlalchemy/orm/collections.py", line 802, in bulk_replace
+    appender(member, _sa_initiator=initiator)
+  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/sqlalchemy/orm/collections.py", line 1129, in append
+    item = __set(self, item, _sa_initiator, NO_KEY)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/sqlalchemy/orm/collections.py", line 1094, in __set
+    item = executor.fire_append_event(item, _sa_initiator, key=key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/sqlalchemy/orm/collections.py", line 686, in fire_append_event
+    return self.attr.fire_append_event(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/sqlalchemy/orm/attributes.py", line 1752, in fire_append_event
+    value = fn(state, value, initiator or self._append_token, key=key)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/sqlalchemy/orm/unitofwork.py", line 63, in append
+    item_state = attributes.instance_state(item)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'dict' object has no attribute '_sa_instance_state'
+2025-05-15 15:59:29,994 - app - INFO - Session data on profile access: <SecureCookieSession {'is_admin': True, 'logged_in': True, 'user_email': 'admin@yahoo.com', 'user_id': 1, 'user_level': 'C2', 'user_name': 'Admin User'}>
+2025-05-15 15:59:29,995 - app - INFO - Profile access for user_id: 1
+2025-05-15 15:59:29,997 - app - INFO - Admin user confirmed, setting is_admin flag
+2025-05-15 15:59:32,218 - app - ERROR - Exception on /admin_dashboard [GET]
+Traceback (most recent call last):
+  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/flask/app.py", line 1473, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/flask/app.py", line 882, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/flask/app.py", line 880, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/flask/app.py", line 865, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Yechiel/Project/Languagex/app.py", line 887, in admin_dashboard
+    user.performance = performance_data
+    ^^^^^^^^^^^^^^^^
+  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/sqlalchemy/orm/attributes.py", line 537, in __set__
+    self.impl.set(
+  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/sqlalchemy/orm/attributes.py", line 1985, in set
+    collections.bulk_replace(
+  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/sqlalchemy/orm/collections.py", line 802, in bulk_replace
+    appender(member, _sa_initiator=initiator)
+  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/sqlalchemy/orm/collections.py", line 1129, in append
+    item = __set(self, item, _sa_initiator, NO_KEY)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/sqlalchemy/orm/collections.py", line 1094, in __set
+    item = executor.fire_append_event(item, _sa_initiator, key=key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/sqlalchemy/orm/collections.py", line 686, in fire_append_event
+    return self.attr.fire_append_event(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/sqlalchemy/orm/attributes.py", line 1752, in fire_append_event
+    value = fn(state, value, initiator or self._append_token, key=key)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/sqlalchemy/orm/unitofwork.py", line 63, in append
+    item_state = attributes.instance_state(item)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'dict' object has no attribute '_sa_instance_state'
+2025-05-15 15:59:50,593 - app - INFO - Session data on profile access: <SecureCookieSession {'is_admin': True, 'logged_in': True, 'user_email': 'admin@yahoo.com', 'user_id': 1, 'user_level': 'C2', 'user_name': 'Admin User'}>
+2025-05-15 15:59:50,595 - app - INFO - Profile access for user_id: 1
+2025-05-15 15:59:50,605 - app - INFO - Admin user confirmed, setting is_admin flag
+2025-05-15 16:00:15,770 - app - INFO - Session data on profile access: <SecureCookieSession {'is_admin': True, 'logged_in': True, 'user_email': 'admin@yahoo.com', 'user_id': 1, 'user_level': 'C2', 'user_name': 'Admin User'}>
+2025-05-15 16:00:15,771 - app - INFO - Profile access for user_id: 1
+2025-05-15 16:00:15,773 - app - INFO - Admin user confirmed, setting is_admin flag
+2025-05-15 16:07:37,426 - app - INFO - Flask app is starting up
+2025-05-15 16:07:57,553 - app - INFO - Session data on profile access: <SecureCookieSession {'is_admin': True, 'logged_in': True, 'user_email': 'admin@yahoo.com', 'user_id': 1, 'user_level': 'C2', 'user_name': 'Admin User'}>
+2025-05-15 16:07:57,554 - app - INFO - Profile access for user_id: 1
+2025-05-15 16:07:57,565 - app - INFO - Admin user confirmed, setting is_admin flag
+2025-05-15 16:08:01,648 - app - ERROR - Exception on /admin_dashboard [GET]
+Traceback (most recent call last):
+  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/flask/app.py", line 1473, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/flask/app.py", line 882, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/flask/app.py", line 880, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/flask/app.py", line 865, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Volumes/Yechiel/Project/Languagex/app.py", line 893, in admin_dashboard
+    'join_date': user.join_date,
+                 ^^^^^^^^^^^^^^
+AttributeError: 'User' object has no attribute 'join_date'
+2025-05-15 16:08:06,418 - app - INFO - Session data on profile access: <SecureCookieSession {'is_admin': True, 'logged_in': True, 'user_email': 'admin@yahoo.com', 'user_id': 1, 'user_level': 'C2', 'user_name': 'Admin User'}>
+2025-05-15 16:08:06,419 - app - INFO - Profile access for user_id: 1
+2025-05-15 16:08:06,421 - app - INFO - Admin user confirmed, setting is_admin flag

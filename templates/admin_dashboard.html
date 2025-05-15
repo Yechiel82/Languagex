@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - User Statistics</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     <style>
         :root {
             --background-color: #f7fafc;
@@ -149,41 +150,6 @@
         .level-C1 { background-color: var(--level-c1-color); }
         .level-C2 { background-color: var(--level-c2-color); }
 
-        .collapsible {
-            cursor: pointer;
-            background-color: transparent;
-            border: none;
-            width: 100%;
-            text-align: left;
-            outline: none;
-            padding: 10px 15px;
-        }
-
-        .active, .collapsible:hover {
-            background-color: #f1f1f1;
-        }
-
-        .content {
-            padding: 0 18px;
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.2s ease-out;
-            background-color: white;
-        }
-
-        .performance-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 10px 0;
-        }
-
-        .performance-table th,
-        .performance-table td {
-            padding: 8px 10px;
-            text-align: left;
-            border-bottom: 1px solid #eee;
-        }
-
         .progress-bar {
             height: 8px;
             background-color: #f0f0f0;
@@ -202,13 +168,21 @@
         }
 
         .view-details {
+            background-color: white;
             color: var(--accent-color);
+            border: 1px solid var(--accent-color);
+            padding: 5px 10px;
+            border-radius: 4px;
             text-decoration: none;
             font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
         }
 
         .view-details:hover {
-            text-decoration: underline;
+            background-color: var(--accent-color);
+            color: white;
+            text-decoration: none;
         }
 
         .filters {
@@ -223,6 +197,31 @@
             border: 1px solid var(--border-color);
             border-radius: 4px;
             background-color: white;
+            height: 40px;
+            appearance: none;  /* Hide default dropdown arrow */
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='6' fill='none'%3E%3Cpath fill='%23555' d='M0 0h12L6 6 0 0z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 12px 6px;
+            padding-right: 30px;
+            vertical-align: middle;
+            line-height: normal;
+            font-size: 16px;
+            color: var(--text-color);
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        .filter-select option {
+            padding: 8px;
+            font-size: 16px;
+            color: var(--text-color);
+            background-color: white;
         }
 
         .search-box {
@@ -230,6 +229,34 @@
             border: 1px solid var(--border-color);
             border-radius: 4px;
             min-width: 250px;
+            height: 40px;
+            font-size: 16px;
+            color: var(--text-color);
+            vertical-align: middle;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        .performance-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            margin-bottom: 15px;
+        }
+
+        .performance-table th,
+        .performance-table td {
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .performance-table td:nth-child(2),
+        .performance-table td:nth-child(3) {
+            min-width: 120px;
         }
     </style>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -239,87 +266,44 @@
         <div class="header">
             <h1>Admin Dashboard - User Statistics</h1>
             <div>
-                <a href="{{ url_for('generate') }}" class="btn">Back to Dashboard</a>
-                <a href="{{ url_for('logout') }}" class="btn" style="background-color: #e74c3c;">Logout</a>
+                <a href="{{ url_for('generate') }}" class="btn">Back to Generate</a>
+                <a href="{{ url_for('profile') }}" class="btn">My Profile</a>
             </div>
         </div>
 
         <div class="card">
-            <div class="filters">
-                <input type="text" id="searchInput" class="search-box" placeholder="Search by name or email...">
-                <select id="levelFilter" class="filter-select">
-                    <option value="all">All Levels</option>
-                    <option value="A1">A1</option>
-                    <option value="A2">A2</option>
-                    <option value="B1">B1</option>
-                    <option value="B2">B2</option>
-                    <option value="C1">C1</option>
-                    <option value="C2">C2</option>
-                </select>
-                <select id="sortBy" class="filter-select">
-                    <option value="name">Sort by Name</option>
-                    <option value="level">Sort by Level</option>
-                    <option value="score">Sort by Score</option>
-                    <option value="activity">Sort by Last Activity</option>
-                    <option value="lessons">Sort by Lessons Completed</option>
-                </select>
-            </div>
-
-            <!-- Overall stats summary -->
+            <h2>User Overview</h2>
+            
             <div class="stats-overview">
                 <div class="stat-card">
-                    <div class="stat-label">Total Users</div>
                     <div class="stat-value">{{ users|length }}</div>
+                    <div class="stat-label">Total Users</div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-label">Average Level</div>
-                    <div class="stat-value">
-                        {% set levels = {'A1': 1, 'A2': 2, 'B1': 3, 'B2': 4, 'C1': 5, 'C2': 6} %}
-                        {% set total_level = 0 %}
-                        {% for user in users %}
-                            {% set total_level = total_level + levels.get(user.level, 1) %}
-                        {% endfor %}
-                        {% set avg_level_num = (total_level / users|length)|round(1) if users else 0 %}
-                        {% set avg_level = 'A1' if avg_level_num <= 1.5 else 
-                                         'A2' if avg_level_num <= 2.5 else 
-                                         'B1' if avg_level_num <= 3.5 else 
-                                         'B2' if avg_level_num <= 4.5 else 
-                                         'C1' if avg_level_num <= 5.5 else 'C2' %}
-                        {{ avg_level }}
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Average Score</div>
-                    <div class="stat-value">
-                        {% set total_score = 0 %}
-                        {% for user in users %}
-                            {% set total_score = total_score + user.average_score %}
-                        {% endfor %}
-                        {{ (total_score / users|length)|round|int if users else 0 }}%
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Total Lessons</div>
-                    <div class="stat-value">
-                        {% set total_lessons = 0 %}
-                        {% for user in users %}
-                            {% set total_lessons = total_lessons + user.lessons_completed %}
-                        {% endfor %}
-                        {{ total_lessons }}
-                    </div>
-                </div>
+                <!-- Add more stat cards as needed -->
             </div>
-
-            <table class="user-table" id="userTable">
+            
+            <h3>User List</h3>
+            
+            <div class="filters">
+                <input type="text" id="searchInput" class="search-box" placeholder="Search users...">
+                <select id="levelFilter" class="filter-select">
+                    <option value="" selected>All Levels</option>
+                    <option value="A1">A1 - Beginner</option>
+                    <option value="A2">A2 - Elementary</option>
+                    <option value="B1">B1 - Intermediate</option>
+                    <option value="B2">B2 - Upper Intermediate</option>
+                    <option value="C1">C1 - Advanced</option>
+                    <option value="C2">C2 - Proficient</option>
+                </select>
+            </div>
+            
+            <table class="user-table">
                 <thead>
                     <tr>
                         <th>Name</th>
                         <th>Email</th>
                         <th>Level</th>
-                        <th>Study Time</th>
-                        <th>Streak</th>
-                        <th>Lessons</th>
-                        <th>Avg. Score</th>
+                        <th>Join Date</th>
                         <th>Last Active</th>
                         <th>Questions</th>
                         <th>Actions</th>
@@ -327,64 +311,75 @@
                 </thead>
                 <tbody>
                     {% for user in users %}
-                    <tr data-level="{{ user.level }}" data-name="{{ user.name }}" data-email="{{ user.email }}">
+                    <tr>
                         <td>{{ user.name }}</td>
                         <td>{{ user.email }}</td>
                         <td><span class="badge level-{{ user.level }}">{{ user.level }}</span></td>
-                        <td>{{ user.study_time }}</td>
-                        <td>{{ user.streak }}</td>
-                        <td>{{ user.lessons_completed }}</td>
-                        <td>{{ user.average_score }}%</td>
-                        <td>{{ user.last_active.strftime('%d %b %Y') if user.last_active else 'Never' }}</td>
+                        <td>
+                            {% if user.join_date is string %}
+                                {{ user.join_date }}
+                            {% elif user.join_date is not none %}
+                                {{ user.join_date.strftime('%Y-%m-%d') }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
+                        <td>{{ user.last_active_date.strftime('%Y-%m-%d') if user.last_active_date else 'Never' }}</td>
                         <td>{{ user.question_stats.total }}</td>
                         <td>
-                            <button class="collapsible">Details</button>
-                            <div class="content">
-                                <h4 style="margin-top: 15px;">Question Distribution</h4>
-                                <div style="margin: 10px 0;">
-                                    <div><strong>Fill in the Blank:</strong> {{ user.question_stats.fill_blanks }}</div>
-                                    <div><strong>Multiple Choice:</strong> {{ user.question_stats.multiple_choice }}</div>
-                                    <div><strong>Arrange Words:</strong> {{ user.question_stats.arrange_words }}</div>
-                                    <div><strong>Sentence Selection:</strong> {{ user.question_stats.selection }}</div>
-                                    <div><strong>Labeling:</strong> {{ user.question_stats.labeling }}</div>
-                                    <div><strong>Make a Sentence:</strong> {{ user.question_stats.make_sentence }}</div>
-                                    <div><strong>Finish the Sentence:</strong> {{ user.question_stats.finish_sentence }}</div>
-                                </div>
+                            <button class="view-details" onclick="toggleUserDetails({{ loop.index }})">View Details</button>
+                        </td>
+                    </tr>
+                    <tr class="details-row" id="details-{{ loop.index }}" style="display: none;">
+                        <td colspan="7">
+                            <div class="user-details">
+                                <h4>Question Distribution</h4>
+                                <ul>
+                                    <li>Fill in the Blank: {{ user.question_stats.fill_blanks }}</li>
+                                    <li>Multiple Choice: {{ user.question_stats.multiple_choice }}</li>
+                                    <li>Arrange Words: {{ user.question_stats.arrange_words }}</li>
+                                    <li>Selection: {{ user.question_stats.selection }}</li>
+                                    <li>Labeling: {{ user.question_stats.labeling }}</li>
+                                    <li>Make a Sentence: {{ user.question_stats.make_sentence }}</li>
+                                    <li>Finish the Sentence: {{ user.question_stats.finish_sentence }}</li>
+                                </ul>
                                 
                                 {% if user.performance %}
-                                <h4 style="margin-top: 15px;">Performance Breakdown</h4>
+                                <h4>Performance Data</h4>
                                 <table class="performance-table">
                                     <thead>
                                         <tr>
                                             <th>Concept</th>
                                             <th>Success Rate</th>
                                             <th>Error Rate</th>
-                                            <th>Attempts</th>
+                                            <th>Total Attempts</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {% for perf in user.performance %}
                                         <tr>
                                             <td>{{ perf.concept }}</td>
-                                            <td>
-                                                {{ perf.success_rate }}%
-                                                <div class="progress-bar">
-                                                    <div class="progress-fill" style="width: {{ perf.success_rate }}%;"></div>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                {{ perf.error_rate }}%
-                                                <div class="progress-bar">
-                                                    <div class="error-fill" style="width: {{ perf.error_rate }}%;"></div>
-                                                </div>
-                                            </td>
+                                            Volumes/Yechiel/Project/Languagex/templates/admin_dashboard.html
+<!-- In the performance table section -->
+<td>
+    <div class="progress-bar">
+        <div class="progress-fill" style="width: {{ perf.success_rate }}%"></div>
+    </div>
+    {{ "%.1f"|format(perf.success_rate|float) }}%
+</td>
+<td>
+    <div class="progress-bar">
+        <div class="error-fill" style="width: {{ perf.error_rate }}%"></div>
+    </div>
+    {{ "%.1f"|format(perf.error_rate|float) }}%
+</td>
                                             <td>{{ perf.total_attempts }}</td>
                                         </tr>
                                         {% endfor %}
                                     </tbody>
                                 </table>
                                 {% else %}
-                                <p style="margin-top: 15px; color: #666;">No performance data available for this user.</p>
+                                <p>No performance data available for this user.</p>
                                 {% endif %}
                             </div>
                         </td>
@@ -397,87 +392,36 @@
 
     <script>
         $(document).ready(function() {
-            // Collapsible details
-            var coll = document.getElementsByClassName("collapsible");
-            for (var i = 0; i < coll.length; i++) {
-                coll[i].addEventListener("click", function() {
-                    this.classList.toggle("active");
-                    var content = this.nextElementSibling;
-                    if (content.style.maxHeight) {
-                        content.style.maxHeight = null;
-                    } else {
-                        content.style.maxHeight = content.scrollHeight + "px";
-                    }
-                });
-            }
-
-            // Search functionality
+            // Add your JavaScript here for filtering and searching
             $("#searchInput").on("keyup", function() {
                 var value = $(this).val().toLowerCase();
-                filterTable();
-            });
-
-            // Level filter
-            $("#levelFilter").on("change", function() {
-                filterTable();
-            });
-
-            // Sorting
-            $("#sortBy").on("change", function() {
-                sortTable();
-            });
-
-            function filterTable() {
-                var searchValue = $("#searchInput").val().toLowerCase();
-                var levelFilter = $("#levelFilter").val();
-                
-                $("#userTable tbody tr").filter(function() {
-                    var nameMatch = $(this).data('name').toLowerCase().indexOf(searchValue) > -1;
-                    var emailMatch = $(this).data('email').toLowerCase().indexOf(searchValue) > -1;
-                    var levelMatch = levelFilter === 'all' || $(this).data('level') === levelFilter;
-                    
-                    $(this).toggle((nameMatch || emailMatch) && levelMatch);
+                $(".user-table tbody tr:not(.details-row)").filter(function() {
+                    $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1);
+                    // Hide details row when parent is hidden
+                    var index = $(this).index() / 2 + 1;
+                    $("#details-" + index).hide();
                 });
-            }
-
-            function sortTable() {
-                var sortBy = $("#sortBy").val();
-                var rows = $("#userTable tbody tr").toArray();
-                
-                rows.sort(function(a, b) {
-                    var aVal, bVal;
-                    
-                    if (sortBy === 'name') {
-                        aVal = $(a).data('name').toLowerCase();
-                        bVal = $(b).data('name').toLowerCase();
-                        return aVal.localeCompare(bVal);
-                    } else if (sortBy === 'level') {
-                        var levelOrder = {'A1': 1, 'A2': 2, 'B1': 3, 'B2': 4, 'C1': 5, 'C2': 6};
-                        aVal = levelOrder[$(a).data('level')] || 0;
-                        bVal = levelOrder[$(b).data('level')] || 0;
-                        return bVal - aVal; // Show higher levels first
-                    } else if (sortBy === 'score') {
-                        aVal = parseInt($(a).find('td:eq(6)').text());
-                        bVal = parseInt($(b).find('td:eq(6)').text());
-                        return bVal - aVal; // Sort by highest score
-                    } else if (sortBy === 'activity') {
-                        aVal = $(a).find('td:eq(7)').text();
-                        bVal = $(b).find('td:eq(7)').text();
-                        return aVal === 'Never' ? 1 : bVal === 'Never' ? -1 : aVal.localeCompare(bVal);
-                    } else if (sortBy === 'lessons') {
-                        aVal = parseInt($(a).find('td:eq(5)').text());
-                        bVal = parseInt($(b).find('td:eq(5)').text());
-                        return bVal - aVal; // Sort by most lessons
-                    }
-                    
-                    return 0;
-                });
-                
-                $.each(rows, function(index, row) {
-                    $("#userTable tbody").append(row);
-                });
-            }
+            });
+            
+            $("#levelFilter").change(function() {
+                var value = $(this).val();
+                if (value === "") {
+                    $(".user-table tbody tr:not(.details-row)").show();
+                } else {
+                    $(".user-table tbody tr:not(.details-row)").each(function() {
+                        var level = $(this).find(".badge").text();
+                        $(this).toggle(level === value);
+                        // Hide details row when parent is hidden
+                        var index = $(this).index() / 2 + 1;
+                        $("#details-" + index).hide();
+                    });
+                }
+            });
         });
+        
+        function toggleUserDetails(index) {
+            $("#details-" + index).toggle();
+        }
     </script>
 </body>
 </html>

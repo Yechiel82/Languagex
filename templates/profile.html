@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>User Statistics - {{ user.name }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <!-- You can keep your additional styles here -->
     <style>
         :root {
             --background-color: #f7fafc;         /* very light gray-blue */
@@ -138,17 +140,18 @@
 
         .back-button {
             display: inline-block;
-            background-color: var(--accent-color);
-            color: white;
+            background-color: var(--accent-color); /* Green color */
+            color: white; /* White text for better contrast */
             padding: 8px 16px;
             border-radius: 6px;
             text-decoration: none;
-            margin-bottom: 20px;
             font-weight: 500;
+            transition: background 0.2s;
         }
         
         .back-button:hover {
             opacity: 0.9;
+            background-color: #35b57d; /* Slightly darker green on hover */
         }
         
         .edit-button {
@@ -352,19 +355,42 @@
             color: #555;
             font-size: 14px;
         }
+
+        .admin-button {
+            display: inline-block;
+            background-color: var(--accent-color-alt); /* Yellow color */
+            color: var(--text-color); /* Dark text for better contrast on yellow */
+            padding: 8px 16px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+        
+        .admin-button:hover {
+            background-color: #e6c100; /* Slightly darker yellow on hover */
+            color: var(--text-color);
+        }
     </style>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 <body>
     <div class="container">
+        {% if session.get('is_admin') %}
+        <div class="debug-info" style="padding: 15px; margin-bottom: 20px; background-color: #f0f0f0; border-radius: 5px;">
+            <h3>Admin Debug Info</h3>
+            <p>User ID: {{ user.id }}</p>
+            <p>Email: {{ user.email }}</p>
+            <p>Session Data: {{ session }}</p>
+        </div>
+        {% endif %}
+        
         <div class="actions-bar">
-            <a href="{{ url_for('generate') }}" class="back-button">Back to Dashboard</a>
-            <button class="logout-button" id="logoutBtn">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                    <polyline points="16 17 21 12 16 7"></polyline>
-                    <line x1="21" y1="12" x2="9" y2="12"></line>
-                </svg>
+            <a href="{{ url_for('generate') }}" class="back-button">← Back to Sentences</a>
+            {% if session.get('is_admin') %}
+            <a href="{{ url_for('admin_dashboard') }}" class="admin-button">Admin Dashboard</a>
+            {% endif %}
+            <button class="logout-button" onclick="window.location.href='{{ url_for('logout') }}'">
                 Logout
             </button>
         </div>
@@ -407,7 +433,7 @@
                 </div>
                 <div class="stat-card">
                     <h3>Average Score</h3>
-                    <div class="stat-value">{{ user.average_score }}%</div>
+                    <div class="stat-value">{{ "%.1f"|format(user.average_score|float) }}%</div>
                 </div>
             </div>
         </div>
@@ -424,7 +450,7 @@
                     </div>
                     <div class="form-group">
                         <label for="level">Language Level</label>
-                        <select id="level" name="level">
+                        <select id="level" name="level" style="padding: 8px 12px; height: auto; line-height: normal; color: var(--text-color);">
                             <option value="A1" {% if user.level == 'A1' %}selected{% endif %}>A1 - Beginner</option>
                             <option value="A2" {% if user.level == 'A2' %}selected{% endif %}>A2 - Elementary</option>
                             <option value="B1" {% if user.level == 'B1' %}selected{% endif %}>B1 - Intermediate</option>
@@ -472,8 +498,8 @@
                         {% for item in user.performance %}
                         <tr>
                             <td>{{ item.concept }}</td>
-                            <td>{{ item.success_rate }}%</td>
-                            <td>{{ item.error_rate }}%</td>
+                            <td>{{ "%.1f"|format(item.success_rate|float) }}%</td>
+                            <td>{{ "%.1f"|format(item.error_rate|float) }}%</td>
                             <td>{{ item.total_attempts }}</td>
                         </tr>
                         {% endfor %}

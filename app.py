@@ -287,29 +287,33 @@ def signup():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    if request.method == 'GET':
-        return render_template('login.html')
-    
     if request.method == 'POST':
-        email = request.form['email']
-        password = request.form['password']
-        
-        if (email == 'test@test.com' and password == 'password') or (email == 'admin@yahoo.com' and password == 'admin321'):
-            session['logged_in'] = True
-            session['user_id'] = 0
-            return redirect(url_for('generate'))
+        email = request.form.get('email')
+        password = request.form.get('password')
         
         user = User.query.filter_by(email=email).first()
         
-        # Check if the user exists, hasn't been deleted, and password is correct
-        if user and not user.is_deleted and user.check_password(password):
+        if user and check_password_hash(user.password_hash, password):
             session['logged_in'] = True
             session['user_id'] = user.id
+            session['user_email'] = user.email
             session['user_name'] = user.name
-            return redirect(url_for('generate'))
+            session['user_level'] = user.level
             
-        return render_template('login.html', error="Invalid credentials")
+            # Add this line to specifically mark admin accounts
+            if user.email == 'admin@yahoo.com':
+                session['is_admin'] = True
+            
+            # Update last active date
+            user.last_active_date = date.today()
+            db.session.commit()
+            
+            return redirect(url_for('generate'))
+        else:
+            return render_template('login.html', error='Invalid email or password')
     
+    return render_template('login.html')
+
 @app.route('/logout')
 def logout():
     # Clear the session
@@ -318,40 +322,49 @@ def logout():
 
 @app.route('/profile')
 def profile():
+    # Debug log to help troubleshoot
+    app.logger.info(f"Session data on profile access: {session}")
+    
     if not session.get('logged_in'):
+        app.logger.info("User not logged in, redirecting to login")
         return redirect(url_for('login'))
     
     user_id = session.get('user_id')
-    user = db.session.get(User, user_id)
+    app.logger.info(f"Profile access for user_id: {user_id}")
+    
+    user = User.query.get(user_id)
+    
     if not user:
-        return redirect(url_for('login'))
+        app.logger.error(f"User {user_id} not found in database")
+        return redirect(url_for('logout'))
     
-    # Format study time as hours and minutes
-    study_time_str = format_study_time(user.study_time or 0)
+    # Make sure admin flag is set for admin users
+    if user.email == 'admin@yahoo.com':
+        session['is_admin'] = True
+        app.logger.info("Admin user confirmed, setting is_admin flag")
     
-    user_data = {
-        'name': user.name,
-        'level': user.level,
-        'language': user.language,
-        'study_time': study_time_str,
-        'streak': str(user.streak),
-        'lessons_completed': str(user.lessons_completed),
-        'average_score': str(int(user.average_score)),
-        'performance': [],
-        'profile_picture': user.profile_picture
-    }
+    # Get user performance data
+    user_performance = UserPerformance.query.filter_by(user_id=user_id).all()
+    performance_data = []
     
-    # Gather performance stats
-    performance = UserPerformance.query.filter_by(user_id=user_id).order_by(UserPerformance.timestamp.desc()).all()
-    for perf in performance:
-        user_data['performance'].append({
+    for perf in user_performance:
+        performance_data.append({
             'concept': perf.concept,
-            'success_rate': str(int(perf.success_rate)),
-            'error_rate': str(int(perf.error_rate)),
+            'success_rate': perf.success_rate,
+            'error_rate': perf.error_rate,
             'total_attempts': perf.total_attempts
         })
     
-    return render_template('profile.html', user=user_data)
+    # For admins, you might want to provide additional data
+    admin_data = None
+    if session.get('is_admin'):
+        admin_data = {
+            'user_count': User.query.filter(User.email != 'admin@yahoo.com').count(),
+            'active_users': User.query.filter(User.last_active_date >= (date.today() - timedelta(days=7))).count()
+        }
+    
+    return render_template('profile.html', user=user, performance_data=performance_data, admin_data=admin_data)
+
 
 @app.route('/update_profile', methods=['POST'])
 def update_profile():
@@ -832,6 +845,60 @@ def generate():
 
     else:
         return jsonify({"error": "Method not allowed", "success": False}), 405
+
+@app.route('/admin_dashboard')
+def admin_dashboard():
+    # Check if user is logged in and is admin
+    if not session.get('logged_in') or session.get('user_email') != 'admin@yahoo.com':
+        return redirect(url_for('login'))
+    
+    # Set admin flag in session
+    session['is_admin'] = True
+    
+    # Get all users except admin and deleted accounts
+    users = User.query.filter(User.email != 'admin@yahoo.com', User.is_deleted == False).all()
+    
+    # For each user, gather question statistics
+    user_data = []
+    for user in users:
+        # Calculate question stats
+        question_stats = {
+            'fill_blanks': FillInTheBlank.query.filter_by(for_user=user.id).count(),
+            'multiple_choice': MultipleChoice.query.filter_by(for_user=user.id).count(),
+            'arrange_words': ArrangeTheWord.query.filter_by(for_user=user.id).count(),
+            'selection': SelectionQuestion.query.filter_by(for_user=user.id).count(),
+            'labeling': LabelingQuestion.query.filter_by(for_user=user.id).count(),
+            'make_sentence': MakeASentence.query.filter_by(for_user=user.id).count(),
+            'finish_sentence': FinishTheSentence.query.filter_by(for_user=user.id).count()
+        }
+        question_stats['total'] = sum(question_stats.values())
+        
+        # Get performance data
+        performance_data = []
+        user_performance = UserPerformance.query.filter_by(user_id=user.id).all()
+        for perf in user_performance:
+            performance_data.append({
+                'concept': perf.concept,
+                'success_rate': perf.success_rate,
+                'error_rate': perf.error_rate,
+                'total_attempts': perf.total_attempts
+            })
+        
+        # Create a dictionary with user info and stats, DON'T modify the User model
+        # Use a default datetime if join_date doesn't exist
+        user_data.append({
+            'id': user.id,
+            'name': user.name,
+            'email': user.email,
+            'level': user.level,
+            # Use getattr with default to safely handle missing attributes
+            'join_date': getattr(user, 'join_date', datetime.datetime.now()),
+            'last_active_date': user.last_active_date,
+            'question_stats': question_stats,
+            'performance': performance_data
+        })
+    
+    return render_template('admin_dashboard.html', users=user_data)
 
 @app.route('/api/submit_placement_test', methods=['POST'])
 def submit_placement_test():
