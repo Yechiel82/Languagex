@@ -300,9 +300,12 @@ def login():
             session['user_name'] = user.name
             session['user_level'] = user.level
             
-            # Add this line to specifically mark admin accounts
-            if user.email == 'admin@yahoo.com':
+            # Only set is_admin flag for the actual admin email
+            if user.email == 'admin@yahoo.com':  # Make sure this matches your actual admin email
                 session['is_admin'] = True
+            else:
+                # Explicitly remove the is_admin flag for non-admin users
+                session.pop('is_admin', None)
             
             # Update last active date
             user.last_active_date = date.today()

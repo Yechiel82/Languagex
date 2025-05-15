@@ -1,17 +1,4 @@
-2025-05-15 15:43:37,944 - app - INFO - Received generate request: level=A1, topic=love, num_sentences=2, user_id=2
-2025-05-15 15:43:37,951 - app - INFO - Sending request to https://51ce-103-119-147-234.ngrok-free.app/generate_sentences with payload: {'level': 'A1', 'num_sentences': 2, 'user_id': 2, 'topic': 'love', 'question_types': ['fill_in_blank']}
-2025-05-15 15:43:42,594 - app - INFO - API response status: 200
-2025-05-15 15:43:42,595 - app - INFO - Received API response: {'success': True, 'sentences': [{'sentence': 'I love playing soccer with my friends.', 'verb': 'love', 'level': 'A1', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'I __ playing soccer with my friends  (love).', 'correct_answer': 'love'}}, {'sentence': 'My friend loves his dog.', 'verb': 'loves', 'level': 'A1', 'for_user': 2, 'fill_in_blank_question': {'question_text': 'My friend __ his dog  (love).', 'correct_answer': 'loves'}}], 'message': "Generated 2 sentences for level A1 on topic 'love' with question types ['fill_in_blank']", 'processing_time': 3.50923490524292, 'timestamp': '2025-05-15T15:43:42.396617'}
-2025-05-15 15:43:42,625 - app - INFO - Stored 2 valid sentences for user 2
-2025-05-15 15:43:42,625 - app - INFO - Returning 2 sentences to client
-2025-05-15 15:43:48,514 - app - INFO - Received submit_answer data: {'question_id': 6, 'user_answer': 'love', 'is_correct': False, 'question_type': 'fill_in_blank', 'concept': 'love', 'time_spent': 0}
-2025-05-15 15:43:48,515 - app - INFO - Received submit_answer data: {'question_id': 6, 'user_answer': 'love', 'is_correct': False, 'question_type': 'fill_in_blank', 'concept': 'love', 'time_spent': 0}
-2025-05-15 15:43:48,515 - app - INFO - submit_answer called with question_id=6, question_type=fill_in_blank
-2025-05-15 15:43:48,515 - app - INFO - submit_answer called with question_id=6, question_type=fill_in_blank
-2025-05-15 15:52:01,314 - app - INFO - Flask app is starting up
-2025-05-15 15:54:28,025 - app - INFO - Flask app is starting up
-2025-05-15 15:55:05,679 - app - INFO - Flask app is starting up
-2025-05-15 15:55:56,711 - app - ERROR - Exception on /profile [GET]
+2025-05-15 16:08:08,993 - app - ERROR - Exception on /admin_dashboard [GET]
 Traceback (most recent call last):
   File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/flask/app.py", line 1473, in wsgi_app
     response = self.full_dispatch_request()
@@ -25,71 +12,80 @@ Traceback (most recent call last):
   File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/flask/app.py", line 865, in dispatch_request
     return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Volumes/Yechiel/Project/Languagex/app.py", line 347, in profile
-    user.performance = performance_data
-    ^^^^^^^^^^^^^^^^
-  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/sqlalchemy/orm/attributes.py", line 537, in __set__
-    self.impl.set(
-  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/sqlalchemy/orm/attributes.py", line 1985, in set
-    collections.bulk_replace(
-  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/sqlalchemy/orm/collections.py", line 802, in bulk_replace
-    appender(member, _sa_initiator=initiator)
-  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/sqlalchemy/orm/collections.py", line 1129, in append
-    item = __set(self, item, _sa_initiator, NO_KEY)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/sqlalchemy/orm/collections.py", line 1094, in __set
-    item = executor.fire_append_event(item, _sa_initiator, key=key)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/sqlalchemy/orm/collections.py", line 686, in fire_append_event
-    return self.attr.fire_append_event(
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/sqlalchemy/orm/attributes.py", line 1752, in fire_append_event
-    value = fn(state, value, initiator or self._append_token, key=key)
-            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/sqlalchemy/orm/unitofwork.py", line 63, in append
-    item_state = attributes.instance_state(item)
-                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-AttributeError: 'dict' object has no attribute '_sa_instance_state'
-2025-05-15 15:55:58,922 - app - ERROR - Exception on /profile [GET]
-Traceback (most recent call last):
-  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/flask/app.py", line 1473, in wsgi_app
-    response = self.full_dispatch_request()
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/flask/app.py", line 882, in full_dispatch_request
-    rv = self.handle_user_exception(e)
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/flask/app.py", line 880, in full_dispatch_request
-    rv = self.dispatch_request()
-         ^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/flask/app.py", line 865, in dispatch_request
-    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Volumes/Yechiel/Project/Languagex/app.py", line 347, in profile
-    user.performance = performance_data
-    ^^^^^^^^^^^^^^^^
-  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/sqlalchemy/orm/attributes.py", line 537, in __set__
-    self.impl.set(
-  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/sqlalchemy/orm/attributes.py", line 1985, in set
-    collections.bulk_replace(
-  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/sqlalchemy/orm/collections.py", line 802, in bulk_replace
-    appender(member, _sa_initiator=initiator)
-  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/sqlalchemy/orm/collections.py", line 1129, in append
-    item = __set(self, item, _sa_initiator, NO_KEY)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/sqlalchemy/orm/collections.py", line 1094, in __set
-    item = executor.fire_append_event(item, _sa_initiator, key=key)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/sqlalchemy/orm/collections.py", line 686, in fire_append_event
-    return self.attr.fire_append_event(
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/sqlalchemy/orm/attributes.py", line 1752, in fire_append_event
-    value = fn(state, value, initiator or self._append_token, key=key)
-            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/yechiel/miniconda3/envs/flaskenv/lib/python3.12/site-packages/sqlalchemy/orm/unitofwork.py", line 63, in append
-    item_state = attributes.instance_state(item)
-                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-AttributeError: 'dict' object has no attribute '_sa_instance_state'
-2025-05-15 15:59:14,011 - app - INFO - Flask app is starting up
-2025-05-15 15:59:26,103 - app - INFO - Session data on profile access: <SecureCookieSession {'is_admin': True, 'logged_in': True, 'user_email': 'admin@yahoo.com', 'user_id': 1, 'user_level': 'C2', 'user_name': 'Admin User'}>
-2025-05-15 15:59:26,105 - app - INFO - Profile access for user_id: 1
-2025-05-15 15:59:26,118 - app - INFO - Admin user confirmed, setting is_admin flag
+  File "/Volumes/Yechiel/Project/Languagex/app.py", line 893, in admin_dashboard
+    'join_date': user.join_date,
+                 ^^^^^^^^^^^^^^
+AttributeError: 'User' object has no attribute 'join_date'
+2025-05-15 16:11:15,160 - app - INFO - Flask app is starting up
+2025-05-15 16:11:30,269 - app - INFO - Session data on profile access: <SecureCookieSession {'is_admin': True, 'logged_in': True, 'user_email': 'admin@yahoo.com', 'user_id': 1, 'user_level': 'C2', 'user_name': 'Admin User'}>
+2025-05-15 16:11:30,271 - app - INFO - Profile access for user_id: 1
+2025-05-15 16:11:30,282 - app - INFO - Admin user confirmed, setting is_admin flag
+2025-05-15 16:13:07,300 - app - INFO - Session data on profile access: <SecureCookieSession {'is_admin': True, 'logged_in': True, 'user_email': 'admin@yahoo.com', 'user_id': 1, 'user_level': 'C2', 'user_name': 'Admin User'}>
+2025-05-15 16:13:07,300 - app - INFO - Profile access for user_id: 1
+2025-05-15 16:13:07,306 - app - INFO - Admin user confirmed, setting is_admin flag
+2025-05-15 16:13:38,451 - app - INFO - Session data on profile access: <SecureCookieSession {'logged_in': True, 'user_email': 'aa@test.com', 'user_id': 3, 'user_level': 'B1', 'user_name': 'asd'}>
+2025-05-15 16:13:38,453 - app - INFO - Profile access for user_id: 3
+2025-05-15 16:14:00,532 - app - INFO - Session data on profile access: <SecureCookieSession {'logged_in': True, 'user_email': 'aa@test.com', 'user_id': 3, 'user_level': 'B1', 'user_name': 'asd'}>
+2025-05-15 16:14:00,534 - app - INFO - Profile access for user_id: 3
+2025-05-15 16:14:07,133 - app - INFO - Session data on profile access: <SecureCookieSession {'logged_in': True, 'user_email': 'a@test.com', 'user_id': 2, 'user_level': 'A1', 'user_name': 'Yechiel'}>
+2025-05-15 16:14:07,134 - app - INFO - Profile access for user_id: 2
+2025-05-15 16:14:18,533 - app - INFO - Session data on profile access: <SecureCookieSession {'logged_in': True, 'user_email': 'aa@test.com', 'user_id': 3, 'user_level': 'B1', 'user_name': 'asd'}>
+2025-05-15 16:14:18,535 - app - INFO - Profile access for user_id: 3
+2025-05-15 16:14:31,017 - app - INFO - Session data on profile access: <SecureCookieSession {'logged_in': True, 'user_email': 'a@test.com', 'user_id': 2, 'user_level': 'A1', 'user_name': 'Yechiel'}>
+2025-05-15 16:14:31,018 - app - INFO - Profile access for user_id: 2
+2025-05-15 16:16:41,184 - app - INFO - Flask app is starting up
+2025-05-15 16:16:44,773 - app - INFO - Session data on profile access: <SecureCookieSession {'logged_in': True, 'user_email': 'a@test.com', 'user_id': 2, 'user_level': 'A1', 'user_name': 'Yechiel'}>
+2025-05-15 16:16:44,776 - app - INFO - Profile access for user_id: 2
+2025-05-15 16:18:43,136 - app - INFO - Flask app is starting up
+2025-05-15 16:18:44,133 - app - INFO - Session data on profile access: <SecureCookieSession {'logged_in': True, 'user_email': 'a@test.com', 'user_id': 2, 'user_level': 'A1', 'user_name': 'Yechiel'}>
+2025-05-15 16:18:44,133 - app - INFO - Profile access for user_id: 2
+2025-05-15 16:18:45,121 - app - INFO - Session data on profile access: <SecureCookieSession {'logged_in': True, 'user_email': 'a@test.com', 'user_id': 2, 'user_level': 'A1', 'user_name': 'Yechiel'}>
+2025-05-15 16:18:45,121 - app - INFO - Profile access for user_id: 2
+2025-05-15 16:19:57,076 - app - INFO - Session data on profile access: <SecureCookieSession {'is_admin': True, 'logged_in': True, 'user_email': 'admin@yahoo.com', 'user_id': 1, 'user_level': 'C2', 'user_name': 'Admin User'}>
+2025-05-15 16:19:57,078 - app - INFO - Profile access for user_id: 1
+2025-05-15 16:19:57,094 - app - INFO - Admin user confirmed, setting is_admin flag
+2025-05-15 16:21:47,723 - app - INFO - Flask app is starting up
+2025-05-15 16:21:49,014 - app - INFO - Session data on profile access: <SecureCookieSession {'is_admin': True, 'logged_in': True, 'user_email': 'admin@yahoo.com', 'user_id': 1, 'user_level': 'C2', 'user_name': 'Admin User'}>
+2025-05-15 16:21:49,015 - app - INFO - Profile access for user_id: 1
+2025-05-15 16:21:49,020 - app - INFO - Admin user confirmed, setting is_admin flag
+2025-05-15 16:21:49,729 - app - INFO - Session data on profile access: <SecureCookieSession {'is_admin': True, 'logged_in': True, 'user_email': 'admin@yahoo.com', 'user_id': 1, 'user_level': 'C2', 'user_name': 'Admin User'}>
+2025-05-15 16:21:49,730 - app - INFO - Profile access for user_id: 1
+2025-05-15 16:21:49,732 - app - INFO - Admin user confirmed, setting is_admin flag
+2025-05-15 16:21:50,037 - app - INFO - Session data on profile access: <SecureCookieSession {'is_admin': True, 'logged_in': True, 'user_email': 'admin@yahoo.com', 'user_id': 1, 'user_level': 'C2', 'user_name': 'Admin User'}>
+2025-05-15 16:21:50,038 - app - INFO - Profile access for user_id: 1
+2025-05-15 16:21:50,039 - app - INFO - Admin user confirmed, setting is_admin flag
+2025-05-15 16:21:50,277 - app - INFO - Session data on profile access: <SecureCookieSession {'is_admin': True, 'logged_in': True, 'user_email': 'admin@yahoo.com', 'user_id': 1, 'user_level': 'C2', 'user_name': 'Admin User'}>
+2025-05-15 16:21:50,277 - app - INFO - Profile access for user_id: 1
+2025-05-15 16:21:50,279 - app - INFO - Admin user confirmed, setting is_admin flag
+2025-05-15 16:21:50,534 - app - INFO - Session data on profile access: <SecureCookieSession {'is_admin': True, 'logged_in': True, 'user_email': 'admin@yahoo.com', 'user_id': 1, 'user_level': 'C2', 'user_name': 'Admin User'}>
+2025-05-15 16:21:50,534 - app - INFO - Profile access for user_id: 1
+2025-05-15 16:21:50,536 - app - INFO - Admin user confirmed, setting is_admin flag
+2025-05-15 16:21:50,844 - app - INFO - Session data on profile access: <SecureCookieSession {'is_admin': True, 'logged_in': True, 'user_email': 'admin@yahoo.com', 'user_id': 1, 'user_level': 'C2', 'user_name': 'Admin User'}>
+2025-05-15 16:21:50,844 - app - INFO - Profile access for user_id: 1
+2025-05-15 16:21:50,846 - app - INFO - Admin user confirmed, setting is_admin flag
+2025-05-15 16:23:34,209 - app - INFO - Flask app is starting up
+2025-05-15 16:24:00,449 - app - INFO - Session data on profile access: <SecureCookieSession {'is_admin': True, 'logged_in': True, 'user_email': 'admin@yahoo.com', 'user_id': 1, 'user_level': 'C2', 'user_name': 'Admin User'}>
+2025-05-15 16:24:00,451 - app - INFO - Profile access for user_id: 1
+2025-05-15 16:24:00,463 - app - INFO - Admin user confirmed, setting is_admin flag
+2025-05-15 16:26:18,292 - app - INFO - Flask app is starting up
+2025-05-15 16:26:20,388 - app - INFO - Session data on profile access: <SecureCookieSession {'is_admin': True, 'logged_in': True, 'user_email': 'admin@yahoo.com', 'user_id': 1, 'user_level': 'C2', 'user_name': 'Admin User'}>
+2025-05-15 16:26:20,389 - app - INFO - Profile access for user_id: 1
+2025-05-15 16:26:20,393 - app - INFO - Admin user confirmed, setting is_admin flag
+2025-05-15 16:26:21,439 - app - INFO - Session data on profile access: <SecureCookieSession {'is_admin': True, 'logged_in': True, 'user_email': 'admin@yahoo.com', 'user_id': 1, 'user_level': 'C2', 'user_name': 'Admin User'}>
+2025-05-15 16:26:21,440 - app - INFO - Profile access for user_id: 1
+2025-05-15 16:26:21,443 - app - INFO - Admin user confirmed, setting is_admin flag
+2025-05-15 16:26:22,084 - app - INFO - Session data on profile access: <SecureCookieSession {'is_admin': True, 'logged_in': True, 'user_email': 'admin@yahoo.com', 'user_id': 1, 'user_level': 'C2', 'user_name': 'Admin User'}>
+2025-05-15 16:26:22,084 - app - INFO - Profile access for user_id: 1
+2025-05-15 16:26:22,086 - app - INFO - Admin user confirmed, setting is_admin flag
+2025-05-15 16:26:33,577 - app - INFO - Session data on profile access: <SecureCookieSession {'is_admin': True, 'logged_in': True, 'user_email': 'admin@yahoo.com', 'user_id': 1, 'user_level': 'C2', 'user_name': 'Admin User'}>
+2025-05-15 16:26:33,579 - app - INFO - Profile access for user_id: 1
+2025-05-15 16:26:33,582 - app - INFO - Admin user confirmed, setting is_admin flag
+2025-05-15 16:28:09,343 - app - INFO - Flask app is starting up
+2025-05-15 16:28:14,013 - app - INFO - Session data on profile access: <SecureCookieSession {'is_admin': True, 'logged_in': True, 'user_email': 'admin@yahoo.com', 'user_id': 1, 'user_level': 'C2', 'user_name': 'Admin User'}>
+2025-05-15 16:28:14,014 - app - INFO - Profile access for user_id: 1
+2025-05-15 16:28:14,027 - app - INFO - Admin user confirmed, setting is_admin flag
+2025-05-15 16:31:11,831 - app - INFO - Session data on profile access: <SecureCookieSession {'is_admin': True, 'logged_in': True, 'user_email': 'admin@yahoo.com', 'user_id': 1, 'user_level': 'C2', 'user_name': 'Admin User'}>
+2025-05-15 16:31:11,834 - app - INFO - Profile access for user_id: 1
+2025-05-15 16:31:11,844 - app - INFO - Admin user confirmed, setting is_admin flag
+2025-05-15 16:35:12,239 - app - INFO - Flask app is starting up
+2025-05-15 16:36:55,454 - app - INFO - Flask app is starting up
